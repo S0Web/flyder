@@ -66,6 +66,10 @@ export const api = {
   },
   getCoaches:      (tous = false) => req(`/coaches${tous ? '?tous=1' : ''}`),
   getCoachStats:   (id) => req(`/coaches/${id}/stats`),
+  getCoachSeancesDetail: (id, params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+    return req(`/coaches/${id}/seances-detail${qs ? `?${qs}` : ''}`);
+  },
   createCoach:     (data) => req('/coaches', { method: 'POST', body: JSON.stringify(data) }),
   updateCoach:     (id, data) => req(`/coaches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   patchCoach:      (id, data) => req(`/coaches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),

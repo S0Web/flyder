@@ -509,6 +509,17 @@ dynamique qui change avec le temps — la liste blanche devra être mise à jour
 `client/src/pages/FormationArticle.jsx`, `client/src/App.jsx`,
 `client/src/components/Layout.jsx`, `client/src/index.css`.
 
+### 49. ✅ Détail des séances au clic sur un nombre d'heures (Récapitulatif Coaches)
+- Dans le tableau "Récapitulatif des heures effectuées" (Coaches), chaque cellule
+  d'heures non vide (mois, ou colonne Total par coach) est cliquable et ouvre une
+  fenêtre listant les cours du coach sur la période correspondante : groupés par
+  jour (date en toutes lettres), avec pastille de couleur aqua/fitness, horaire,
+  durée, effectif ("X pers.") et badge de statut (Effectué/Payé) — mêmes filtres
+  Effectuées/Payées que le tableau, donc toujours cohérent avec le total affiché.
+  `GET /api/coaches/:id/seances-detail?debut=&fin=&effectue=&paye=`.
+**Fichiers.** `server/src/routes/coaches.js`, `client/src/lib/api.js`,
+`client/src/pages/Coaches.jsx`.
+
 ---
 
 ## Idées écartées (ne pas implémenter sans demande explicite)

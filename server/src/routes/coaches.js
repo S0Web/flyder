@@ -44,6 +44,36 @@ router.get('/recap', (req, res) => {
   res.json({ coaches: result });
 });
 
+// GET /api/coaches/:id/seances-detail?debut=YYYY-MM-DD&fin=YYYY-MM-DD&effectue=1&paye=1
+// Liste détaillée des séances d'un coach sur une période (cours, date, horaire,
+// effectif) — alimente la fenêtre de détail au clic sur un nombre d'heures dans
+// le récapitulatif. Mêmes filtres effectue/paye que /recap pour rester cohérent
+// avec le total affiché.
+router.get('/:id/seances-detail', (req, res) => {
+  const coach = db.get('SELECT id FROM coaches WHERE id = ?', [req.params.id]);
+  if (!coach) return res.status(404).json({ error: 'Coach introuvable' });
+
+  const { debut, fin } = req.query;
+  if (!debut || !fin) return res.status(400).json({ error: 'debut et fin requis' });
+
+  const inclureEffectue = req.query.effectue !== '0';
+  const inclurePaye     = req.query.paye !== '0';
+  const statuts = [];
+  if (inclureEffectue) statuts.push('effectue');
+  if (inclurePaye) statuts.push('paye');
+  if (statuts.length === 0) return res.json([]);
+
+  const rows = db.all(
+    `SELECT s.id, s.date, s.horaire, s.duree_minutes, s.statut, s.nb_presents,
+            ct.nom AS cours_nom, ct.categorie AS cours_categorie
+     FROM seances s JOIN cours_types ct ON ct.id = s.cours_type_id
+     WHERE s.coach_id = ? AND s.statut IN (${statuts.map(() => '?').join(',')}) AND s.date BETWEEN ? AND ?
+     ORDER BY s.date ASC, s.horaire ASC`,
+    [req.params.id, ...statuts, debut, fin]
+  );
+  res.json(rows);
+});
+
 // GET /api/coaches/:id/stats — KPI d'un coach sur 3 périodes : 30 derniers jours,
 // depuis le 1er septembre le plus récent, et de tout temps. Ne compte que les
 // séances effectivement données (effectué/payé), comme le récapitulatif des heures.

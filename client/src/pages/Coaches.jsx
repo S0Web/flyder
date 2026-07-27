@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon } from 'lucide-react';
 import { api } from '../lib/api';
-import { DISCIPLINE_CONFIG, colorForUser } from '../lib/utils';
+import { DISCIPLINE_CONFIG, colorForUser, STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +57,19 @@ function fmtH(val) {
 function pct(a, b) {
   if (!b) return '—';
   return (a / b * 100).toFixed(2).replace('.', ',') + ' %';
+}
+
+function fmtDuree(min) {
+  if (!min) return '';
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
+}
+
+function fmtDateLongue(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const label = new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 // ── Mini graphique SVG ─────────────────────────────────────────────────────────
@@ -311,6 +324,99 @@ function CoachStatsModal({ coach, onEdit, onClose }) {
   );
 }
 
+// ── Modale détail des séances (clic sur un nombre d'heures) ────────────────────
+
+function CoachSeancesModal({ coach, periodeLabel, debut, fin, inclureEffectue, inclurePaye, onClose }) {
+  const [seances, setSeances] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getCoachSeancesDetail(coach.id, { debut, fin, effectue: inclureEffectue ? 1 : 0, paye: inclurePaye ? 1 : 0 })
+      .then(s => { if (!cancelled) setSeances(s); })
+      .catch(() => { if (!cancelled) setSeances([]); });
+    return () => { cancelled = true; };
+  }, [coach.id, debut, fin, inclureEffectue, inclurePaye]);
+
+  useEffect(() => {
+    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [onClose]);
+
+  const groupes = [];
+  if (seances) {
+    for (const s of seances) {
+      const dernier = groupes[groupes.length - 1];
+      if (dernier && dernier.date === s.date) dernier.items.push(s);
+      else groupes.push({ date: s.date, items: [s] });
+    }
+  }
+  const totalHeures = seances ? seances.reduce((sum, s) => sum + s.duree_minutes, 0) / 60 : 0;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-6 pt-5 pb-4 border-b flex items-center gap-3 flex-shrink-0">
+          <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+            style={{ backgroundColor: colorForUser(coach.id) }}>
+            {coach.prenom?.[0]}{coach.nom?.[0]}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-800 truncate">{coach.prenom} {coach.nom}</h2>
+            <div className="text-xs text-gray-400">
+              {periodeLabel}{seances && seances.length > 0 && ` · ${seances.length} cours · ${fmtH(totalHeures)}h`}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 overflow-y-auto">
+          {seances === null ? (
+            <div className="text-center py-8 text-gray-400 text-sm">Chargement…</div>
+          ) : seances.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm">Aucun cours sur cette période.</div>
+          ) : (
+            <div className="space-y-4">
+              {groupes.map(g => (
+                <div key={g.date}>
+                  <div className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-1.5">
+                    {fmtDateLongue(g.date)}
+                  </div>
+                  <div className="space-y-1.5">
+                    {g.items.map(s => {
+                      const cat = CATEGORIE_CONFIG[s.cours_categorie] || CATEGORIE_CONFIG.fitness;
+                      const statut = STATUT_CONFIG[s.statut] || STATUT_CONFIG.effectue;
+                      return (
+                        <div key={s.id} className="flex items-center gap-2.5 rounded-lg border border-gray-100 px-3 py-2" style={{ backgroundColor: cat.cell }}>
+                          <span className={`h-2 w-2 rounded-full flex-shrink-0 ${cat.dot}`} />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-gray-800 text-sm truncate">{s.cours_nom}</div>
+                            <div className="text-xs text-gray-500">{s.horaire} · {fmtDuree(s.duree_minutes)}</div>
+                          </div>
+                          {s.nb_presents != null && (
+                            <div className="text-xs text-gray-500 flex-shrink-0">{s.nb_presents} pers.</div>
+                          )}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statut.bg} ${statut.text}`}>
+                            {statut.shortLabel}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 pb-5 pt-2 flex-shrink-0">
+          <button onClick={onClose}
+            className="w-full border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Fermer</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Page principale ────────────────────────────────────────────────────────────
 
 export default function Coaches() {
@@ -318,6 +424,7 @@ export default function Coaches() {
   const [dashboard, setDash]    = useState(null);
   const [modal, setModal]       = useState(null);
   const [statsModal, setStatsModal] = useState(null);
+  const [seancesModal, setSeancesModal] = useState(null); // { coach, mois } — mois=null pour le total
   const [showInactifs, setShowInactifs] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const reqIdRef = useRef(0);
@@ -464,14 +571,29 @@ export default function Coaches() {
                     {months.map(m => {
                       const v = coach.mois[m];
                       return (
-                        <td key={m} className="border-b border-gray-100 px-2 py-1.5 text-center text-xs tabular-nums"
-                          style={{ color: v ? '#111' : '#d1d5db', backgroundColor: m === currentMois ? '#eef9fd' : undefined }}>
-                          {v ? fmtH(v) : '—'}
+                        <td key={m} className="border-b border-gray-100 p-0 text-center text-xs tabular-nums"
+                          style={{ backgroundColor: m === currentMois ? '#eef9fd' : undefined }}>
+                          {v ? (
+                            <button onClick={() => setSeancesModal({ coach, mois: m })}
+                              className="w-full h-full px-2 py-1.5 tabular-nums hover:underline hover:bg-sky-50/60"
+                              style={{ color: '#111' }}>
+                              {fmtH(v)}
+                            </button>
+                          ) : (
+                            <span className="block px-2 py-1.5" style={{ color: '#d1d5db' }}>—</span>
+                          )}
                         </td>
                       );
                     })}
-                    <td className="border-b border-gray-100 px-3 py-1.5 text-center font-bold text-xs tabular-nums" style={{ color: '#1a7a9b' }}>
-                      {coach.total ? fmtH(coach.total) : '—'}
+                    <td className="border-b border-gray-100 p-0 text-center font-bold text-xs tabular-nums">
+                      {coach.total ? (
+                        <button onClick={() => setSeancesModal({ coach, mois: null })}
+                          className="w-full h-full px-3 py-1.5 tabular-nums hover:underline hover:bg-sky-50/60" style={{ color: '#1a7a9b' }}>
+                          {fmtH(coach.total)}
+                        </button>
+                      ) : (
+                        <span className="block px-3 py-1.5" style={{ color: '#1a7a9b' }}>—</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -668,6 +790,32 @@ export default function Coaches() {
           </div>
         </div>
       )}
+
+      {/* Modale détail des séances (clic sur un nombre d'heures) */}
+      {seancesModal !== null && (() => {
+        let modalDebut, modalFin, modalLabel;
+        if (seancesModal.mois) {
+          const [y, m] = seancesModal.mois.split('-').map(Number);
+          modalDebut = `${seancesModal.mois}-01`;
+          modalFin = `${seancesModal.mois}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+          modalLabel = `${MOIS_LABELS[String(m).padStart(2, '0')]} ${y}`;
+        } else {
+          modalDebut = debut;
+          modalFin = fin;
+          modalLabel = '13 derniers mois';
+        }
+        return (
+          <CoachSeancesModal
+            coach={seancesModal.coach}
+            periodeLabel={modalLabel}
+            debut={modalDebut}
+            fin={modalFin}
+            inclureEffectue={inclureEffectue}
+            inclurePaye={inclurePaye}
+            onClose={() => setSeancesModal(null)}
+          />
+        );
+      })()}
 
       {/* Modale statistiques coach */}
       {statsModal !== null && (
