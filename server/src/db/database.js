@@ -503,6 +503,12 @@ tryAlter('ALTER TABLE app_users ADD COLUMN cp_ajuste REAL NOT NULL DEFAULT 0');
 // ─── Annuaire : un coach peut aussi apparaître dans d'autres catégories (ex. employé) ───
 tryAlter("ALTER TABLE coaches ADD COLUMN categories_extra TEXT NOT NULL DEFAULT ''");
 
+// ─── Facturation coach (facultatif) : sert à faire figurer ces infos sur l'export
+// PDF du récapitulatif d'heures, pour comparer avec la facture envoyée par le coach ───
+tryAlter('ALTER TABLE coaches ADD COLUMN siret TEXT');
+tryAlter('ALTER TABLE coaches ADD COLUMN adresse TEXT');
+tryAlter('ALTER TABLE coaches ADD COLUMN tarif_horaire REAL');
+
 // ─── Accès en écriture restreint : IP autorisées à modifier depuis un compte non-manager ───
 db.run(`
   CREATE TABLE IF NOT EXISTS ip_autorisees (

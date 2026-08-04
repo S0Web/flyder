@@ -20,7 +20,7 @@ router.get('/recap', (req, res) => {
   if (inclureEffectue) statuts.push('effectue');
   if (inclurePaye) statuts.push('paye');
 
-  const coaches = db.all('SELECT id, prenom, nom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, actif FROM coaches WHERE supprime = 0 ORDER BY prenom, nom');
+  const coaches = db.all('SELECT id, prenom, nom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, actif, siret, adresse, tarif_horaire FROM coaches WHERE supprime = 0 ORDER BY prenom, nom');
   const seances = statuts.length === 0 ? [] : db.all(
     `SELECT coach_id, SUBSTR(date,1,7) as mois, SUM(duree_minutes) as mins
      FROM seances
@@ -130,17 +130,25 @@ router.get('/:id', (req, res) => {
   res.json(coach);
 });
 
+// Convertit un tarif horaire saisi (chaîne ou nombre, facultatif) en REAL ou null.
+function parseTarifHoraire(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 // POST /api/coaches
 router.post('/', (req, res) => {
-  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance } = req.body;
+  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire } = req.body;
   if (!prenom || !prenom.trim()) {
     return res.status(400).json({ error: 'prenom est obligatoire' });
   }
   try {
     const result = db.run(
-      'INSERT INTO coaches (nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO coaches (nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [(nom || '').trim(), prenom.trim(), email?.trim() || null, telephone?.trim() || null,
-       aqua ? 1 : 0, fitness ? 1 : 0, boxe ? 1 : 0, crosstraining ? 1 : 0, poledance ? 1 : 0]
+       aqua ? 1 : 0, fitness ? 1 : 0, boxe ? 1 : 0, crosstraining ? 1 : 0, poledance ? 1 : 0,
+       siret?.trim() || null, adresse?.trim() || null, parseTarifHoraire(tarif_horaire)]
     );
     const created = db.get('SELECT * FROM coaches WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(created);
@@ -154,7 +162,7 @@ router.post('/', (req, res) => {
 
 // PUT /api/coaches/:id — mise à jour complète
 router.put('/:id', (req, res) => {
-  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance } = req.body;
+  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire } = req.body;
   if (!prenom || !prenom.trim()) {
     return res.status(400).json({ error: 'prenom est obligatoire' });
   }
@@ -163,9 +171,10 @@ router.put('/:id', (req, res) => {
 
   try {
     db.run(
-      'UPDATE coaches SET nom = ?, prenom = ?, email = ?, telephone = ?, aqua = ?, fitness = ?, boxe = ?, crosstraining = ?, poledance = ? WHERE id = ?',
+      'UPDATE coaches SET nom = ?, prenom = ?, email = ?, telephone = ?, aqua = ?, fitness = ?, boxe = ?, crosstraining = ?, poledance = ?, siret = ?, adresse = ?, tarif_horaire = ? WHERE id = ?',
       [(nom || '').trim(), prenom.trim(), email?.trim() || null, telephone?.trim() || null,
-       aqua ? 1 : 0, fitness ? 1 : 0, boxe ? 1 : 0, crosstraining ? 1 : 0, poledance ? 1 : 0, req.params.id]
+       aqua ? 1 : 0, fitness ? 1 : 0, boxe ? 1 : 0, crosstraining ? 1 : 0, poledance ? 1 : 0,
+       siret?.trim() || null, adresse?.trim() || null, parseTarifHoraire(tarif_horaire), req.params.id]
     );
     res.json(db.get('SELECT * FROM coaches WHERE id = ?', [req.params.id]));
   } catch (err) {

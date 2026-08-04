@@ -36,9 +36,10 @@ couche de sécurité.
 
    | Variable    | Valeur (Ballancourt)          | Rôle                                             |
    |-------------|-------------------------------|--------------------------------------------------|
-   | `DB_PATH`   | `/data/fitnessmov.db`         | Base **isolée**, stockée sur le Volume            |
-   | `SALLE_NOM` | `Ballancourt-sur-Essonne`     | Nom affiché (en-tête, écran d'accueil, onglet)    |
-   | `TZ`        | `Europe/Paris` *(optionnel)*  | Déjà la valeur par défaut dans le code            |
+   | `DB_PATH`      | `/data/fitnessmov.db`         | Base **isolée**, stockée sur le Volume            |
+   | `SALLE_NOM`    | `Ballancourt-sur-Essonne`     | Nom affiché (en-tête, écran d'accueil, onglet)    |
+   | `SALLE_ADRESSE`| `12 rue Exemple, 91xxx …` *(optionnel)* | Adresse affichée sur les exports PDF du récapitulatif d'heures |
+   | `TZ`           | `Europe/Paris` *(optionnel)*  | Déjà la valeur par défaut dans le code            |
 
 5. **Déploie.** Au premier démarrage :
    - la base vierge se crée toute seule (tables + migrations) ;

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon } from 'lucide-react';
+import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon, FileDown } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
+import { useConfig } from '../context/ConfigContext';
 import { DISCIPLINE_CONFIG, colorForUser, STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -70,6 +72,99 @@ function fmtDateLongue(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   const label = new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function fmtEuros(v) {
+  return v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+// ── Export PDF du récapitulatif d'heures d'un coach ─────────────────────────────
+// Sert de pièce de comparaison face à la facture envoyée par le coach : heures
+// effectuées sur la période, et — si renseignés sur sa fiche — SIRET/adresse et
+// montant dû (tarif horaire × heures). Toutes ces infos sont facultatives.
+
+function exportSeancesPdf({ coach, seances, periodeLabel, salleNom, salleAdresse }) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const marginX = 15;
+  const pageH = doc.internal.pageSize.getHeight();
+  let y = 20;
+
+  function ensureSpace(next) {
+    if (y + next > pageH - 15) { doc.addPage(); y = 20; }
+  }
+
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.text(salleNom ? `FitnessMov — ${salleNom}` : 'FitnessMov', marginX, y);
+  doc.setFont(undefined, 'normal');
+  y += 6;
+  if (salleAdresse) {
+    doc.setFontSize(10);
+    doc.text(salleAdresse, marginX, y);
+    y += 8;
+  } else {
+    y += 4;
+  }
+
+  doc.setFontSize(13);
+  doc.setFont(undefined, 'bold');
+  doc.text(`Récapitulatif d'heures — ${coach.prenom} ${coach.nom}`, marginX, y);
+  doc.setFont(undefined, 'normal');
+  y += 6;
+  doc.setFontSize(10);
+  doc.text(`Période : ${periodeLabel}`, marginX, y);
+  y += 5;
+  if (coach.adresse) { doc.text(`Adresse : ${coach.adresse}`, marginX, y); y += 5; }
+  if (coach.siret)   { doc.text(`SIRET : ${coach.siret}`, marginX, y); y += 5; }
+  y += 4;
+
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.text('Date', marginX, y);
+  doc.text('Cours', marginX + 35, y);
+  doc.text('Horaire', marginX + 105, y);
+  doc.text('Durée', marginX + 135, y);
+  doc.setFont(undefined, 'normal');
+  y += 2;
+  doc.setLineWidth(0.2);
+  doc.line(marginX, y, 210 - marginX, y);
+  y += 4;
+
+  for (const s of seances) {
+    ensureSpace(5);
+    doc.text(fmtDateFr(s.date), marginX, y);
+    doc.text(s.cours_nom, marginX + 35, y, { maxWidth: 65 });
+    doc.text(s.horaire, marginX + 105, y);
+    doc.text(fmtDuree(s.duree_minutes), marginX + 135, y);
+    y += 5;
+  }
+
+  const totalHeures = seances.reduce((sum, s) => sum + s.duree_minutes, 0) / 60;
+
+  y += 3;
+  ensureSpace(10);
+  doc.setLineWidth(0.2);
+  doc.line(marginX, y, 210 - marginX, y);
+  y += 6;
+
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'bold');
+  doc.text(`Total : ${seances.length} cours · ${fmtH(totalHeures)} h`, marginX, y);
+  doc.setFont(undefined, 'normal');
+  y += 6;
+
+  if (coach.tarif_horaire) {
+    ensureSpace(8);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    const montant = totalHeures * coach.tarif_horaire;
+    doc.text(`Montant dû (${fmtEuros(coach.tarif_horaire)}/h) : ${fmtEuros(montant)}`, marginX, y);
+    doc.setFont(undefined, 'normal');
+    y += 6;
+  }
+
+  const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+  doc.save(`heures-${slug(coach.prenom)}-${slug(coach.nom)}-${slug(periodeLabel)}.pdf`);
 }
 
 // ── Mini graphique SVG ─────────────────────────────────────────────────────────
@@ -142,6 +237,9 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose }) {
     boxe:          coach?.boxe          || false,
     crosstraining: coach?.crosstraining || false,
     poledance:     coach?.poledance     || false,
+    siret:         coach?.siret         || '',
+    adresse:       coach?.adresse       || '',
+    tarif_horaire: coach?.tarif_horaire ?? '',
   });
   const [error, setSaving2] = useState(null);
   const [saving, setSaving]  = useState(false);
@@ -229,6 +327,33 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose }) {
               ))}
             </div>
           </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Facturation <span className="normal-case font-normal text-gray-400">(facultatif — utilisé pour l'export PDF)</span>
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Adresse</label>
+                <input value={form.adresse} onChange={e => set('adresse', e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">N° SIRET</label>
+                  <input value={form.siret} onChange={e => set('siret', e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tarif horaire (€)</label>
+                  <input type="number" min="0" step="0.01" value={form.tarif_horaire}
+                    onChange={e => set('tarif_horaire', e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
@@ -327,6 +452,7 @@ function CoachStatsModal({ coach, onEdit, onClose }) {
 // ── Modale détail des séances (clic sur un nombre d'heures) ────────────────────
 
 function CoachSeancesModal({ coach, periodeLabel, debut, fin, inclureEffectue, inclurePaye, onClose }) {
+  const { salleNom, salleAdresse } = useConfig();
   const [seances, setSeances] = useState(null);
 
   useEffect(() => {
@@ -408,9 +534,17 @@ function CoachSeancesModal({ coach, periodeLabel, debut, fin, inclureEffectue, i
           )}
         </div>
 
-        <div className="px-6 pb-5 pt-2 flex-shrink-0">
+        <div className="px-6 pb-5 pt-2 flex-shrink-0 flex gap-2">
           <button onClick={onClose}
-            className="w-full border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Fermer</button>
+            className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Fermer</button>
+          {seances && seances.length > 0 && (
+            <button
+              onClick={() => exportSeancesPdf({ coach, seances, periodeLabel, salleNom, salleAdresse })}
+              className="flex-1 flex items-center justify-center gap-1.5 text-white rounded py-2 text-sm font-medium hover:opacity-90"
+              style={{ backgroundColor: '#2fa8cc' }}>
+              <FileDown className="h-4 w-4" /> Exporter en PDF
+            </button>
+          )}
         </div>
       </div>
     </div>
