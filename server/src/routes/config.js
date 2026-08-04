@@ -11,6 +11,7 @@ router.get('/', (req, res) => {
   );
   res.json({
     salleNom: process.env.SALLE_NOM || '',
+    salleAdresse: process.env.SALLE_ADRESSE || '',
     corbeilHistoriqueImporte,
   });
 });
