@@ -10,10 +10,10 @@ const db      = require('../db/database');
 // top des cours/coachs les plus annulés au lieu des plus réalisés).
 router.get('/', (req, res) => {
   const now   = new Date();
-  const year  = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const year  = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1; // septembre = mois 8
   const toutTemps = req.query.periode === 'tout';
-  const debut = toutTemps ? null : (req.query.debut || `${year}-08-01`);
-  const fin   = toutTemps ? null : (req.query.fin   || `${year + 1}-07-31`);
+  const debut = toutTemps ? null : (req.query.debut || `${year}-09-01`);
+  const fin   = toutTemps ? null : (req.query.fin   || `${year + 1}-08-31`);
 
   const dateCond   = toutTemps ? '1=1' : 'date BETWEEN ? AND ?';
   const dateCondS  = toutTemps ? '1=1' : 's.date BETWEEN ? AND ?';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon, FileDown } from 'lucide-react';
+import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon, FileDown, SlidersHorizontal } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
 import { useConfig } from '../context/ConfigContext';
@@ -44,9 +44,9 @@ function periodeLabel(mode, anneeScolaire, plageDebut, plageFin) {
 
 function getAcademicYear() {
   const now  = new Date();
-  const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  const debut = `${year}-08-01`;
-  const fin   = `${year + 1}-07-31`;
+  const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1; // septembre = mois 8
+  const debut = `${year}-09-01`;
+  const fin   = `${year + 1}-08-31`;
   return { year, debut, fin };
 }
 
@@ -54,11 +54,6 @@ function fmtH(val) {
   if (!val && val !== 0) return '';
   const r = Math.round(val * 100) / 100;
   return r % 1 === 0 ? String(r) : r.toFixed(2).replace(/\.?0+$/, '');
-}
-
-function pct(a, b) {
-  if (!b) return '—';
-  return (a / b * 100).toFixed(2).replace('.', ',') + ' %';
 }
 
 function fmtDuree(min) {
@@ -165,6 +160,159 @@ function exportSeancesPdf({ coach, seances, periodeLabel, salleNom, salleAdresse
 
   const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
   doc.save(`heures-${slug(coach.prenom)}-${slug(coach.nom)}-${slug(periodeLabel)}.pdf`);
+}
+
+// ── Tableau de bord : comparatif vs période précédente ──────────────────────────
+// La période de comparaison est celle, de même durée, qui précède immédiatement
+// la période affichée — ça couvre aussi bien "mois précédent" (plage d'un mois)
+// que "année précédente" (saison scolaire) sans mode dédié à choisir.
+
+function previousPeriodRange(debut, fin) {
+  if (!debut || !fin) return null;
+  const [y0, m0, d0] = debut.split('-').map(Number);
+  const [y1, m1, d1] = fin.split('-').map(Number);
+  const pad = (n) => String(n).padStart(2, '0');
+  const lastDayOfMonth = (y, m) => new Date(y, m, 0).getDate(); // m 1-indexé
+
+  // Plage alignée sur des mois civils complets (ex. un mois entier, ou une saison
+  // scolaire) : on décale d'autant de mois civils plutôt que d'un nombre de jours,
+  // sinon "septembre" se comparerait à "2 août → 31 août" au lieu d'août entier.
+  if (d0 === 1 && d1 === lastDayOfMonth(y1, m1)) {
+    const nbMois = (y1 - y0) * 12 + (m1 - m0) + 1;
+    let endY = y0, endM = m0 - 1;
+    if (endM === 0) { endM = 12; endY -= 1; }
+    let startY = endY, startM = endM - nbMois + 1;
+    while (startM <= 0) { startM += 12; startY -= 1; }
+    return {
+      debut: `${startY}-${pad(startM)}-01`,
+      fin:   `${endY}-${pad(endM)}-${pad(lastDayOfMonth(endY, endM))}`,
+    };
+  }
+
+  // Plage arbitraire (ex. dates piochées à la main) : décalage par durée en jours.
+  const start = new Date(y0, m0 - 1, d0);
+  const end   = new Date(y1, m1 - 1, d1);
+  const dureeJours = Math.round((end - start) / 86400000) + 1;
+  const prevFin = new Date(start); prevFin.setDate(prevFin.getDate() - 1);
+  const prevDebut = new Date(prevFin); prevDebut.setDate(prevDebut.getDate() - (dureeJours - 1));
+  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return { debut: iso(prevDebut), fin: iso(prevFin) };
+}
+
+function aggregateDashboard(dash) {
+  if (!dash) return null;
+  const mensuel = dash.mensuel || [];
+  const heures = mensuel.reduce((s, m) => s + (m.total_minutes || 0), 0) / 60;
+  const effectifSum  = mensuel.reduce((s, m) => s + (m.effectif  || 0), 0);
+  const effectuesSum = mensuel.reduce((s, m) => s + (m.effectues || 0), 0);
+  return {
+    programmes:     dash.kpi?.total    || 0,
+    effectues:      dash.kpi?.effectues || 0,
+    annules:        dash.kpi?.annules   || 0,
+    tauxAnnulation: dash.kpi?.total ? (dash.kpi.annules / dash.kpi.total * 100) : null,
+    heures,
+    effectifMoyen:  effectuesSum ? effectifSum / effectuesSum : null,
+  };
+}
+
+function DeltaBadge({ current, previous, invert = false }) {
+  if (current == null || previous == null || !previous) return null;
+  const delta = (current - previous) / previous * 100;
+  if (!Number.isFinite(delta)) return null;
+  if (Math.abs(delta) < 0.05) {
+    return <span className="block text-[11px] font-medium text-gray-400 mt-1">= vs période préc.</span>;
+  }
+  const up   = delta > 0;
+  const good = invert ? !up : up;
+  return (
+    <span className={`block text-[11px] font-bold mt-1 ${good ? 'text-green-600' : 'text-red-500'}`}>
+      {up ? '▲' : '▼'} {Math.abs(delta).toFixed(1)} % <span className="font-normal text-gray-400">vs préc.</span>
+    </span>
+  );
+}
+
+const KPI_DEFS = [
+  { key: 'programmes',     label: 'Cours programmés',  border: '#94a3b8', bg: '#f8fafc', color: '#475569',
+    get: a => a?.programmes, fmt: v => v ?? '—' },
+  { key: 'effectues',      label: 'Cours effectués',    border: '#86efac', bg: '#f0fdf4', color: '#16a34a',
+    get: a => a?.effectues, fmt: v => v ?? '—' },
+  { key: 'heures',         label: 'Heures réalisées',   border: '#5bcae8', bg: '#eef9fd', color: '#1a7a9b',
+    get: a => a?.heures, fmt: v => v != null ? `${fmtH(v)} h` : '—' },
+  { key: 'effectifMoyen',  label: 'Effectif moyen',     border: '#fcd34d', bg: '#fffbeb', color: '#b45309',
+    get: a => a?.effectifMoyen, fmt: v => v != null ? fmtH(v) : '—' },
+  { key: 'tauxAnnulation', label: "Taux d'annulation",  border: '#fca5a5', bg: '#fef2f2', color: '#dc2626',
+    get: a => a?.tauxAnnulation, fmt: v => v != null ? v.toFixed(1).replace('.', ',') + ' %' : '—', invert: true },
+];
+
+const DEFAULT_WIDGETS = {
+  kpi_programmes: false,
+  kpi_effectues: true,
+  kpi_heures: true,
+  kpi_effectifMoyen: true,
+  kpi_tauxAnnulation: true,
+  comparatif: true,
+  tableauMensuel: true,
+  graphique: true,
+  topCours: true,
+  topCoachs: true,
+};
+
+const WIDGETS_STORAGE_KEY = 'fitnessmov.dashboardWidgets';
+
+function loadWidgetPrefs() {
+  try {
+    const raw = localStorage.getItem(WIDGETS_STORAGE_KEY);
+    if (!raw) return DEFAULT_WIDGETS;
+    return { ...DEFAULT_WIDGETS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_WIDGETS;
+  }
+}
+
+function DashboardSettingsPopover({ widgets, onToggle }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    function handleEscape(e) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open]);
+
+  const Item = ({ k, label }) => (
+    <label className="flex items-center gap-2 text-sm text-gray-700 py-1 cursor-pointer">
+      <input type="checkbox" checked={!!widgets[k]} onChange={() => onToggle(k)} className="rounded" />
+      {label}
+    </label>
+  );
+
+  return (
+    <span className="relative inline-block" ref={ref}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50">
+        <SlidersHorizontal size={15} /> Personnaliser
+      </button>
+      {open && (
+        <div onClick={e => e.stopPropagation()}
+          className="absolute z-30 top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-64">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Indicateurs</div>
+          {KPI_DEFS.map(d => <Item key={d.key} k={`kpi_${d.key}`} label={d.label} />)}
+          <Item k="comparatif" label="Comparatif vs période précédente" />
+          <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mt-3 mb-1">Sections</div>
+          <Item k="tableauMensuel" label="Tableau fréquentation mensuelle" />
+          <Item k="graphique" label="Graphique heures par mois" />
+          <Item k="topCours" label="Top cours" />
+          <Item k="topCoachs" label="Top coachs" />
+        </div>
+      )}
+    </span>
+  );
 }
 
 // ── Mini graphique SVG ─────────────────────────────────────────────────────────
@@ -556,6 +704,8 @@ function CoachSeancesModal({ coach, periodeLabel, debut, fin, inclureEffectue, i
 export default function Coaches() {
   const [recap, setRecap]       = useState(null);
   const [dashboard, setDash]    = useState(null);
+  const [dashboardPrev, setDashPrev] = useState(null); // période précédente, pour le comparatif
+  const [widgets, setWidgets]   = useState(loadWidgetPrefs);
   const [modal, setModal]       = useState(null);
   const [statsModal, setStatsModal] = useState(null);
   const [seancesModal, setSeancesModal] = useState(null); // { coach, mois } — mois=null pour le total
@@ -580,7 +730,7 @@ export default function Coaches() {
 
   function dashboardParams() {
     return periodeMode === 'tout' ? { periode: 'tout' }
-      : periodeMode === 'scolaire' ? { debut: `${anneeScolaire}-08-01`, fin: `${anneeScolaire + 1}-07-31` }
+      : periodeMode === 'scolaire' ? { debut: `${anneeScolaire}-09-01`, fin: `${anneeScolaire + 1}-08-31` }
       : { debut: plageDebut, fin: plageFin };
   }
 
@@ -588,13 +738,17 @@ export default function Coaches() {
     const myId = ++reqIdRef.current;
     setRefreshing(true);
     try {
-      const [r, d] = await Promise.all([
+      const params = dashboardParams();
+      const prevRange = params.periode === 'tout' ? null : previousPeriodRange(params.debut, params.fin);
+      const [r, d, dPrev] = await Promise.all([
         api.getCoachesRecap({ debut, fin, effectue: inclureEffectue ? 1 : 0, paye: inclurePaye ? 1 : 0 }),
-        api.getDashboard(dashboardParams()),
+        api.getDashboard(params),
+        prevRange ? api.getDashboard(prevRange) : Promise.resolve(null),
       ]);
       if (myId !== reqIdRef.current) return; // une requête plus récente est en cours : on ignore
       setRecap(r);
       setDash(d);
+      setDashPrev(dPrev);
     } catch(e) { console.error(e); }
     finally {
       if (myId === reqIdRef.current) setRefreshing(false);
@@ -603,6 +757,11 @@ export default function Coaches() {
   }, [inclureEffectue, inclurePaye, periodeMode, anneeScolaire, plageDebut, plageFin]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    try { localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(widgets)); } catch { /* stockage indisponible, tant pis */ }
+  }, [widgets]);
+  function toggleWidget(key) { setWidgets(w => ({ ...w, [key]: !w[key] })); }
 
   async function handleSave(form) {
     if (modal?.id) await api.updateCoach(modal.id, form);
@@ -634,7 +793,6 @@ export default function Coaches() {
 
   const TH = 'z-20 bg-gray-100 px-2 py-2 text-xs font-bold text-gray-600 uppercase border border-gray-200 text-center whitespace-nowrap';
 
-  const kpi    = dashboard?.kpi    || {};
   const mensuel = dashboard?.mensuel || [];
   const topCours = dashboard?.topCours || [];
   const topCoachs = dashboard?.topCoachs || [];
@@ -761,12 +919,15 @@ export default function Coaches() {
       {dashboard && (
         <div className={`transition-opacity duration-200 ${refreshing ? 'opacity-60' : 'opacity-100'}`}>
           {/* Titre dashboard */}
-          <h2 className="text-lg font-bold text-gray-800 mb-3">
-            Tableau de bord · {periodeLabel(periodeMode, anneeScolaire, plageDebut, plageFin)}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h2 className="text-lg font-bold text-gray-800">
+              Tableau de bord · {periodeLabel(periodeMode, anneeScolaire, plageDebut, plageFin)}
+            </h2>
+            <DashboardSettingsPopover widgets={widgets} onToggle={toggleWidget} />
+          </div>
 
           {/* Filtre période */}
-          <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+          <div className="flex flex-wrap items-center gap-3 mb-1 text-sm">
             <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 gap-1">
               {[
                 { mode: 'scolaire', label: 'Année scolaire', Icon: Calendar },
@@ -803,125 +964,151 @@ export default function Coaches() {
             )}
           </div>
 
+          {widgets.comparatif && periodeMode !== 'tout' && dashboardPrev && (
+            <p className="text-xs text-gray-400 mb-4">
+              Comparé à la période précédente : {fmtDateFr(dashboardPrev.debut)} → {fmtDateFr(dashboardPrev.fin)}
+            </p>
+          )}
+          {(!widgets.comparatif || periodeMode === 'tout' || !dashboardPrev) && <div className="mb-4" />}
+
           {/* KPI cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div className="border-2 rounded-lg p-5 text-center" style={{ borderColor: '#5bcae8', backgroundColor: '#eef9fd' }}>
-              <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Cours programmés</div>
-              <div className="text-4xl font-extrabold" style={{ color: '#1a7a9b' }}>{kpi.total ?? '—'}</div>
-            </div>
-            <div className="border-2 rounded-lg p-5 text-center" style={{ borderColor: '#86efac', backgroundColor: '#f0fdf4' }}>
-              <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Cours effectués</div>
-              <div className="text-4xl font-extrabold text-green-600">{kpi.effectues ?? '—'}</div>
-            </div>
-            <div className="border-2 rounded-lg p-5 text-center" style={{ borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}>
-              <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Taux d&apos;annulation</div>
-              <div className="text-4xl font-extrabold text-red-500">{pct(kpi.annules, kpi.total)}</div>
-            </div>
-          </div>
+          {(() => {
+            const visibleKpis = KPI_DEFS.filter(d => widgets[`kpi_${d.key}`]);
+            if (visibleKpis.length === 0) return null;
+            const aggCur  = aggregateDashboard(dashboard);
+            const aggPrev = widgets.comparatif ? aggregateDashboard(dashboardPrev) : null;
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+                {visibleKpis.map(d => {
+                  const val     = d.get(aggCur);
+                  const prevVal = aggPrev ? d.get(aggPrev) : null;
+                  return (
+                    <div key={d.key} className="border-2 rounded-lg p-5 text-center" style={{ borderColor: d.border, backgroundColor: d.bg }}>
+                      <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">{d.label}</div>
+                      <div className="text-4xl font-extrabold" style={{ color: d.color }}>{d.fmt(val)}</div>
+                      {widgets.comparatif && aggPrev && <DeltaBadge current={val} previous={prevVal} invert={d.invert} />}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Tableau mensuel + graphique */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Tableau fréquentation mensuelle */}
-            <div className="overflow-x-auto">
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Fréquentation mensuelle</h3>
-              <table className="w-full border-collapse text-xs min-w-[520px]">
-                <thead>
-                  <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
-                    {['Mois','Prog.','Effect.','Annulés','Annul. %','Effectif','Moy.','Heures'].map((h, i) => (
-                      <th key={h} className={`px-2 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {mensuel.map((row, i) => {
-                    const taux = row.programmes ? (row.annules / row.programmes * 100).toFixed(2) : '0';
-                    const moy  = row.effectues  ? Math.round(row.effectif / row.effectues) : 0;
-                    const heurs = Math.round((row.total_minutes || 0) / 60 * 100) / 100;
-                    const bg   = i % 2 === 0 ? '#f9fafb' : '#ffffff';
-                    return (
-                      <tr key={row.mois} style={{ backgroundColor: bg }}>
-                        <td className="px-2 py-1 border-b border-gray-100 capitalize font-medium">
-                          {MOIS_LABELS[row.mois.slice(5,7)]}
-                        </td>
-                        <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{row.programmes}</td>
-                        <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums text-green-700">{row.effectues}</td>
-                        <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums text-red-500">{row.annules}</td>
-                        <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{taux} %</td>
-                        <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{row.effectif || 0}</td>
-                        <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{moy || '—'}</td>
-                        <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums font-medium" style={{ color: '#1a7a9b' }}>{fmtH(heurs)}</td>
+          {(widgets.tableauMensuel || widgets.graphique) && (
+            <div className={`grid grid-cols-1 gap-6 mb-6 ${widgets.tableauMensuel && widgets.graphique ? 'lg:grid-cols-2' : ''}`}>
+              {/* Tableau fréquentation mensuelle */}
+              {widgets.tableauMensuel && (
+                <div className="overflow-x-auto">
+                  <h3 className="text-sm font-bold text-gray-700 mb-2">Fréquentation mensuelle</h3>
+                  <table className="w-full border-collapse text-xs min-w-[520px]">
+                    <thead>
+                      <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
+                        {['Mois','Prog.','Effect.','Annulés','Annul. %','Effectif','Moy.','Heures'].map((h, i) => (
+                          <th key={h} className={`px-2 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {mensuel.map((row, i) => {
+                        const taux = row.programmes ? (row.annules / row.programmes * 100).toFixed(2) : '0';
+                        const moy  = row.effectues  ? Math.round(row.effectif / row.effectues) : 0;
+                        const heurs = Math.round((row.total_minutes || 0) / 60 * 100) / 100;
+                        const bg   = i % 2 === 0 ? '#f9fafb' : '#ffffff';
+                        return (
+                          <tr key={row.mois} style={{ backgroundColor: bg }}>
+                            <td className="px-2 py-1 border-b border-gray-100 capitalize font-medium">
+                              {MOIS_LABELS[row.mois.slice(5,7)]}
+                            </td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{row.programmes}</td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums text-green-700">{row.effectues}</td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums text-red-500">{row.annules}</td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{taux} %</td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{row.effectif || 0}</td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{moy || '—'}</td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums font-medium" style={{ color: '#1a7a9b' }}>{fmtH(heurs)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-            {/* Graphique heures par mois */}
-            <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Total heures par mois</h3>
-              <div className="border border-gray-200 rounded-lg p-3 bg-white">
-                <LineChart
-                  data={mensuel.map(m => ({ mois: m.mois, heures: Math.round((m.total_minutes||0)/60*100)/100 }))}
-                  xKey="mois"
-                  yKey="heures"
-                  color="#5bcae8"
-                  label="Heures"
-                />
-              </div>
+              {/* Graphique heures par mois */}
+              {widgets.graphique && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-700 mb-2">Total heures par mois</h3>
+                  <div className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <LineChart
+                      data={mensuel.map(m => ({ mois: m.mois, heures: Math.round((m.total_minutes||0)/60*100)/100 }))}
+                      xKey="mois"
+                      yKey="heures"
+                      color="#5bcae8"
+                      label="Heures"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Top cours + Top coachs */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="overflow-x-auto">
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Top Cours</h3>
-              <table className="w-full border-collapse text-xs min-w-[360px]">
-                <thead>
-                  <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
-                    {['Cours','Séances','Participants','Moyenne'].map((h, i) => (
-                      <th key={h} className={`px-3 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {topCours.map((row, i) => (
-                    <tr key={row.nom} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
-                      <td className="px-3 py-1.5 border-b border-gray-100 font-medium">{row.nom}</td>
-                      <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
-                      <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.total_presents || '—'}</td>
-                      <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {(widgets.topCours || widgets.topCoachs) && (
+            <div className={`grid grid-cols-1 gap-6 ${widgets.topCours && widgets.topCoachs ? 'lg:grid-cols-2' : ''}`}>
+              {widgets.topCours && (
+                <div className="overflow-x-auto">
+                  <h3 className="text-sm font-bold text-gray-700 mb-2">Top Cours</h3>
+                  <table className="w-full border-collapse text-xs min-w-[360px]">
+                    <thead>
+                      <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
+                        {['Cours','Séances','Participants','Moyenne'].map((h, i) => (
+                          <th key={h} className={`px-3 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topCours.map((row, i) => (
+                        <tr key={row.nom} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
+                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">{row.nom}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.total_presents || '—'}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-            <div className="overflow-x-auto">
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Top Coachs</h3>
-              <table className="w-full border-collapse text-xs min-w-[360px]">
-                <thead>
-                  <tr style={{ backgroundColor: '#c9a464', color: '#fff' }}>
-                    {['Coach','Heures','Séances','Moy. présents'].map((h, i) => (
-                      <th key={h} className={`px-3 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {topCoachs.map((row, i) => (
-                    <tr key={row.coach} style={{ backgroundColor: i % 2 === 0 ? '#fdf6ec' : '#ffffff' }}>
-                      <td className="px-3 py-1.5 border-b border-gray-100 font-medium">{row.coach}</td>
-                      <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums font-bold" style={{ color: '#1a7a9b' }}>{fmtH(row.heures)}</td>
-                      <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
-                      <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {widgets.topCoachs && (
+                <div className="overflow-x-auto">
+                  <h3 className="text-sm font-bold text-gray-700 mb-2">Top Coachs</h3>
+                  <table className="w-full border-collapse text-xs min-w-[360px]">
+                    <thead>
+                      <tr style={{ backgroundColor: '#c9a464', color: '#fff' }}>
+                        {['Coach','Heures','Séances','Moy. présents'].map((h, i) => (
+                          <th key={h} className={`px-3 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topCoachs.map((row, i) => (
+                        <tr key={row.coach} style={{ backgroundColor: i % 2 === 0 ? '#fdf6ec' : '#ffffff' }}>
+                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">{row.coach}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums font-bold" style={{ color: '#1a7a9b' }}>{fmtH(row.heures)}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       )}
 
