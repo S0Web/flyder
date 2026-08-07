@@ -5,6 +5,7 @@ const { requireManager } = require('../middleware/auth');
 const { run: importPersonnelHistorique } = require('../db/seedPersonnel');
 const { run: importBallancourt } = require('../db/seedBallancourt');
 const { run: importCorbeilHistorique } = require('../db/seedCorbeil');
+const { run: seedDemo } = require('../db/seedDemo');
 const db = require('../db/database');
 
 // Même résolution de chemin que server/src/db/database.js
@@ -48,6 +49,24 @@ router.post('/seed-corbeil-historique', requireManager, (req, res) => {
   }
   try {
     const result = importCorbeilHistorique();
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/admin/seed-demo — génère un jeu de données 100% fictif (coachs et
+// séances inventés, aucune donnée réelle) sur les 14 derniers mois glissants.
+// Réservé à une instance dédiée "portfolio" (SALLE_NOM), jamais aux vraies
+// salles, pour ne jamais risquer de polluer de vraies données. ?reset=1 efface
+// d'abord toute donnée de démo déjà présente puis régénère (pour rafraîchir la
+// démo avant de la montrer) ; sans reset, ne fait rien si déjà généré.
+router.post('/seed-demo', requireManager, (req, res) => {
+  if (process.env.SALLE_NOM !== 'Demo-Portfolio') {
+    return res.status(403).json({ error: "Génération de démo réservée à l'instance Demo-Portfolio." });
+  }
+  try {
+    const result = seedDemo({ reset: req.query.reset === '1' });
     res.json({ ok: true, ...result });
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -276,6 +276,8 @@ export default function Settings() {
   const [seedBallancourtResult, setSeedBallancourtResult] = useState(null);
   const [seedingCorbeil, setSeedingCorbeil] = useState(false);
   const [seedCorbeilResult, setSeedCorbeilResult] = useState(null);
+  const [seedingDemo, setSeedingDemo] = useState(false);
+  const [seedDemoResult, setSeedDemoResult] = useState(null);
 
   async function handleSeedBallancourt() {
     setSeedingBallancourt(true);
@@ -307,6 +309,20 @@ export default function Settings() {
       setSeedCorbeilResult({ ok: false, message: err.message });
     } finally {
       setSeedingCorbeil(false);
+    }
+  }
+
+  async function handleSeedDemo() {
+    if (!confirm('Réinitialiser les données de démonstration ? Les coachs et séances fictifs actuels seront effacés puis régénérés.')) return;
+    setSeedingDemo(true);
+    setSeedDemoResult(null);
+    try {
+      const res = await api.seedDemo(true);
+      setSeedDemoResult({ ok: true, message: `${res.coachsCrees} coach(s) fictif(s) et ${res.seancesCreees} séance(s) régénérés.` });
+    } catch (err) {
+      setSeedDemoResult({ ok: false, message: err.message });
+    } finally {
+      setSeedingDemo(false);
     }
   }
 
@@ -492,6 +508,23 @@ export default function Settings() {
               {seedCorbeilResult && (
                 <div className={`text-xs mt-1 ${seedCorbeilResult.ok ? 'text-green-600' : 'text-red-500'}`}>
                   {seedCorbeilResult.ok ? '' : 'Erreur : '}{seedCorbeilResult.message}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Données de démo — visible uniquement sur l'instance "Demo-Portfolio" dédiée,
+              jamais sur une vraie salle. Permet de régénérer un jeu de données 100%
+              fictif avant de montrer l'appli (ex. entretien). */}
+          {salleNom === 'Demo-Portfolio' && (
+            <div className="mt-6 text-right">
+              <button onClick={handleSeedDemo} disabled={seedingDemo}
+                className="text-xs text-gray-400 hover:text-gray-600 hover:underline disabled:opacity-50">
+                {seedingDemo ? 'Génération…' : '⟳ Régénérer les données de démonstration'}
+              </button>
+              {seedDemoResult && (
+                <div className={`text-xs mt-1 ${seedDemoResult.ok ? 'text-green-600' : 'text-red-500'}`}>
+                  {seedDemoResult.ok ? '' : 'Erreur : '}{seedDemoResult.message}
                 </div>
               )}
             </div>

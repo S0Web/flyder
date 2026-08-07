@@ -7,7 +7,13 @@ import { SALLES } from '../lib/salles';
 export default function SalleSwitcher({ currentSalle, className = '' }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const autres = SALLES.filter(s => s.nom !== currentSalle);
+  // Ne propose de sauter vers une autre salle que si la salle courante fait
+  // elle-même partie de la liste connue — sinon (ex. instance de démo) on
+  // afficherait des liens vers les vraies salles, avec leurs vrais noms de
+  // personnel (l'API /api/auth/profiles est publique), à des visiteurs qui
+  // n'ont rien à y faire.
+  const estSalleConnue = SALLES.some(s => s.nom === currentSalle);
+  const autres = estSalleConnue ? SALLES.filter(s => s.nom !== currentSalle) : [];
 
   useEffect(() => {
     if (!open) return;
