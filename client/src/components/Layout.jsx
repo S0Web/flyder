@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { colorForUser } from '../lib/utils';
+import SalleSwitcher from './SalleSwitcher';
 import logo from '../assets/logo.png';
 
 const ALL_LINKS = [
@@ -16,6 +17,8 @@ const ALL_LINKS = [
   { to: '/annuaire',           label: 'Annuaire',            icon: BookUser },
   { to: '/formation',          label: 'Formation',           icon: GraduationCap },
 ];
+
+const SALLE_BADGE_CLASS = 'flex items-center gap-1 text-[11px] font-semibold bg-white/15 text-white rounded-full px-2 py-0.5 hover:bg-white/25 transition-colors max-w-full';
 
 function Bubble({ user, size = 'h-7 w-7' }) {
   return (
@@ -36,7 +39,7 @@ function NavItem({ to, label, icon: Icon, end, onClick }) {
       onClick={onClick}
       className={({ isActive }) =>
         `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-          isActive ? 'bg-sky-50 text-sky-700' : 'text-gray-600 hover:bg-gray-100'
+          isActive ? 'bg-white/20 text-white' : 'text-sky-100 hover:bg-white/10'
         }`
       }
     >
@@ -49,13 +52,9 @@ function NavItem({ to, label, icon: Icon, end, onClick }) {
 function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
   return (
     <>
-      <div className="flex flex-col gap-1.5 px-4 py-3 border-b border-gray-200 flex-shrink-0">
-        <img src={logo} alt="Fitnessmov Aqua" className="h-8 w-auto" />
-        {salleNom && (
-          <span className="text-[11px] font-semibold bg-sky-50 text-sky-700 rounded-full px-2 py-0.5 self-start truncate max-w-full">
-            {salleNom}
-          </span>
-        )}
+      <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
+        <img src={logo} alt="Fitnessmov Aqua" className="h-8 w-auto self-start flex-shrink-0" />
+        {salleNom && <SalleSwitcher currentSalle={salleNom} align="left" alwaysShow buttonClassName={SALLE_BADGE_CLASS} />}
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
@@ -63,11 +62,11 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
       </nav>
 
       {user && (
-        <div className="border-t border-gray-200 p-2 space-y-0.5 flex-shrink-0">
+        <div className="border-t border-white/10 p-2 space-y-0.5 flex-shrink-0">
           <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} />
           <button
             onClick={switchProfile}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-sky-100 hover:bg-white/10 transition-colors"
           >
             <Bubble user={user} />
             <span className="truncate">{user.prenom}</span>
@@ -88,32 +87,28 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-white border-r border-gray-200 sticky top-0 h-screen">
+      <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-sky-700 sticky top-0 h-screen shadow-md">
         <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} />
       </aside>
 
       {/* Barre + tiroir mobile */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 bg-white border-b border-gray-200 flex items-center px-3 gap-3">
+      <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 bg-sky-700 shadow-md flex items-center px-3 gap-3">
         <button
           type="button"
           onClick={() => setMenuOpen(o => !o)}
           aria-label="Menu"
           aria-expanded={menuOpen}
-          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+          className="p-1.5 rounded text-white hover:bg-white/10 transition-colors"
         >
           {menuOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
         </button>
-        <img src={logo} alt="Fitnessmov Aqua" className="h-8 w-auto" />
-        {salleNom && (
-          <span className="text-[11px] font-semibold bg-sky-50 text-sky-700 rounded-full px-2 py-0.5 whitespace-nowrap truncate">
-            {salleNom}
-          </span>
-        )}
+        <img src={logo} alt="Fitnessmov Aqua" className="h-8 w-auto flex-shrink-0" />
+        {salleNom && <SalleSwitcher currentSalle={salleNom} align="left" alwaysShow buttonClassName={SALLE_BADGE_CLASS} />}
       </div>
       {menuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
-          <aside className="relative w-64 bg-white flex flex-col h-full shadow-xl">
+          <aside className="relative w-64 bg-sky-700 flex flex-col h-full shadow-xl">
             <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} />
           </aside>
         </div>
@@ -126,7 +121,7 @@ export default function Layout({ children }) {
             Lecture seule depuis cet accès — connecte-toi depuis la salle ou avec un compte manager pour modifier.
           </div>
         )}
-        <main className={`flex-1 w-full px-4 sm:px-6 py-6 ${!restricted ? 'mt-14 lg:mt-0' : ''}`}>
+        <main className={`flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 ${!restricted ? 'mt-14 lg:mt-0' : ''}`}>
           {children}
         </main>
       </div>
