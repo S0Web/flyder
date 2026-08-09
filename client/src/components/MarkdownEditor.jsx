@@ -1,13 +1,17 @@
 import { useRef, useState } from 'react';
 import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Link as LinkIcon, Minus, Image as ImageIcon } from 'lucide-react';
-import { renderMarkdown } from '../lib/markdown';
+import { renderMarkdown, IMAGE_SIZES } from '../lib/markdown';
 
 const BTN = 'p-1.5 rounded text-gray-600 hover:bg-gray-200 disabled:opacity-40';
+const TAILLE_LABEL = { petite: 'Petite', moyenne: 'Moyenne (recommandée)', grande: 'Grande' };
+const TAILLE_INITIALE = { petite: 'P', moyenne: 'M', grande: 'G' };
 
 export default function MarkdownEditor({ value, onChange, onUploadImage }) {
   const textareaRef = useRef(null);
   const [mode, setMode] = useState('edit'); // 'edit' | 'apercu'
   const [uploading, setUploading] = useState(false);
+  // Taille appliquée à la prochaine image insérée via le bouton image.
+  const [taille, setTaille] = useState('moyenne');
 
   function withTextarea(fn) {
     const ta = textareaRef.current;
@@ -91,7 +95,7 @@ export default function MarkdownEditor({ value, onChange, onUploadImage }) {
       const { url } = await onUploadImage(file);
       withTextarea(ta => {
         const s = ta.selectionStart;
-        const insertion = `\n![](${url})\n`;
+        const insertion = `\n![taille:${taille}](${url})\n`;
         const newValue = value.slice(0, s) + insertion + value.slice(s);
         onChange(newValue);
         const pos = s + insertion.length;
@@ -117,6 +121,15 @@ export default function MarkdownEditor({ value, onChange, onUploadImage }) {
         <button type="button" onClick={() => insertList(true)} title="Liste numérotée" className={BTN}><ListOrdered className="h-4 w-4" /></button>
         <button type="button" onClick={insertLink} title="Lien" className={BTN}><LinkIcon className="h-4 w-4" /></button>
         <button type="button" onClick={insertSeparator} title="Séparateur" className={BTN}><Minus className="h-4 w-4" /></button>
+        <span className="w-px h-5 bg-gray-200 mx-0.5" />
+        <div className="flex items-center gap-0.5 bg-white border border-gray-200 rounded p-0.5" title="Taille de la prochaine image insérée">
+          {IMAGE_SIZES.map(t => (
+            <button key={t} type="button" onClick={() => setTaille(t)} title={TAILLE_LABEL[t]}
+              className={`w-5 h-5 text-[10px] font-bold rounded ${taille === t ? 'bg-sky-600 text-white' : 'text-gray-400 hover:bg-gray-100'}`}>
+              {TAILLE_INITIALE[t]}
+            </button>
+          ))}
+        </div>
         <label title="Insérer une capture d'écran" className={`${BTN} cursor-pointer ${uploading ? 'opacity-40 pointer-events-none' : ''}`}>
           <ImageIcon className="h-4 w-4" />
           <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} disabled={uploading} />

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const sharp = require('sharp');
 const router = express.Router();
 const db = require('../db/database');
 const { requireAuth, requireManager } = require('../middleware/auth');
@@ -28,6 +29,22 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+// Redimensionne (plus grande dimension à 1600px, jamais d'agrandissement) et
+// recompresse en WebP les captures d'écran envoyées, pour que le volume
+// persistant Railway ne se remplisse pas de fichiers non compressés — un
+// screenshot brut de quelques Mo devient typiquement quelques dizaines de Ko.
+// Les GIF sont laissés tels quels (leur animation ne survivrait pas à la conversion).
+async function optimizeImage(originalPath) {
+  if (/\.gif$/i.test(originalPath)) return originalPath;
+  const optimizedPath = originalPath.replace(/\.[a-z0-9]+$/i, '.webp');
+  await sharp(originalPath)
+    .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(optimizedPath);
+  fs.unlinkSync(originalPath);
+  return optimizedPath;
+}
 
 // ─── Catégories (niveau 1) ───────────────────────────────────────────────────
 
@@ -190,10 +207,16 @@ router.delete('/:id', requireManager, (req, res) => {
 
 // POST /api/formation/upload-image — upload d'une capture d'écran pour l'article (manager).
 router.post('/upload-image', requireManager, (req, res) => {
-  upload.single('image')(req, res, (err) => {
+  upload.single('image')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: 'Aucune image reçue' });
-    res.status(201).json({ url: `/uploads/formation/${req.file.filename}` });
+    try {
+      const finalPath = await optimizeImage(req.file.path);
+      res.status(201).json({ url: `/uploads/formation/${path.basename(finalPath)}` });
+    } catch (e) {
+      fs.unlink(req.file.path, () => {});
+      res.status(500).json({ error: "Échec du traitement de l'image" });
+    }
   });
 });
 
