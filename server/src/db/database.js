@@ -543,4 +543,42 @@ db.run(`
   )
 `);
 
+// ─── Formation : catégories (niveau 1 de navigation — chaque catégorie
+// regroupe des articles/"sous-formations" affichés en niveau 2). ───
+db.run(`
+  CREATE TABLE IF NOT EXISTS formation_categories (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    titre       TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    icone       TEXT NOT NULL DEFAULT 'BookOpen',
+    couleur     TEXT NOT NULL DEFAULT '#2fa8cc',
+    ordre       INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+tryAlter('ALTER TABLE formation_articles ADD COLUMN categorie_id INTEGER REFERENCES formation_categories(id)');
+
+// Backfill : tout article sans catégorie (créé avant l'introduction des
+// catégories) est rattaché à une catégorie "Non classé" créée à la volée,
+// pour qu'aucun article existant ne devienne invisible.
+;(function backfillFormationCategories() {
+  try {
+    const { n } = db.get('SELECT COUNT(*) AS n FROM formation_articles WHERE categorie_id IS NULL');
+    if (n === 0) return;
+    let cat = db.get("SELECT id FROM formation_categories WHERE titre = 'Non classé'");
+    if (!cat) {
+      const { max } = db.get('SELECT COALESCE(MAX(ordre), -1) AS max FROM formation_categories');
+      const result = db.run(
+        "INSERT INTO formation_categories (titre, description, icone, couleur, ordre) VALUES ('Non classé', 'Articles créés avant la mise en place des catégories.', 'BookOpen', '#94a3b8', ?)",
+        [max + 1]
+      );
+      cat = { id: result.lastInsertRowid };
+    }
+    db.run('UPDATE formation_articles SET categorie_id = ? WHERE categorie_id IS NULL', [cat.id]);
+    console.log(`✅ Migration : ${n} article(s) Formation rattaché(s) à "Non classé"`);
+  } catch (e) {
+    console.error('backfillFormationCategories error:', e.message);
+  }
+})();
+
 module.exports = db;

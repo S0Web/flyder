@@ -103,8 +103,16 @@ export const api = {
   dupliquerSemainePersonnel: (semaine_source, semaine_cible) =>
     req('/personnel-creneaux/dupliquer', { method: 'POST', body: JSON.stringify({ semaine_source, semaine_cible }) }),
 
-  // Formation (articles type blog)
-  getFormationArticles: () => req('/formation'),
+  // Formation : catégories (niveau 1)
+  getFormationCategories: () => req('/formation/categories'),
+  getFormationCategorie:  (id) => req(`/formation/categories/${id}`),
+  createFormationCategorie: (data) => req('/formation/categories', { method: 'POST', body: JSON.stringify(data) }),
+  updateFormationCategorie: (id, data) => req(`/formation/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteFormationCategorie: (id) => req(`/formation/categories/${id}`, { method: 'DELETE' }),
+  reorderFormationCategorie: (id, direction) => req(`/formation/categories/${id}/ordre`, { method: 'PATCH', body: JSON.stringify({ direction }) }),
+
+  // Formation : articles (niveau 2, "sous-formations")
+  getFormationArticles: (categorieId) => req(`/formation${categorieId ? `?categorie_id=${categorieId}` : ''}`),
   getFormationArticle:  (id) => req(`/formation/${id}`),
   createFormationArticle: (data) => req('/formation', { method: 'POST', body: JSON.stringify(data) }),
   updateFormationArticle: (id, data) => req(`/formation/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

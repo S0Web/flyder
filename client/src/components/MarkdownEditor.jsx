@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Bold, Italic, Heading2, Minus, Image as ImageIcon } from 'lucide-react';
+import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Link as LinkIcon, Minus, Image as ImageIcon } from 'lucide-react';
 import { renderMarkdown } from '../lib/markdown';
 
 const BTN = 'p-1.5 rounded text-gray-600 hover:bg-gray-200 disabled:opacity-40';
@@ -28,13 +28,45 @@ export default function MarkdownEditor({ value, onChange, onUploadImage }) {
     });
   }
 
-  function insertHeading() {
+  function insertHeading(prefix) {
     withTextarea(ta => {
       const s = ta.selectionStart;
       const lineStart = value.lastIndexOf('\n', s - 1) + 1;
-      const newValue = value.slice(0, lineStart) + '## ' + value.slice(lineStart);
+      const newValue = value.slice(0, lineStart) + prefix + value.slice(lineStart);
       onChange(newValue);
-      requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(s + 3, s + 3); });
+      const pos = s + prefix.length;
+      requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos, pos); });
+    });
+  }
+
+  // Préfixe chaque ligne de la sélection (ou la ligne courante s'il n'y a pas
+  // de sélection) avec le marqueur de liste — permet de sélectionner plusieurs
+  // lignes d'un coup pour les transformer en liste.
+  function insertList(ordered) {
+    withTextarea(ta => {
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      const blockStart = value.lastIndexOf('\n', s - 1) + 1;
+      const blockEnd = e === s ? (value.indexOf('\n', e) === -1 ? value.length : value.indexOf('\n', e)) : e;
+      const bloc = value.slice(blockStart, blockEnd);
+      const lignes = bloc.split('\n');
+      const nouveauBloc = lignes.map((l, i) => `${ordered ? `${i + 1}. ` : '- '}${l}`).join('\n');
+      const newValue = value.slice(0, blockStart) + nouveauBloc + value.slice(blockEnd);
+      onChange(newValue);
+      const pos = blockStart + nouveauBloc.length;
+      requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos, pos); });
+    });
+  }
+
+  function insertLink() {
+    withTextarea(ta => {
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      const texte = value.slice(s, e) || 'texte du lien';
+      const insertion = `[${texte}](https://)`;
+      const newValue = value.slice(0, s) + insertion + value.slice(e);
+      onChange(newValue);
+      // Sélectionne "https://" pour que l'utilisateur puisse taper l'URL directement.
+      const urlStart = s + texte.length + 3;
+      requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(urlStart, urlStart + 8); });
     });
   }
 
@@ -77,7 +109,13 @@ export default function MarkdownEditor({ value, onChange, onUploadImage }) {
       <div className="flex items-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
         <button type="button" onClick={() => wrapSelection('**')} title="Gras" className={BTN}><Bold className="h-4 w-4" /></button>
         <button type="button" onClick={() => wrapSelection('*')} title="Italique" className={BTN}><Italic className="h-4 w-4" /></button>
-        <button type="button" onClick={insertHeading} title="Titre" className={BTN}><Heading2 className="h-4 w-4" /></button>
+        <span className="w-px h-5 bg-gray-200 mx-0.5" />
+        <button type="button" onClick={() => insertHeading('# ')} title="Titre principal" className={BTN}><Heading1 className="h-4 w-4" /></button>
+        <button type="button" onClick={() => insertHeading('## ')} title="Sous-titre" className={BTN}><Heading2 className="h-4 w-4" /></button>
+        <span className="w-px h-5 bg-gray-200 mx-0.5" />
+        <button type="button" onClick={() => insertList(false)} title="Liste à puces" className={BTN}><List className="h-4 w-4" /></button>
+        <button type="button" onClick={() => insertList(true)} title="Liste numérotée" className={BTN}><ListOrdered className="h-4 w-4" /></button>
+        <button type="button" onClick={insertLink} title="Lien" className={BTN}><LinkIcon className="h-4 w-4" /></button>
         <button type="button" onClick={insertSeparator} title="Séparateur" className={BTN}><Minus className="h-4 w-4" /></button>
         <label title="Insérer une capture d'écran" className={`${BTN} cursor-pointer ${uploading ? 'opacity-40 pointer-events-none' : ''}`}>
           <ImageIcon className="h-4 w-4" />
@@ -96,7 +134,7 @@ export default function MarkdownEditor({ value, onChange, onUploadImage }) {
       </div>
       {mode === 'edit' ? (
         <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} rows={16}
-          placeholder="Écris ton article ici… **gras**, *italique*, ## Titre, --- pour séparer, et l'icône image pour une capture d'écran."
+          placeholder="Écris ton article ici… sélectionne du texte puis utilise les boutons ci-dessus pour le mettre en forme (pas besoin de connaître le markdown)."
           className="w-full p-3 text-sm focus:outline-none resize-y" />
       ) : (
         <div className="p-3 min-h-[16rem] formation-content" dangerouslySetInnerHTML={{ __html: renderMarkdown(value) }} />
