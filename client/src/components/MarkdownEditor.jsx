@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react';
-import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Link as LinkIcon, Minus, Image as ImageIcon } from 'lucide-react';
+import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Link as LinkIcon, Minus, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { renderMarkdown, IMAGE_SIZES } from '../lib/markdown';
+import { useToast } from '../context/ToastContext';
 
 const BTN = 'p-1.5 rounded text-gray-600 hover:bg-gray-200 disabled:opacity-40';
 const TAILLE_LABEL = { petite: 'Petite', moyenne: 'Moyenne (recommandée)', grande: 'Grande' };
 const TAILLE_INITIALE = { petite: 'P', moyenne: 'M', grande: 'G' };
 
 export default function MarkdownEditor({ value, onChange, onUploadImage }) {
+  const toast = useToast();
   const textareaRef = useRef(null);
   const [mode, setMode] = useState('edit'); // 'edit' | 'apercu'
   const [uploading, setUploading] = useState(false);
@@ -101,8 +103,9 @@ export default function MarkdownEditor({ value, onChange, onUploadImage }) {
         const pos = s + insertion.length;
         requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos, pos); });
       });
+      toast.success('Image uploadée');
     } catch (err) {
-      alert("Échec de l'envoi de l'image : " + err.message);
+      toast.error("Échec de l'envoi de l'image : " + err.message);
     } finally {
       setUploading(false);
     }
@@ -130,8 +133,8 @@ export default function MarkdownEditor({ value, onChange, onUploadImage }) {
             </button>
           ))}
         </div>
-        <label title="Insérer une capture d'écran" className={`${BTN} cursor-pointer ${uploading ? 'opacity-40 pointer-events-none' : ''}`}>
-          <ImageIcon className="h-4 w-4" />
+        <label title={uploading ? 'Envoi en cours…' : "Insérer une capture d'écran"} className={`${BTN} cursor-pointer ${uploading ? 'pointer-events-none' : ''}`}>
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
           <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} disabled={uploading} />
         </label>
         <div className="ml-auto flex gap-1 text-xs font-medium">
