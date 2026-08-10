@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon, FileDown, SlidersHorizontal } from 'lucide-react';
+import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon, FileDown, SlidersHorizontal, Lightbulb } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
 import { useConfig } from '../context/ConfigContext';
@@ -251,6 +251,7 @@ const DEFAULT_WIDGETS = {
   kpi_effectifMoyen: true,
   kpi_tauxAnnulation: true,
   comparatif: true,
+  insights: true,
   tableauMensuel: true,
   graphique: true,
   topCours: true,
@@ -305,6 +306,7 @@ function DashboardSettingsPopover({ widgets, onToggle }) {
           {KPI_DEFS.map(d => <Item key={d.key} k={`kpi_${d.key}`} label={d.label} />)}
           <Item k="comparatif" label="Comparatif vs période précédente" />
           <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mt-3 mb-1">Sections</div>
+          <Item k="insights" label="Observations automatiques" />
           <Item k="tableauMensuel" label="Tableau fréquentation mensuelle" />
           <Item k="graphique" label="Graphique heures par mois" />
           <Item k="topCours" label="Top cours" />
@@ -993,6 +995,22 @@ export default function Coaches() {
               </div>
             );
           })()}
+
+          {/* Observations automatiques */}
+          {widgets.insights && dashboard.insights?.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-6">
+              <h3 className="flex items-center gap-1.5 text-sm font-bold text-amber-800 mb-2">
+                <Lightbulb className="h-4 w-4" /> Observations
+              </h3>
+              <ul className="space-y-1.5">
+                {dashboard.insights.map((texte, i) => (
+                  <li key={i} className="text-sm text-amber-900 flex gap-2">
+                    <span className="text-amber-400">•</span> {texte}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Tableau mensuel + graphique */}
           {(widgets.tableauMensuel || widgets.graphique) && (

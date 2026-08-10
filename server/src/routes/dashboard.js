@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
+const { generateInsights } = require('../lib/insights');
 
 // GET /api/dashboard?periode=tout|(rien)&debut=YYYY-MM-DD&fin=YYYY-MM-DD&statut=programme|effectue|annule
 // periode=tout : aucun filtre de date (tout l'historique). Sinon, debut/fin (défaut :
@@ -77,7 +78,12 @@ router.get('/', (req, res) => {
     LIMIT 10
   `, dateParams);
 
-  res.json({ kpi, mensuel, topCours, topCoachs, debut, fin, statutCat });
+  // Indépendant du filtre de période choisi : les insights portent toujours sur
+  // les dernières semaines réelles (une tendance récente n'a pas de sens sur une
+  // plage arbitraire choisie par l'utilisateur).
+  const insights = generateInsights(db);
+
+  res.json({ kpi, mensuel, topCours, topCoachs, insights, debut, fin, statutCat });
 });
 
 module.exports = router;
