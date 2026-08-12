@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+      },
       colors: {
         aqua: {
           light:  '#d6f3fb',

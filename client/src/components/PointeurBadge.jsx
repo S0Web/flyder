@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { colorForUser } from '../lib/utils';
 
 // Sélecteur rapide du pointeur (qui a rempli l'effectif), sur le même principe
 // que HeadcountPopover : petit déclencheur cliquable + popover avec la liste
@@ -34,7 +35,8 @@ export default function PointeurBadge({ pointeurUserId, pointeurNom, profils, on
       {variant === 'circle' ? (
         <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }} title={titre} aria-label={titre}
           className={`flex items-center justify-center h-3.5 w-3.5 rounded-full text-[8px] font-bold leading-none transition-colors
-            ${initiale ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : 'border border-dashed border-gray-300 hover:border-gray-400'}`}>
+            ${initiale ? 'text-white' : 'border border-dashed border-gray-300 hover:border-gray-400'}`}
+            style={initiale ? {backgroundColor: colorForUser(pointeurUserId)} : undefined}>
           {initiale || ''}
         </button>
       ) : (
