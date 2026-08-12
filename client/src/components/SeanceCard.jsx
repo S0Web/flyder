@@ -94,7 +94,7 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
           <span className="hidden sm:inline">{statut.label}</span>
         </button>
 
-        <div className="flex-shrink-0 flex flex-col items-center gap-0.5">
+        <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
           <PointeurBadge
             pointeurUserId={seance.pointeur_user_id}
             pointeurNom={seance.pointeur_nom}
