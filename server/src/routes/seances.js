@@ -135,7 +135,7 @@ router.post('/', (req, res) => {
 // PATCH /api/seances/:id — mise à jour partielle
 router.patch('/:id', (req, res) => {
   try {
-    const existing = db.get('SELECT id FROM seances WHERE id = ?', [req.params.id]);
+    const existing = db.get('SELECT id, pointeur_user_id FROM seances WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Séance introuvable' });
 
     const body = { ...req.body };
@@ -143,6 +143,12 @@ router.patch('/:id', (req, res) => {
     // sauf si l'appelant envoie explicitement un statut (ex: le formulaire complet).
     if (body.nb_presents !== undefined && body.statut === undefined) {
       body.statut = 'effectue';
+    }
+    // Par défaut, la personne qui renseigne l'effectif est celle dont la session est
+    // ouverte — sauf si un pointeur est déjà identifié, ou explicitement fourni ici.
+    if (body.nb_presents !== undefined && body.pointeur_user_id === undefined
+        && !existing.pointeur_user_id && req.user) {
+      body.pointeur_user_id = req.user.id;
     }
 
     const allowed = ['statut', 'nb_presents', 'pointeur_user_id', 'notes', 'coach_id',

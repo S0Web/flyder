@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Copy, LayoutGrid, List } from 'lucide-react';
 import { api } from '../lib/api';
 import {
   getLundi, getSemaine, toISO,
@@ -11,6 +11,7 @@ import SeanceModal from '../components/SeanceModal';
 import MiniCalendar from '../components/MiniCalendar';
 import TaskWidget from '../components/TaskWidget';
 import HeadcountPopover from '../components/HeadcountPopover';
+import PointeurBadge from '../components/PointeurBadge';
 import { nextStatut } from '../lib/statutCycle';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ const ROWS = [
 
 // ── Vue grille ─────────────────────────────────────────────────────────────────
 
-function VueGrille({ semaine, seances, loading, today, onOpenCard, onPatch, onDelete, onAdd }) {
+function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd }) {
   return (
     <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
       <table className="w-full border-collapse table-fixed min-w-[860px]">
@@ -105,7 +106,7 @@ function VueGrille({ semaine, seances, loading, today, onOpenCard, onPatch, onDe
                         <div className="h-4 bg-white/60 rounded-md animate-pulse" />
                       )}
                       {cellSeances.map(s => (
-                        <SeanceCard key={s.id} seance={s} onPatch={onPatch} onDelete={onDelete} onClick={onOpenCard} />
+                        <SeanceCard key={s.id} seance={s} profils={profils} onPatch={onPatch} onDelete={onDelete} onClick={onOpenCard} />
                       ))}
                       <button
                         onClick={() => onAdd(iso)}
@@ -126,7 +127,7 @@ function VueGrille({ semaine, seances, loading, today, onOpenCard, onPatch, onDe
 
 // ── Vue liste ──────────────────────────────────────────────────────────────────
 
-function VueListe({ seances, loading, onOpenCard, onPatch, onDelete }) {
+function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete }) {
   if (loading) return <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>;
   if (!seances.length) return null;
 
@@ -211,7 +212,13 @@ function VueListe({ seances, loading, onOpenCard, onPatch, onDelete }) {
                       <HeadcountPopover value={s.nb_presents} onSelect={(n) => onPatch(s.id, { nb_presents: n })} />
                     </td>
                     <td className="px-3 py-1.5 border-b border-gray-100 text-xs text-gray-500">
-                      {s.pointeur_nom ?? '—'}
+                      <PointeurBadge
+                        variant="text"
+                        pointeurUserId={s.pointeur_user_id}
+                        pointeurNom={s.pointeur_nom}
+                        profils={profils}
+                        onSelect={(id) => onPatch(s.id, { pointeur_user_id: id })}
+                      />
                     </td>
                   </tr>
                 );
@@ -463,19 +470,19 @@ export default function Planning() {
 
           <button onClick={handleDupliquer} disabled={dupliquer}
             title="Copie les cours de la semaine précédente (sans écraser ceux déjà présents)"
-            className="flex-shrink-0 px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-xs font-medium rounded disabled:opacity-50">
-            {dupliquer ? 'Duplication…' : '⧉ Dupliquer'}
+            className="flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-xs font-medium rounded disabled:opacity-50">
+            <Copy className="h-3.5 w-3.5" /> {dupliquer ? 'Duplication…' : 'Dupliquer'}
           </button>
 
           <div className="flex items-center bg-gray-100 rounded p-0.5 gap-0.5 flex-shrink-0">
             <button onClick={() => setVue('grille')}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                 vue === 'grille' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}>⊞ Grille</button>
+              }`}><LayoutGrid className="h-3.5 w-3.5" /> Grille</button>
             <button onClick={() => setVue('liste')}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                 vue === 'liste' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}>☰ Liste</button>
+              }`}><List className="h-3.5 w-3.5" /> Liste</button>
           </div>
         </div>
 
@@ -491,6 +498,7 @@ export default function Planning() {
             seances={filteredSeances}
             loading={loading}
             today={today}
+            profils={profils}
             onOpenCard={(s) => setModal(s)}
             onPatch={handlePatch}
             onDelete={handleDelete}
@@ -505,6 +513,7 @@ export default function Planning() {
             <VueListe
               seances={filteredSeances}
               loading={loading}
+              profils={profils}
               onOpenCard={(s) => setModal(s)}
               onPatch={handlePatch}
               onDelete={handleDelete}

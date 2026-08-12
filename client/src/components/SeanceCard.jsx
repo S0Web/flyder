@@ -2,6 +2,7 @@ import { StickyNote } from 'lucide-react';
 import { STATUT_CONFIG } from '../lib/utils';
 import { nextStatut } from '../lib/statutCycle';
 import HeadcountPopover from './HeadcountPopover';
+import PointeurBadge from './PointeurBadge';
 
 function parseMinutes(horaire) {
   if (!horaire) return 0;
@@ -24,7 +25,7 @@ function formatHoraire(mins) {
 
 const BORDER_COLOR = { aqua: '#5bcae8', fitness: '#e8cb9f' };
 
-export default function SeanceCard({ seance, onPatch, onDelete, onClick }) {
+export default function SeanceCard({ seance, profils = [], onPatch, onDelete, onClick }) {
   const statut = STATUT_CONFIG[seance.statut] || STATUT_CONFIG.programme;
   const sansCoach = !seance.coach_prenom && !seance.coach_nom;
 
@@ -93,7 +94,13 @@ export default function SeanceCard({ seance, onPatch, onDelete, onClick }) {
           <span className="hidden sm:inline">{statut.label}</span>
         </button>
 
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex flex-col items-center gap-0.5">
+          <PointeurBadge
+            pointeurUserId={seance.pointeur_user_id}
+            pointeurNom={seance.pointeur_nom}
+            profils={profils}
+            onSelect={(id) => onPatch(seance.id, { pointeur_user_id: id })}
+          />
           <HeadcountPopover value={seance.nb_presents} onSelect={(n) => onPatch(seance.id, { nb_presents: n })} />
         </div>
       </div>

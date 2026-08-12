@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
 import { useConfig } from '../context/ConfigContext';
 import { DISCIPLINE_CONFIG, colorForUser, STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
+import Tooltip from '../components/Tooltip';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -251,7 +252,6 @@ const DEFAULT_WIDGETS = {
   kpi_effectifMoyen: true,
   kpi_tauxAnnulation: true,
   comparatif: true,
-  insights: true,
   tableauMensuel: true,
   graphique: true,
   topCours: true,
@@ -306,7 +306,6 @@ function DashboardSettingsPopover({ widgets, onToggle }) {
           {KPI_DEFS.map(d => <Item key={d.key} k={`kpi_${d.key}`} label={d.label} />)}
           <Item k="comparatif" label="Comparatif vs période précédente" />
           <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mt-3 mb-1">Sections</div>
-          <Item k="insights" label="Observations automatiques" />
           <Item k="tableauMensuel" label="Tableau fréquentation mensuelle" />
           <Item k="graphique" label="Graphique heures par mois" />
           <Item k="topCours" label="Top cours" />
@@ -922,8 +921,17 @@ export default function Coaches() {
         <div className={`transition-opacity duration-200 ${refreshing ? 'opacity-60' : 'opacity-100'}`}>
           {/* Titre dashboard */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 className="text-lg font-bold text-gray-800">
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-1.5">
               Tableau de bord · {periodeLabel(periodeMode, anneeScolaire, plageDebut, plageFin)}
+              {dashboard.insights?.generaux?.length > 0 && (
+                <Tooltip content={
+                  <ul className="space-y-1">
+                    {dashboard.insights.generaux.map((t, i) => <li key={i}>• {t}</li>)}
+                  </ul>
+                }>
+                  <Lightbulb className="h-4 w-4 text-amber-500 cursor-help" />
+                </Tooltip>
+              )}
             </h2>
             <DashboardSettingsPopover widgets={widgets} onToggle={toggleWidget} />
           </div>
@@ -995,22 +1003,6 @@ export default function Coaches() {
               </div>
             );
           })()}
-
-          {/* Observations automatiques */}
-          {widgets.insights && dashboard.insights?.length > 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-6">
-              <h3 className="flex items-center gap-1.5 text-sm font-bold text-amber-800 mb-2">
-                <Lightbulb className="h-4 w-4" /> Observations
-              </h3>
-              <ul className="space-y-1.5">
-                {dashboard.insights.map((texte, i) => (
-                  <li key={i} className="text-sm text-amber-900 flex gap-2">
-                    <span className="text-amber-400">•</span> {texte}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {/* Tableau mensuel + graphique */}
           {(widgets.tableauMensuel || widgets.graphique) && (
@@ -1088,14 +1080,21 @@ export default function Coaches() {
                       </tr>
                     </thead>
                     <tbody>
-                      {topCours.map((row, i) => (
+                      {topCours.map((row, i) => {
+                        const insight = dashboard.insights?.parCours?.[row.cours_type_id];
+                        return (
                         <tr key={row.nom} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
-                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">{row.nom}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">
+                            <Tooltip content={insight}>
+                              <span className={insight ? 'underline decoration-dotted decoration-amber-400 cursor-help' : ''}>{row.nom}</span>
+                            </Tooltip>
+                          </td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.total_presents || '—'}</td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1113,14 +1112,21 @@ export default function Coaches() {
                       </tr>
                     </thead>
                     <tbody>
-                      {topCoachs.map((row, i) => (
+                      {topCoachs.map((row, i) => {
+                        const insight = dashboard.insights?.parCoach?.[row.coach_id];
+                        return (
                         <tr key={row.coach} style={{ backgroundColor: i % 2 === 0 ? '#fdf6ec' : '#ffffff' }}>
-                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">{row.coach}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">
+                            <Tooltip content={insight}>
+                              <span className={insight ? 'underline decoration-dotted decoration-amber-400 cursor-help' : ''}>{row.coach}</span>
+                            </Tooltip>
+                          </td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums font-bold" style={{ color: '#1a7a9b' }}>{fmtH(row.heures)}</td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

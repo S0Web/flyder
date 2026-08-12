@@ -51,6 +51,7 @@ router.get('/', (req, res) => {
   // ── Top cours ──────────────────────────────────────────────────
   const topCours = db.all(`
     SELECT
+      ct.id AS cours_type_id,
       ct.nom,
       COUNT(*) AS seances,
       SUM(COALESCE(s.nb_presents, 0)) AS total_presents,
@@ -66,6 +67,7 @@ router.get('/', (req, res) => {
   // ── Top coachs ─────────────────────────────────────────────────
   const topCoachs = db.all(`
     SELECT
+      c.id AS coach_id,
       c.prenom || ' ' || c.nom AS coach,
       COUNT(*) AS seances,
       ROUND(SUM(s.duree_minutes) / 60.0, 2) AS heures,
