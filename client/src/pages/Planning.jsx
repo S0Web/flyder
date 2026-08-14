@@ -448,7 +448,7 @@ export default function Planning() {
             <button onClick={() => setLundi(semainePrecedente(lundi))} aria-label="Semaine précédente"
               className="px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">←</button>
             <button onClick={() => setLundi(getLundi())}
-              style={isCurrentWeek ? { backgroundColor: '#2fa8cc', color: '#fff' } : {}}
+              style={isCurrentWeek ? { backgroundColor: '#3D5AFE', color: '#fff' } : {}}
               className={`px-2.5 py-1.5 text-sm font-medium rounded transition-colors ${
                 isCurrentWeek ? '' : 'border border-gray-300 text-gray-600 hover:bg-gray-100'
               }`}>Auj.</button>

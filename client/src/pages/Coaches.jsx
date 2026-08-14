@@ -91,7 +91,7 @@ function exportSeancesPdf({ coach, seances, periodeLabel, salleNom, salleAdresse
 
   doc.setFontSize(16);
   doc.setFont(undefined, 'bold');
-  doc.text(salleNom ? `FitnessMov — ${salleNom}` : 'FitnessMov', marginX, y);
+  doc.text(salleNom || 'Récapitulatif', marginX, y);
   doc.setFont(undefined, 'normal');
   y += 6;
   if (salleAdresse) {
@@ -237,7 +237,7 @@ const KPI_DEFS = [
     get: a => a?.programmes, fmt: v => v ?? '—' },
   { key: 'effectues',      label: 'Cours effectués',    border: '#86efac', bg: '#f0fdf4', color: '#16a34a',
     get: a => a?.effectues, fmt: v => v ?? '—' },
-  { key: 'heures',         label: 'Heures réalisées',   border: '#5bcae8', bg: '#eef9fd', color: '#1a7a9b',
+  { key: 'heures',         label: 'Heures réalisées',   border: '#5bcae8', bg: '#eef9fd', color: '#12162B',
     get: a => a?.heures, fmt: v => v != null ? `${fmtH(v)} h` : '—' },
   { key: 'effectifMoyen',  label: 'Effectif moyen',     border: '#fcd34d', bg: '#fffbeb', color: '#b45309',
     get: a => a?.effectifMoyen, fmt: v => v != null ? fmtH(v) : '—' },
@@ -508,7 +508,7 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose }) {
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>
@@ -574,7 +574,7 @@ function CoachStatsModal({ coach, onEdit, onClose }) {
                   <tr key={row.key} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
                     <td className="px-2 py-2 font-medium text-gray-700">{row.label}</td>
                     {COLONNES.map(c => (
-                      <td key={c.key} className="px-2 py-2 text-center tabular-nums font-semibold" style={{ color: '#1a7a9b' }}>
+                      <td key={c.key} className="px-2 py-2 text-center tabular-nums font-semibold" style={{ color: '#12162B' }}>
                         {row.fmt(stats[c.key]?.[row.key])}
                       </td>
                     ))}
@@ -589,7 +589,7 @@ function CoachStatsModal({ coach, onEdit, onClose }) {
             className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Fermer</button>
           <button onClick={onEdit}
             className="flex-1 text-white rounded py-2 text-sm font-medium hover:opacity-90"
-            style={{ backgroundColor: '#2fa8cc' }}>
+            style={{ backgroundColor: '#3D5AFE' }}>
             Modifier les informations
           </button>
         </div>
@@ -690,7 +690,7 @@ function CoachSeancesModal({ coach, periodeLabel, debut, fin, inclureEffectue, i
             <button
               onClick={() => exportSeancesPdf({ coach, seances, periodeLabel, salleNom, salleAdresse })}
               className="flex-1 flex items-center justify-center gap-1.5 text-white rounded py-2 text-sm font-medium hover:opacity-90"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               <FileDown className="h-4 w-4" /> Exporter en PDF
             </button>
           )}
@@ -827,7 +827,7 @@ export default function Coaches() {
             </label>
             <button onClick={() => setModal({})}
               className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               <Plus className="h-4 w-4" /> Nouveau coach
             </button>
           </div>
@@ -843,11 +843,11 @@ export default function Coaches() {
                 <th className={`${TH} text-left sticky left-0 z-30 bg-gray-100`} style={{ minWidth: 92 }}>Coach</th>
                 {months.map(m => (
                   <th key={m} className={`${TH}`}
-                    style={m === currentMois ? { color: '#2fa8cc', backgroundColor: '#eef9fd' } : {}}>
+                    style={m === currentMois ? { color: '#3D5AFE', backgroundColor: '#eef9fd' } : {}}>
                     {MOIS_COURTS[m.slice(5,7)]}
                   </th>
                 ))}
-                <th className={`${TH}`} style={{ color: '#1a7a9b' }}>Total</th>
+                <th className={`${TH}`} style={{ color: '#12162B' }}>Total</th>
               </tr>
             </thead>
             <tbody>
@@ -857,7 +857,7 @@ export default function Coaches() {
                   <tr key={coach.id} style={{ backgroundColor: bg }} className={coach.actif ? '' : 'opacity-40'}>
                     <td className="sticky left-0 z-10 border-b border-gray-100 px-2 py-1.5 font-semibold" style={{ backgroundColor: bg, maxWidth: 92 }}>
                       <button onClick={() => setStatsModal(coach)} title={`${coach.prenom} ${coach.nom}`}
-                        className="hover:underline text-left truncate block w-full" style={{ color: '#1a7a9b' }}>
+                        className="hover:underline text-left truncate block w-full" style={{ color: '#12162B' }}>
                         {coach.prenom} {coach.nom}
                       </button>
                     </td>
@@ -881,11 +881,11 @@ export default function Coaches() {
                     <td className="border-b border-gray-100 p-0 text-center font-bold text-xs tabular-nums">
                       {coach.total ? (
                         <button onClick={() => setSeancesModal({ coach, mois: null })}
-                          className="w-full h-full px-3 py-1.5 tabular-nums hover:underline hover:bg-sky-50/60" style={{ color: '#1a7a9b' }}>
+                          className="w-full h-full px-3 py-1.5 tabular-nums hover:underline hover:bg-sky-50/60" style={{ color: '#12162B' }}>
                           {fmtH(coach.total)}
                         </button>
                       ) : (
-                        <span className="block px-3 py-1.5" style={{ color: '#1a7a9b' }}>—</span>
+                        <span className="block px-3 py-1.5" style={{ color: '#12162B' }}>—</span>
                       )}
                     </td>
                   </tr>
@@ -894,16 +894,16 @@ export default function Coaches() {
 
               {/* Ligne total */}
               <tr style={{ backgroundColor: '#f0f9ff' }}>
-                <td className="sticky left-0 z-10 px-3 py-2 font-extrabold text-xs uppercase tracking-wide border-t-2 border-gray-300" style={{ backgroundColor: '#f0f9ff', color: '#1a7a9b' }}>
+                <td className="sticky left-0 z-10 px-3 py-2 font-extrabold text-xs uppercase tracking-wide border-t-2 border-gray-300" style={{ backgroundColor: '#f0f9ff', color: '#12162B' }}>
                   Total
                 </td>
                 {months.map(m => (
                   <td key={m} className="px-2 py-2 text-center text-xs font-bold tabular-nums border-t-2 border-gray-300"
-                    style={{ color: '#1a7a9b', backgroundColor: m === currentMois ? '#d6f3fb' : undefined }}>
+                    style={{ color: '#12162B', backgroundColor: m === currentMois ? '#d6f3fb' : undefined }}>
                     {totauxMois[m] ? fmtH(Math.round(totauxMois[m] * 100)/100) : '—'}
                   </td>
                 ))}
-                <td className="px-3 py-2 text-center font-extrabold text-xs tabular-nums border-t-2 border-gray-300" style={{ color: '#1a7a9b' }}>
+                <td className="px-3 py-2 text-center font-extrabold text-xs tabular-nums border-t-2 border-gray-300" style={{ color: '#12162B' }}>
                   {fmtH(Math.round(grandTotal * 100)/100)}
                 </td>
               </tr>
@@ -1013,7 +1013,7 @@ export default function Coaches() {
                   <h3 className="text-sm font-bold text-gray-700 mb-2">Fréquentation mensuelle</h3>
                   <table className="w-full border-collapse text-xs min-w-[520px]">
                     <thead>
-                      <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
+                      <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
                         {['Mois','Prog.','Effect.','Annulés','Annul. %','Effectif','Moy.','Heures'].map((h, i) => (
                           <th key={h} className={`px-2 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>
                             {h}
@@ -1038,7 +1038,7 @@ export default function Coaches() {
                             <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{taux} %</td>
                             <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{row.effectif || 0}</td>
                             <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{moy || '—'}</td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums font-medium" style={{ color: '#1a7a9b' }}>{fmtH(heurs)}</td>
+                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums font-medium" style={{ color: '#12162B' }}>{fmtH(heurs)}</td>
                           </tr>
                         );
                       })}
@@ -1073,7 +1073,7 @@ export default function Coaches() {
                   <h3 className="text-sm font-bold text-gray-700 mb-2">Top Cours</h3>
                   <table className="w-full border-collapse text-xs min-w-[360px]">
                     <thead>
-                      <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
+                      <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
                         {['Cours','Séances','Participants','Moyenne'].map((h, i) => (
                           <th key={h} className={`px-3 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
                         ))}
@@ -1121,7 +1121,7 @@ export default function Coaches() {
                               <span className={insight ? 'underline decoration-dotted decoration-amber-400 cursor-help' : ''}>{row.coach}</span>
                             </Tooltip>
                           </td>
-                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums font-bold" style={{ color: '#1a7a9b' }}>{fmtH(row.heures)}</td>
+                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums font-bold" style={{ color: '#12162B' }}>{fmtH(row.heures)}</td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
                           <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
                         </tr>

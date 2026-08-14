@@ -179,7 +179,7 @@ export default function FormationCategorie() {
                 </button>
                 <button onClick={handleSave} disabled={saving}
                   className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
-                  style={{ backgroundColor: '#2fa8cc' }}>
+                  style={{ backgroundColor: '#3D5AFE' }}>
                   {saving ? 'Enregistrement…' : 'Enregistrer'}
                 </button>
               </div>

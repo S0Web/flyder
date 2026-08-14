@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../lib/api';
-import { colorForUser } from '../lib/utils';
-import SalleSwitcher from '../components/SalleSwitcher';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo-flyder-light.png';
+
+// Couleur/libellé d'avatar par rôle (pas colorForUser : ici on veut distinguer
+// la fonction de la personne, pas juste lui donner une couleur arbitraire).
+const ROLE_STYLE = {
+  manager: { label: 'Manager', color: '#12162B' },
+  user:    { label: 'Coach',   color: '#3D5AFE' },
+};
 
 // Formulaire de démarrage : uniquement affiché quand la salle n'a encore aucun profil
 // (bootstrap du tout premier compte, forcément manager). Une fois un profil créé, cette
@@ -43,7 +50,7 @@ function FirstProfileForm({ onCreated }) {
         </div>
         <button type="submit" disabled={saving}
           className="w-full text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
-          style={{ backgroundColor: '#2fa8cc' }}>
+          style={{ backgroundColor: '#3D5AFE' }}>
           {saving ? 'Création…' : 'Créer'}
         </button>
       </form>
@@ -86,7 +93,7 @@ function CodeEntryModal({ profile, onSubmit, onForgot, onClose }) {
             </button>
             <button type="submit" disabled={busy || !code}
               className="flex-1 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               {busy ? 'Vérification…' : 'Valider'}
             </button>
           </div>
@@ -160,7 +167,7 @@ function CreateCodeModal({ profile, onCreate, onSkip, onClose, forced }) {
             )}
             <button type="submit" disabled={busy}
               className="flex-1 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               {busy ? 'Enregistrement…' : 'Créer'}
             </button>
           </div>
@@ -173,18 +180,26 @@ function CreateCodeModal({ profile, onCreate, onSkip, onClose, forced }) {
 export default function ProfilePicker() {
   const { selectProfile } = useAuth();
   const { salleNom } = useConfig();
+  const toast = useToast();
   const [profiles, setProfiles] = useState([]);
   const [error, setError]       = useState(null);
   const [selecting, setSelecting] = useState(null);
   const [loaded, setLoaded]     = useState(false);
   const [codeModal, setCodeModal] = useState(null);   // profil en attente de saisie du code
   const [createCodeModal, setCreateCodeModal] = useState(null); // { profile, forced }
+  const [now, setNow] = useState(() => new Date());
 
   function loadProfiles() {
     api.getProfiles().then(setProfiles).catch(() => {}).finally(() => setLoaded(true));
   }
 
   useEffect(() => { loadProfiles(); }, []);
+
+  // Horloge du bandeau du bas — la minute suffit, pas besoin de la seconde.
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   async function finalizeSelect(userId, code) {
     setError(null);
@@ -230,17 +245,16 @@ export default function ProfilePicker() {
     setCreateCodeModal(null);
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 relative">
-      <div className="absolute top-4 right-4">
-        <SalleSwitcher currentSalle={salleNom} />
-      </div>
+  const dateLabel = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const timeLabel = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-brand-cream px-4 relative">
       <div className="flex flex-col items-center mb-10">
-        <h1 className="text-2xl font-medium text-gray-600 mb-3">Bienvenue chez</h1>
-        <img src={logo} alt="Fitnessmov Aqua" className="h-24 object-contain" />
+        <img src={logo} alt="Flyder" className="h-8 object-contain mb-8" />
+        <h1 className="text-2xl font-bold text-brand-ink mb-2">Qui utilise Flyder aujourd'hui ?</h1>
         {salleNom && (
-          <p className="mt-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">{salleNom}</p>
+          <p className="text-sm text-brand-slate">{salleNom}</p>
         )}
       </div>
 
@@ -251,23 +265,39 @@ export default function ProfilePicker() {
       {loaded && profiles.length === 0 ? (
         <FirstProfileForm onCreated={finalizeSelect} />
       ) : (
-        <div className="flex flex-wrap justify-center gap-6 max-w-2xl">
-          {profiles.map(p => (
-            <button
-              key={p.id}
-              onClick={() => handleClickProfile(p)}
-              disabled={selecting !== null}
-              className="flex flex-col items-center gap-2 group disabled:opacity-50"
-            >
-              <span
-                className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-md transition-transform group-hover:scale-105 group-active:scale-95"
-                style={{ backgroundColor: colorForUser(p.id) }}
+        <div className="flex flex-wrap justify-center gap-8 max-w-2xl">
+          {profiles.map(p => {
+            const role = ROLE_STYLE[p.role] || ROLE_STYLE.user;
+            return (
+              <button
+                key={p.id}
+                onClick={() => handleClickProfile(p)}
+                disabled={selecting !== null}
+                className="flex flex-col items-center gap-2 group disabled:opacity-50"
               >
-                {selecting === p.id ? '…' : `${p.prenom[0] || ''}${p.nom[0] || ''}`}
-              </span>
-              <span className="text-sm font-medium text-gray-700">{p.prenom}</span>
-            </button>
-          ))}
+                <span
+                  className="h-20 w-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-md transition-transform group-hover:scale-105 group-active:scale-95"
+                  style={{ backgroundColor: role.color }}
+                >
+                  {selecting === p.id ? '…' : (p.prenom[0] || '').toUpperCase()}
+                </span>
+                <span className="text-sm font-semibold text-brand-ink">{p.prenom}</span>
+                <span className="text-xs text-brand-slate -mt-1.5">{role.label}</span>
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => toast.info('La création de profil se fait dans Paramètres > Utilisateurs (manager).')}
+            disabled={selecting !== null}
+            className="flex flex-col items-center gap-2 group disabled:opacity-50"
+          >
+            <span className="h-20 w-20 rounded-full border-2 border-dashed border-brand-slate/50 flex items-center justify-center text-brand-slate transition-colors group-hover:border-brand-slate group-hover:text-brand-ink">
+              <Plus className="h-6 w-6" />
+            </span>
+            <span className="text-sm font-semibold text-brand-slate">Ajouter</span>
+          </button>
         </div>
       )}
 
@@ -289,6 +319,11 @@ export default function ProfilePicker() {
           onClose={() => setCreateCodeModal(null)}
         />
       )}
+
+      <div className="fixed bottom-0 inset-x-0 flex items-center justify-between px-5 py-3 text-xs text-brand-slate">
+        <span>{dateLabel} · {timeLabel}</span>
+        <span>Flyder — Assistance</span>
+      </div>
     </div>
   );
 }

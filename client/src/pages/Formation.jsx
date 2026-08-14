@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { FORMATION_ICONS, formationIcon } from '../lib/formationIcons';
 
 const PALETTE = [
-  '#2fa8cc', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#475569',
+  '#3D5AFE', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#475569',
 ];
 
 // ── Modale catégorie (créer / modifier) ─────────────────────────────────────
@@ -89,7 +89,7 @@ function CategorieModal({ categorie, onSave, onDelete, onClose }) {
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>
@@ -120,7 +120,7 @@ function CategorieCard({ cat, isManager, onEdit, onReorder }) {
         <div className="p-5">
           <h3 className="font-bold text-gray-800 mb-1">{cat.titre}</h3>
           <p className="text-sm text-gray-500 mb-4 min-h-[2.5rem] line-clamp-2">{cat.description || ' '}</p>
-          <span className="block w-full text-center text-white rounded-lg py-2 text-sm font-medium" style={{ backgroundColor: '#2fa8cc' }}>
+          <span className="block w-full text-center text-white rounded-lg py-2 text-sm font-medium" style={{ backgroundColor: '#3D5AFE' }}>
             {cat.nb_articles > 0 ? 'Commencer' : 'Aucun contenu'}
           </span>
         </div>
@@ -186,7 +186,7 @@ export default function Formation() {
         {isManager && (
           <button onClick={() => setModal({})}
             className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90"
-            style={{ backgroundColor: '#2fa8cc' }}>
+            style={{ backgroundColor: '#3D5AFE' }}>
             <Plus className="h-4 w-4" /> Nouvelle catégorie
           </button>
         )}

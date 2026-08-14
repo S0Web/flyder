@@ -132,7 +132,7 @@ function UserModal({ user, onSave, onClose, viewerIsManager }) {
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>
@@ -232,7 +232,7 @@ function AccesTab() {
         </div>
         <button type="submit" disabled={saving}
           className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
-          style={{ backgroundColor: '#2fa8cc' }}>
+          style={{ backgroundColor: '#3D5AFE' }}>
           <Plus className="h-4 w-4" /> Ajouter
         </button>
       </form>
@@ -420,7 +420,7 @@ export default function Settings() {
             <div>
               <div className="font-bold text-gray-800">{me?.prenom} {me?.nom}</div>
               <div className="text-sm text-gray-500">{me?.email}</div>
-              <div className="text-xs mt-0.5 px-2 py-0.5 rounded inline-block" style={{ backgroundColor: me?.role === 'manager' ? '#eef9fd' : '#f3f4f6', color: me?.role === 'manager' ? '#1a7a9b' : '#6b7280' }}>
+              <div className="text-xs mt-0.5 px-2 py-0.5 rounded inline-block" style={{ backgroundColor: me?.role === 'manager' ? '#eef9fd' : '#f3f4f6', color: me?.role === 'manager' ? '#12162B' : '#6b7280' }}>
                 {me?.role === 'manager' ? 'Manager' : 'Utilisateur'}
               </div>
             </div>
@@ -439,14 +439,14 @@ export default function Settings() {
             <span className="text-sm text-gray-500">{users.length} utilisateur(s)</span>
             <button onClick={() => setModal({})}
               className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               <Plus className="h-4 w-4" /> Nouveau
             </button>
           </div>
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <table className="w-full border-collapse text-sm min-w-[520px]">
             <thead>
-              <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
+              <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
                 {['Nom', 'Email', 'Rôle', 'Statut', ''].map(h => (
                   <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
                 ))}
@@ -584,7 +584,7 @@ export default function Settings() {
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <table className="w-full border-collapse text-xs min-w-[560px]">
               <thead>
-                <tr style={{ backgroundColor: '#2fa8cc', color: '#fff' }}>
+                <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
                   {['Date', 'Utilisateur', 'Action', 'Détails'].map(h => (
                     <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
                   ))}

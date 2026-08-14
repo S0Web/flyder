@@ -7,8 +7,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { colorForUser } from '../lib/utils';
-import SalleSwitcher from './SalleSwitcher';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo-flyder-dark.png';
 
 const ALL_LINKS = [
   { to: '/',                   label: 'Planning des cours',  icon: CalendarDays,  end: true },
@@ -18,7 +17,10 @@ const ALL_LINKS = [
   { to: '/formation',          label: 'Formation',           icon: GraduationCap },
 ];
 
-const SALLE_BADGE_CLASS = 'flex items-center gap-1 text-[11px] font-semibold bg-white/15 text-white rounded-full px-2 py-0.5 hover:bg-white/25 transition-colors max-w-full';
+// Fitnessmov (et toute autre salle) est un client Flyder, pas le propriétaire du
+// produit — ce badge affiche juste le nom de la salle, sans lien vers une autre
+// instance (chaque salle est un client indépendant, il n'y a plus rien à sauter).
+const SALLE_BADGE_CLASS = 'inline-flex items-center text-[11px] font-semibold bg-white/15 text-white rounded-full px-2 py-0.5 max-w-full truncate';
 
 function Bubble({ user, size = 'h-7 w-7' }) {
   return (
@@ -39,7 +41,7 @@ function NavItem({ to, label, icon: Icon, end, onClick }) {
       onClick={onClick}
       className={({ isActive }) =>
         `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-          isActive ? 'bg-white/20 text-white' : 'text-sky-100 hover:bg-white/10'
+          isActive ? 'bg-white/20 text-white' : 'text-brand-cream/70 hover:bg-white/10 hover:text-white'
         }`
       }
     >
@@ -53,8 +55,8 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
   return (
     <>
       <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
-        <img src={logo} alt="Fitnessmov Aqua" className="h-8 w-auto self-start flex-shrink-0" />
-        {salleNom && <SalleSwitcher currentSalle={salleNom} align="left" alwaysShow buttonClassName={SALLE_BADGE_CLASS} />}
+        <img src={logo} alt="Flyder" className="h-6 w-auto self-start flex-shrink-0" />
+        {salleNom && <span className={SALLE_BADGE_CLASS}>{salleNom}</span>}
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
@@ -66,7 +68,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
           <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} />
           <button
             onClick={switchProfile}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-sky-100 hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-cream/70 hover:bg-white/10 hover:text-white transition-colors"
           >
             <Bubble user={user} />
             <span className="truncate">{user.prenom}</span>
@@ -85,14 +87,14 @@ export default function Layout({ children }) {
   const links = restricted ? ALL_LINKS.filter(l => l.to !== '/annuaire') : ALL_LINKS;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-brand-cream flex">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-sky-700 sticky top-0 h-screen shadow-md">
+      <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-brand-ink sticky top-0 h-screen shadow-md">
         <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} />
       </aside>
 
       {/* Barre + tiroir mobile */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 bg-sky-700 shadow-md flex items-center px-3 gap-3">
+      <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 bg-brand-ink shadow-md flex items-center px-3 gap-3">
         <button
           type="button"
           onClick={() => setMenuOpen(o => !o)}
@@ -102,13 +104,13 @@ export default function Layout({ children }) {
         >
           {menuOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
         </button>
-        <img src={logo} alt="Fitnessmov Aqua" className="h-8 w-auto flex-shrink-0" />
-        {salleNom && <SalleSwitcher currentSalle={salleNom} align="left" alwaysShow buttonClassName={SALLE_BADGE_CLASS} />}
+        <img src={logo} alt="Flyder" className="h-6 w-auto flex-shrink-0" />
+        {salleNom && <span className={SALLE_BADGE_CLASS}>{salleNom}</span>}
       </div>
       {menuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
-          <aside className="relative w-64 bg-sky-700 flex flex-col h-full shadow-xl">
+          <aside className="relative w-64 bg-brand-ink flex flex-col h-full shadow-xl">
             <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} />
           </aside>
         </div>

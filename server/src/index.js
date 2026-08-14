@@ -109,7 +109,7 @@ app.use((err, req, res, next) => {
 
 function startServer(retry = 0) {
   const server = app.listen(PORT, () => {
-    console.log(`🚀 Fitnessmov Planning — http://localhost:${PORT}`);
+    console.log(`🚀 Flyder — http://localhost:${PORT}`);
   });
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE' && retry < 3) {

@@ -99,7 +99,7 @@ function ContactModal({ contact, onSave, onDelete, onClose }) {
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>
@@ -196,7 +196,7 @@ function CoachQuickEditModal({ coach, onSave, onClose }) {
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#2fa8cc' }}>
+              style={{ backgroundColor: '#3D5AFE' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>
@@ -270,7 +270,7 @@ export default function Annuaire() {
         <h1 className="text-lg font-bold text-gray-800">Annuaire</h1>
         <button onClick={() => setModal({})}
           className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 self-start sm:self-auto"
-          style={{ backgroundColor: '#2fa8cc' }}>
+          style={{ backgroundColor: '#3D5AFE' }}>
           <Plus className="h-4 w-4" /> Nouveau contact
         </button>
       </div>

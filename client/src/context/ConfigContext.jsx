@@ -12,7 +12,7 @@ export function ConfigProvider({ children }) {
         setConfig(c);
         // Titre d'onglet distinct par salle (pratique quand on gère plusieurs
         // instances ouvertes en même temps).
-        document.title = c.salleNom ? `Planning Fitnessmov — ${c.salleNom}` : 'Planning Fitnessmov';
+        document.title = c.salleNom ? `Flyder — ${c.salleNom}` : 'Flyder';
       })
       .catch(() => {});
   }, []);
