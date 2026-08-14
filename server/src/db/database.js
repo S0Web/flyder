@@ -42,9 +42,52 @@ db.run(`
   CREATE TABLE IF NOT EXISTS coach_documents (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     coach_id     INTEGER NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
-    type         TEXT NOT NULL CHECK(type IN ('carte_pro', 'contrat', 'autre')),
+    type         TEXT NOT NULL CHECK(type IN ('cni_passeport', 'diplome', 'carte_pro', 'autre')),
     nom_fichier  TEXT NOT NULL,
     chemin       TEXT NOT NULL,
+    date_upload  TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Migration : élargit les types de documents coach (identité + qualifications).
+// Table jusqu'ici créée mais jamais exploitée par aucune route — migration simple,
+// mais faite proprement (recréation + copie) plutôt qu'en confiance aveugle.
+;(function migrateCoachDocumentsTypes() {
+  try {
+    const row = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='coach_documents'");
+    if (!row || row.sql.includes('diplome')) return; // déjà à jour
+    db.run('BEGIN');
+    db.run(`CREATE TABLE coach_documents_mig (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id     INTEGER NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
+      type         TEXT NOT NULL CHECK(type IN ('cni_passeport', 'diplome', 'carte_pro', 'autre')),
+      nom_fichier  TEXT NOT NULL,
+      chemin       TEXT NOT NULL,
+      date_upload  TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+    db.run(`INSERT INTO coach_documents_mig (id, coach_id, type, nom_fichier, chemin, date_upload)
+            SELECT id, coach_id, CASE WHEN type = 'contrat' THEN 'autre' ELSE type END, nom_fichier, chemin, date_upload
+            FROM coach_documents`);
+    db.run('DROP TABLE coach_documents');
+    db.run('ALTER TABLE coach_documents_mig RENAME TO coach_documents');
+    db.run('COMMIT');
+    console.log('✅ Migration coach_documents (types élargis) OK');
+  } catch (e) {
+    db.run('ROLLBACK');
+    console.error('Migration coach_documents error:', e.message);
+  }
+})();
+
+// ─── Documents des employés (fiches de paie, contrat, arrêt maladie, autre) ───
+db.run(`
+  CREATE TABLE IF NOT EXISTS employe_documents (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    type         TEXT NOT NULL CHECK(type IN ('fiche_paie', 'contrat', 'arret_maladie', 'autre')),
+    periode      TEXT,
+    nom_fichier  TEXT NOT NULL,
+    chemin       TEXT NOT NULL,
+    uploaded_by  INTEGER REFERENCES app_users(id),
     date_upload  TEXT NOT NULL DEFAULT (datetime('now'))
   )
 `);

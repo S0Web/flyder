@@ -24,6 +24,28 @@ async function req(path, options = {}) {
   return res.json();
 }
 
+// Télécharge un fichier depuis une route protégée par token (les documents salariés/coachs
+// ne sont pas servis en statique comme les images Formation — il faut passer l'Authorization).
+async function telechargerFichierProtege(path, nomFichier) {
+  const token = getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomFichier || 'document';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   // Config publique (nom de la salle, etc.)
   getConfig: () => req('/config'),
@@ -39,6 +61,7 @@ export const api = {
 
   // Utilisateurs
   getAppUsers:    () => req('/app-users'),
+  getAppUser:     (id) => req(`/app-users/${id}`),
   createAppUser:  (data) => req('/app-users', { method: 'POST', body: JSON.stringify(data) }),
   updateAppUser:  (id, data) => req(`/app-users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAppUser:  (id) => req(`/app-users/${id}`, { method: 'DELETE' }),
@@ -133,6 +156,70 @@ export const api = {
     }
     return res.json();
   },
+
+  // Documents salariés (fiches de paie, contrat, arrêt maladie, autre)
+  getEmployeDocuments: (userId) => req(`/employe-documents/${userId}`),
+  uploadEmployeDocument: async (userId, file, type, periode) => {
+    const token = getToken();
+    const body = new FormData();
+    body.append('fichier', file);
+    body.append('type', type);
+    if (periode) body.append('periode', periode);
+    const res = await fetch(`${BASE}/employe-documents/${userId}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    return res.json();
+  },
+  deleteEmployeDocument: (id) => req(`/employe-documents/${id}`, { method: 'DELETE' }),
+  downloadEmployeDocument: (id, nomFichier) => telechargerFichierProtege(`/employe-documents/file/${id}`, nomFichier),
+
+  // Import groupé des fiches de paie
+  analyserFichesDePaie: async (file) => {
+    const token = getToken();
+    const body = new FormData();
+    body.append('fichier', file);
+    const res = await fetch(`${BASE}/employe-documents/import/analyser`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    return res.json();
+  },
+  confirmerImportFichesDePaie: (tempId, groupes) =>
+    req('/employe-documents/import/confirmer', { method: 'POST', body: JSON.stringify({ tempId, groupes }) }),
+  annulerImportFichesDePaie: (tempId) =>
+    req('/employe-documents/import/annuler', { method: 'POST', body: JSON.stringify({ tempId }) }),
+
+  // Documents coachs (CNI/passeport, diplômes, carte pro, autre) — manager uniquement
+  getCoachDocuments: (coachId) => req(`/coach-documents/${coachId}`),
+  uploadCoachDocument: async (coachId, file, type) => {
+    const token = getToken();
+    const body = new FormData();
+    body.append('fichier', file);
+    body.append('type', type);
+    const res = await fetch(`${BASE}/coach-documents/${coachId}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    return res.json();
+  },
+  deleteCoachDocument: (id) => req(`/coach-documents/${id}`, { method: 'DELETE' }),
+  downloadCoachDocument: (id, nomFichier) => telechargerFichierProtege(`/coach-documents/file/${id}`, nomFichier),
 
   // IP autorisées (accès en écriture depuis un compte non-manager)
   getIpAutorisees: () => req('/ip-autorisees'),

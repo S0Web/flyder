@@ -1,146 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Download } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useToast } from '../context/ToastContext';
 import { parseServerDate, colorForUser } from '../lib/utils';
-
-function CpAdjustBlock({ userId }) {
-  const [detail, setDetail] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  const load = () => api.getCpDetail(userId).then(setDetail).catch(() => {});
-  useEffect(() => { load(); }, [userId]);
-
-  async function adjust(delta) {
-    setBusy(true);
-    try {
-      const updated = await api.adjustCp(userId, delta);
-      setDetail(updated);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (!detail) return null;
-
-  const Row = ({ label, value }) => (
-    <div className="flex justify-between text-xs text-gray-500 py-0.5">
-      <span>{label}</span>
-      <span className="font-medium text-gray-700 tabular-nums">{value}</span>
-    </div>
-  );
-
-  return (
-    <div className="border border-gray-200 rounded-lg px-3 py-2.5 bg-gray-50">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Congés</span>
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => adjust(-1)} disabled={busy}
-            className="h-6 w-6 flex items-center justify-center rounded border border-gray-300 text-gray-500 hover:bg-gray-100 disabled:opacity-50">−</button>
-          <span className="w-8 text-center font-bold text-gray-800 tabular-nums">{detail.acquis}</span>
-          <button type="button" onClick={() => adjust(1)} disabled={busy}
-            className="h-6 w-6 flex items-center justify-center rounded border border-gray-300 text-gray-500 hover:bg-gray-100 disabled:opacity-50">+</button>
-        </div>
-      </div>
-      <Row label="Congés calculé à date" value={detail.calculeADate} />
-      <Row label="Congés ajouté par rapport à la date" value={detail.ajuste} />
-      <Row label="Congés pris" value={detail.pris} />
-      <Row label="Congés restant" value={detail.restant} />
-    </div>
-  );
-}
-
-function UserModal({ user, onSave, onClose, viewerIsManager }) {
-  const isNew = !user?.id;
-  const [form, setForm] = useState({
-    prenom:   user?.prenom   || '',
-    nom:      user?.nom      || '',
-    email:    user?.email    || '',
-    role:     user?.role     || 'user',
-    actif:    user?.actif    !== undefined ? user.actif : 1,
-    date_debut_contrat: user?.date_debut_contrat || '',
-  });
-  const [error, setError]   = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    try {
-      await onSave(form);
-      onClose();
-    } catch(err) { setError(err.message); }
-    finally { setSaving(false); }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="px-6 pt-5 pb-4 border-b">
-          <h2 className="text-lg font-bold text-gray-800">{isNew ? 'Nouvel utilisateur' : `${user.prenom} ${user.nom}`}</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
-          {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">{error}</div>}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Prénom *</label>
-              <input required value={form.prenom} onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Nom</label>
-              <input value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
-            <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-          </div>
-          <div className="flex gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Rôle</label>
-              <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
-                <option value="user">Utilisateur</option>
-                <option value="manager">Manager</option>
-              </select>
-            </div>
-            {!isNew && (
-              <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <input type="checkbox" checked={!!form.actif} onChange={e => setForm(f => ({ ...f, actif: e.target.checked ? 1 : 0 }))} />
-                  Actif
-                </label>
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Date de début de contrat</label>
-            <input type="date" value={form.date_debut_contrat}
-              onChange={e => setForm(f => ({ ...f, date_debut_contrat: e.target.value }))}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-            <p className="text-[11px] text-gray-400 mt-1">Sert à calculer le cumul de CP (2,5 jours acquis par mois).</p>
-          </div>
-          {!isNew && viewerIsManager && <CpAdjustBlock userId={user.id} />}
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={saving}
-              className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: '#3D5AFE' }}>
-              {saving ? 'Enregistrement…' : 'Enregistrer'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+import UserModal from '../components/UserModal';
+import ImportFichesDePaieModal from '../components/ImportFichesDePaieModal';
 
 const AUDIT_PAGE = 50;
 
@@ -260,6 +127,7 @@ function AccesTab() {
 }
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { user: me } = useAuth();
   const { salleNom, corbeilHistoriqueImporte, refetch: refetchConfig } = useConfig();
   const toast = useToast();
@@ -270,6 +138,7 @@ export default function Settings() {
   const [auditHasMore, setAuditHasMore] = useState(false);
   const [auditFilters, setAuditFilters] = useState({ action: '', user_id: '', from: '', to: '', order: 'desc' });
   const [modal, setModal] = useState(null);
+  const [importModal, setImportModal] = useState(false);
   const [backing, setBacking] = useState(false);
   const [backupError, setBackupError] = useState(null);
   const [seedingBallancourt, setSeedingBallancourt] = useState(false);
@@ -425,10 +294,17 @@ export default function Settings() {
               </div>
             </div>
           </div>
-          <button onClick={() => setModal(me)}
-            className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
-            Modifier mes informations
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setModal(me)}
+              className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+              Modifier mes informations
+            </button>
+            <button onClick={() => navigate(`/parametres/utilisateurs/${me.id}`)}
+              className="text-sm px-4 py-2 rounded text-white font-medium"
+              style={{ backgroundColor: '#3D5AFE' }}>
+              Ouvrir ma fiche
+            </button>
+          </div>
         </div>
       )}
 
@@ -437,11 +313,17 @@ export default function Settings() {
         <div>
           <div className="flex justify-between items-center mb-3 gap-3">
             <span className="text-sm text-gray-500">{users.length} utilisateur(s)</span>
-            <button onClick={() => setModal({})}
-              className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium"
-              style={{ backgroundColor: '#3D5AFE' }}>
-              <Plus className="h-4 w-4" /> Nouveau
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setImportModal(true)}
+                className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+                Importer les fiches de paie
+              </button>
+              <button onClick={() => setModal({})}
+                className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium"
+                style={{ backgroundColor: '#3D5AFE' }}>
+                <Plus className="h-4 w-4" /> Nouveau
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
           <table className="w-full border-collapse text-sm min-w-[520px]">
@@ -457,7 +339,7 @@ export default function Settings() {
                 <tr key={u.id} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#fff' }} className={u.actif ? '' : 'opacity-40'}>
                   <td className="px-3 py-2 font-medium">{u.prenom} {u.nom}</td>
                   <td className="px-3 py-2 text-gray-500">{u.email}</td>
-                  <td className="px-3 py-2">{u.role === 'manager' ? '⭐ Manager' : 'Utilisateur'}</td>
+                  <td className="px-3 py-2">{u.role === 'manager' ? 'Manager' : 'Utilisateur'}</td>
                   <td className="px-3 py-2">
                     <button onClick={() => handleToggleActif(u)}
                       title="Cliquer pour changer le statut"
@@ -466,7 +348,7 @@ export default function Settings() {
                     </button>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <button onClick={() => setModal(u)} className="text-xs text-sky-600 hover:underline">Modifier</button>
+                    <button onClick={() => navigate(`/parametres/utilisateurs/${u.id}`)} className="text-xs text-sky-600 hover:underline">Ouvrir la fiche</button>
                     {!u.actif && u.id !== me?.id && (
                       <button onClick={() => handleDeleteUser(u)} className="ml-3 text-xs text-red-500 hover:underline">
                         Supprimer définitivement
@@ -625,7 +507,14 @@ export default function Settings() {
           user={modal?.id ? modal : null}
           onSave={handleSave}
           onClose={() => setModal(null)}
-          viewerIsManager={isManager && tab === 'users'}
+        />
+      )}
+
+      {importModal && (
+        <ImportFichesDePaieModal
+          users={users}
+          onClose={() => setImportModal(false)}
+          onImported={() => {}}
         />
       )}
     </div>

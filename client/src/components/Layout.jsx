@@ -20,7 +20,11 @@ const ALL_LINKS = [
 // Fitnessmov (et toute autre salle) est un client Flyder, pas le propriétaire du
 // produit — ce badge affiche juste le nom de la salle, sans lien vers une autre
 // instance (chaque salle est un client indépendant, il n'y a plus rien à sauter).
+// Deux variantes : la sidebar/le tiroir mobile ont la place de laisser le nom
+// passer sur deux lignes (ex. "Fitnessmov Corbeil-Essonnes") ; la barre mobile,
+// contrainte en hauteur, tronque plutôt que de casser la mise en page.
 const SALLE_BADGE_CLASS = 'inline-flex items-center text-[11px] font-semibold bg-white/15 text-white rounded-full px-2 py-0.5 max-w-full truncate';
+const SALLE_BADGE_WRAP_CLASS = 'inline-block text-[11px] font-semibold bg-white/15 text-white rounded-lg px-2 py-1 max-w-full leading-snug';
 
 function Bubble({ user, size = 'h-7 w-7' }) {
   return (
@@ -56,7 +60,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
     <>
       <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
         <img src={logo} alt="Flyder" className="h-6 w-auto self-start flex-shrink-0" />
-        {salleNom && <span className={SALLE_BADGE_CLASS}>{salleNom}</span>}
+        {salleNom && <span className={SALLE_BADGE_WRAP_CLASS}>{salleNom}</span>}
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">

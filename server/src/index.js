@@ -43,6 +43,8 @@ const annuaireRouter  = require('./routes/annuaire');
 const adminRouter     = require('./routes/admin');
 const ipAutoriseesRouter = require('./routes/ipAutorisees');
 const formationRouter = require('./routes/formation');
+const employeDocumentsRouter = require('./routes/employeDocuments');
+const coachDocumentsRouter = require('./routes/coachDocuments');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -89,6 +91,11 @@ app.use('/api/ip-autorisees', ipAutoriseesRouter);
 // Formation : chaque route gère elle-même son niveau d'accès (lecture pour tout
 // utilisateur authentifié, écriture réservée aux managers) — pas de middleware ici.
 app.use('/api/formation', formationRouter);
+// Documents salariés : chaque route gère elle-même son niveau d'accès (voir peutVoir
+// dans routes/employeDocuments.js) — pas de middleware ici.
+app.use('/api/employe-documents', employeDocumentsRouter);
+// Documents coachs : manager uniquement (voir routes/coachDocuments.js).
+app.use('/api/coach-documents', coachDocumentsRouter);
 
 // Servir le front
 const clientDist = path.join(__dirname, '../public');

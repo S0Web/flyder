@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon, FileDown, SlidersHorizontal, Lightbulb } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { DISCIPLINE_CONFIG, colorForUser, STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
 import Tooltip from '../components/Tooltip';
+import CoachDocumentsSection from '../components/CoachDocumentsSection';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +18,27 @@ const MOIS_COURTS = {
   '01':'Jan','02':'Fév','03':'Mar','04':'Avr','05':'Mai','06':'Jun',
   '07':'Jul','08':'Aoû','09':'Sep','10':'Oct','11':'Nov','12':'Déc',
 };
+
+// Initiale affichée dans les puces discipline discrètes (mêmes couleurs que l'annuaire)
+const DISCIPLINE_LETTERS = { aqua: 'A', fitness: 'F', boxe: 'B', crosstraining: 'C', poledance: 'P' };
+
+function DisciplineBadges({ coach }) {
+  const actives = Object.keys(DISCIPLINE_LETTERS).filter(k => coach[k]);
+  if (actives.length === 0) return null;
+  return (
+    <span className="flex items-center gap-0.5 flex-shrink-0">
+      {actives.map(key => {
+        const cfg = DISCIPLINE_CONFIG[key];
+        return (
+          <span key={key} title={cfg.label}
+            className={`h-3.5 w-3.5 rounded-full flex items-center justify-center text-[8px] font-bold leading-none ${cfg.bg} ${cfg.text}`}>
+            {DISCIPLINE_LETTERS[key]}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 function getLast13Months() {
   const now    = new Date();
@@ -374,7 +397,7 @@ function LineChart({ data, xKey, yKey, color = '#5bcae8', label = '' }) {
 
 // ── Modale coach ───────────────────────────────────────────────────────────────
 
-function CoachModal({ coach, onSave, onToggle, onDelete, onClose }) {
+function CoachModal({ coach, onSave, onToggle, onDelete, onClose, isManager }) {
   const isNew = !coach?.id;
   const [form, setForm] = useState({
     nom:           coach?.nom           || '',
@@ -417,8 +440,8 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="px-6 pt-5 pb-4 border-b flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="px-6 pt-5 pb-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
           <h2 className="text-lg font-bold text-gray-800">
             {isNew ? 'Nouveau coach' : `${coach.prenom} ${coach.nom}`}
           </h2>
@@ -441,7 +464,8 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose }) {
             </div>
           )}
         </div>
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
+        <div className="px-6 py-4 space-y-3">
+        <form id="coach-form" onSubmit={handleSubmit} className="space-y-3">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">{error}</div>}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -503,16 +527,20 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose }) {
             </div>
           </div>
 
+        </form>
+
+          {!isNew && isManager && <CoachDocumentsSection coachId={coach.id} />}
+
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={saving}
+            <button type="submit" form="coach-form" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
               style={{ backgroundColor: '#3D5AFE' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
@@ -703,6 +731,8 @@ function CoachSeancesModal({ coach, periodeLabel, debut, fin, inclureEffectue, i
 // ── Page principale ────────────────────────────────────────────────────────────
 
 export default function Coaches() {
+  const { user: me } = useAuth();
+  const isManager = me?.role === 'manager';
   const [recap, setRecap]       = useState(null);
   const [dashboard, setDash]    = useState(null);
   const [dashboardPrev, setDashPrev] = useState(null); // période précédente, pour le comparatif
@@ -840,7 +870,7 @@ export default function Coaches() {
           <table className="w-full border-collapse text-sm min-w-[860px]">
             <thead>
               <tr>
-                <th className={`${TH} text-left sticky left-0 z-30 bg-gray-100`} style={{ minWidth: 92 }}>Coach</th>
+                <th className={`${TH} text-left sticky left-0 z-30 bg-gray-100`} style={{ minWidth: 120 }}>Coach</th>
                 {months.map(m => (
                   <th key={m} className={`${TH}`}
                     style={m === currentMois ? { color: '#3D5AFE', backgroundColor: '#eef9fd' } : {}}>
@@ -855,10 +885,11 @@ export default function Coaches() {
                 const bg = i % 2 === 0 ? '#ffffff' : '#f9fafb';
                 return (
                   <tr key={coach.id} style={{ backgroundColor: bg }} className={coach.actif ? '' : 'opacity-40'}>
-                    <td className="sticky left-0 z-10 border-b border-gray-100 px-2 py-1.5 font-semibold" style={{ backgroundColor: bg, maxWidth: 92 }}>
+                    <td className="sticky left-0 z-10 border-b border-gray-100 px-2 py-1.5 font-semibold" style={{ backgroundColor: bg, maxWidth: 120 }}>
                       <button onClick={() => setStatsModal(coach)} title={`${coach.prenom} ${coach.nom}`}
-                        className="hover:underline text-left truncate block w-full" style={{ color: '#12162B' }}>
-                        {coach.prenom} {coach.nom}
+                        className="hover:underline text-left flex items-center gap-1 w-full" style={{ color: '#12162B' }}>
+                        <span className="truncate">{coach.prenom} {coach.nom}</span>
+                        <DisciplineBadges coach={coach} />
                       </button>
                     </td>
                     {months.map(m => {
@@ -1179,6 +1210,7 @@ export default function Coaches() {
           onToggle={handleToggle}
           onDelete={handleDelete}
           onClose={() => setModal(null)}
+          isManager={isManager}
         />
       )}
     </div>

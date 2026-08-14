@@ -11,6 +11,45 @@ router.get('/', requireManager, (req, res) => {
   res.json(users);
 });
 
+// GET /api/app-users/audit — historique (manager), paginé + filtres/tri
+// Params : limit, offset, action, user_id, from (YYYY-MM-DD), to (YYYY-MM-DD), order (asc|desc)
+// Déclarée avant /:id : sinon "/audit" serait capturé par :id="audit" (Express matche
+// les routes dans l'ordre d'enregistrement).
+router.get('/audit', requireManager, (req, res) => {
+  const limit  = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+  const order  = req.query.order === 'asc' ? 'ASC' : 'DESC';
+
+  const where = [];
+  const params = [];
+  if (req.query.action)  { where.push('a.action = ?');           params.push(req.query.action); }
+  if (req.query.user_id) { where.push('a.user_id = ?');          params.push(Number(req.query.user_id)); }
+  if (req.query.from)    { where.push('date(a.created_at) >= ?'); params.push(req.query.from); }
+  if (req.query.to)      { where.push('date(a.created_at) <= ?'); params.push(req.query.to); }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  const logs = db.all(`
+    SELECT a.*, u.prenom || ' ' || u.nom AS user_nom
+    FROM audit_log a
+    LEFT JOIN app_users u ON u.id = a.user_id
+    ${whereSql}
+    ORDER BY a.created_at ${order}
+    LIMIT ? OFFSET ?
+  `, [...params, limit, offset]);
+  res.json(logs);
+});
+
+// GET /api/app-users/:id — fiche d'un salarié (le manager voit tout le monde, un
+// utilisateur simple ne voit que sa propre fiche).
+router.get('/:id', requireAuth, (req, res) => {
+  const isManager = req.user.role === 'manager';
+  const isSelf = req.user.id === Number(req.params.id);
+  if (!isManager && !isSelf) return res.status(403).json({ error: 'Accès refusé' });
+  const user = db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, created_at FROM app_users WHERE id = ? AND supprime = 0', [req.params.id]);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+  res.json(user);
+});
+
 function cpDetail(id) {
   const user = db.get('SELECT id, date_debut_contrat, cp_ajuste FROM app_users WHERE id = ?', [id]);
   if (!user) return null;
@@ -18,8 +57,11 @@ function cpDetail(id) {
   return { date_debut_contrat: user.date_debut_contrat, ...soldeCp(user.date_debut_contrat, user.cp_ajuste, pris) };
 }
 
-// GET /api/app-users/:id/cp — détail du cumul de CP (manager)
-router.get('/:id/cp', requireManager, (req, res) => {
+// GET /api/app-users/:id/cp — détail du cumul de CP (manager, ou le salarié pour lui-même)
+router.get('/:id/cp', requireAuth, (req, res) => {
+  const isManager = req.user.role === 'manager';
+  const isSelf = req.user.id === Number(req.params.id);
+  if (!isManager && !isSelf) return res.status(403).json({ error: 'Accès refusé' });
   const detail = cpDetail(req.params.id);
   if (!detail) return res.status(404).json({ error: 'Utilisateur introuvable' });
   res.json(detail);
@@ -97,32 +139,6 @@ router.delete('/:id', requireManager, (req, res) => {
   db.run('INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?)',
     [req.user.id, 'delete_user', 'app_users', user.id, `${user.prenom} ${user.nom}`]);
   res.json({ ok: true });
-});
-
-// GET /api/app-users/audit — historique (manager), paginé + filtres/tri
-// Params : limit, offset, action, user_id, from (YYYY-MM-DD), to (YYYY-MM-DD), order (asc|desc)
-router.get('/audit', requireManager, (req, res) => {
-  const limit  = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
-  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
-  const order  = req.query.order === 'asc' ? 'ASC' : 'DESC';
-
-  const where = [];
-  const params = [];
-  if (req.query.action)  { where.push('a.action = ?');           params.push(req.query.action); }
-  if (req.query.user_id) { where.push('a.user_id = ?');          params.push(Number(req.query.user_id)); }
-  if (req.query.from)    { where.push('date(a.created_at) >= ?'); params.push(req.query.from); }
-  if (req.query.to)      { where.push('date(a.created_at) <= ?'); params.push(req.query.to); }
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-
-  const logs = db.all(`
-    SELECT a.*, u.prenom || ' ' || u.nom AS user_nom
-    FROM audit_log a
-    LEFT JOIN app_users u ON u.id = a.user_id
-    ${whereSql}
-    ORDER BY a.created_at ${order}
-    LIMIT ? OFFSET ?
-  `, [...params, limit, offset]);
-  res.json(logs);
 });
 
 module.exports = router;
