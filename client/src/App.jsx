@@ -7,6 +7,7 @@ import ProfilePicker from './pages/ProfilePicker';
 import Planning from './pages/Planning';
 import PlanningPersonnel from './pages/PlanningPersonnel';
 import Coaches from './pages/Coaches';
+import Analyse from './pages/Analyse';
 import Annuaire from './pages/Annuaire';
 import Formation from './pages/Formation';
 import FormationCategorie from './pages/FormationCategorie';
@@ -26,7 +27,10 @@ function ProtectedRoutes() {
       <Routes>
         <Route path="/"                   element={<Planning />} />
         <Route path="/planning-personnel" element={<PlanningPersonnel />} />
-        <Route path="/coaches"            element={<Coaches />} />
+        <Route path="/recapitulatif"      element={<Coaches />} />
+        {/* Ancienne URL : des raccourcis/onglets ouverts pointent encore dessus. */}
+        <Route path="/coaches"            element={<Navigate to="/recapitulatif" replace />} />
+        <Route path="/analyse"            element={<Analyse />} />
         <Route path="/annuaire"           element={<Annuaire />} />
         <Route path="/formation"                        element={<Formation />} />
         <Route path="/formation/:categorieId"           element={<FormationCategorie />} />

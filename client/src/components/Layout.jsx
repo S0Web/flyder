@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Settings as GearIcon, Menu as MenuIcon, X as XIcon,
-  CalendarDays, CalendarRange, Dumbbell, BookUser, GraduationCap,
+  CalendarDays, CalendarRange, ClipboardList, BarChart3, BookUser, GraduationCap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
@@ -11,8 +11,9 @@ import logo from '../assets/logo-flyder-dark.png';
 
 const ALL_LINKS = [
   { to: '/',                   label: 'Planning des cours',  icon: CalendarDays,  end: true },
+  { to: '/recapitulatif',      label: 'Récapitulatif',       icon: ClipboardList },
+  { to: '/analyse',            label: 'Analyse',             icon: BarChart3 },
   { to: '/planning-personnel', label: 'Planning personnel',  icon: CalendarRange },
-  { to: '/coaches',             label: 'Coaches',             icon: Dumbbell },
   { to: '/annuaire',           label: 'Annuaire',            icon: BookUser },
   { to: '/formation',          label: 'Formation',           icon: GraduationCap },
 ];

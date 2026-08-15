@@ -73,8 +73,14 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={handleAnnuler}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 ${closing ? 'animate-overlayOut' : 'animate-overlayIn'}`}
+      onClick={handleAnnuler}
+    >
+      <div
+        className={`bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col ${closing ? 'animate-modalOut' : 'animate-modalIn'}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-6 pt-5 pb-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">Importer les fiches de paie</h2>
           <button onClick={handleAnnuler} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>

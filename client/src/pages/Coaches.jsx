@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Calendar, CalendarRange, Infinity as InfinityIcon, FileDown, SlidersHorizontal, Lightbulb } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, FileDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { DISCIPLINE_CONFIG, colorForUser, STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
-import Tooltip from '../components/Tooltip';
 import CoachDocumentsSection from '../components/CoachDocumentsSection';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -57,21 +57,6 @@ function fmtDateFr(iso) {
   if (!iso) return '';
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function periodeLabel(mode, anneeScolaire, plageDebut, plageFin) {
-  if (mode === 'tout') return 'De tout temps';
-  if (mode === 'scolaire') return `Saison ${anneeScolaire}–${anneeScolaire + 1}`;
-  if (!plageDebut || !plageFin) return 'Plage personnalisée';
-  return `${fmtDateFr(plageDebut)} → ${fmtDateFr(plageFin)}`;
-}
-
-function getAcademicYear() {
-  const now  = new Date();
-  const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1; // septembre = mois 8
-  const debut = `${year}-09-01`;
-  const fin   = `${year + 1}-08-31`;
-  return { year, debut, fin };
 }
 
 function fmtH(val) {
@@ -184,215 +169,6 @@ function exportSeancesPdf({ coach, seances, periodeLabel, salleNom, salleAdresse
 
   const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
   doc.save(`heures-${slug(coach.prenom)}-${slug(coach.nom)}-${slug(periodeLabel)}.pdf`);
-}
-
-// ── Tableau de bord : comparatif vs période précédente ──────────────────────────
-// La période de comparaison est celle, de même durée, qui précède immédiatement
-// la période affichée — ça couvre aussi bien "mois précédent" (plage d'un mois)
-// que "année précédente" (saison scolaire) sans mode dédié à choisir.
-
-function previousPeriodRange(debut, fin) {
-  if (!debut || !fin) return null;
-  const [y0, m0, d0] = debut.split('-').map(Number);
-  const [y1, m1, d1] = fin.split('-').map(Number);
-  const pad = (n) => String(n).padStart(2, '0');
-  const lastDayOfMonth = (y, m) => new Date(y, m, 0).getDate(); // m 1-indexé
-
-  // Plage alignée sur des mois civils complets (ex. un mois entier, ou une saison
-  // scolaire) : on décale d'autant de mois civils plutôt que d'un nombre de jours,
-  // sinon "septembre" se comparerait à "2 août → 31 août" au lieu d'août entier.
-  if (d0 === 1 && d1 === lastDayOfMonth(y1, m1)) {
-    const nbMois = (y1 - y0) * 12 + (m1 - m0) + 1;
-    let endY = y0, endM = m0 - 1;
-    if (endM === 0) { endM = 12; endY -= 1; }
-    let startY = endY, startM = endM - nbMois + 1;
-    while (startM <= 0) { startM += 12; startY -= 1; }
-    return {
-      debut: `${startY}-${pad(startM)}-01`,
-      fin:   `${endY}-${pad(endM)}-${pad(lastDayOfMonth(endY, endM))}`,
-    };
-  }
-
-  // Plage arbitraire (ex. dates piochées à la main) : décalage par durée en jours.
-  const start = new Date(y0, m0 - 1, d0);
-  const end   = new Date(y1, m1 - 1, d1);
-  const dureeJours = Math.round((end - start) / 86400000) + 1;
-  const prevFin = new Date(start); prevFin.setDate(prevFin.getDate() - 1);
-  const prevDebut = new Date(prevFin); prevDebut.setDate(prevDebut.getDate() - (dureeJours - 1));
-  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  return { debut: iso(prevDebut), fin: iso(prevFin) };
-}
-
-function aggregateDashboard(dash) {
-  if (!dash) return null;
-  const mensuel = dash.mensuel || [];
-  const heures = mensuel.reduce((s, m) => s + (m.total_minutes || 0), 0) / 60;
-  const effectifSum  = mensuel.reduce((s, m) => s + (m.effectif  || 0), 0);
-  const effectuesSum = mensuel.reduce((s, m) => s + (m.effectues || 0), 0);
-  return {
-    programmes:     dash.kpi?.total    || 0,
-    effectues:      dash.kpi?.effectues || 0,
-    annules:        dash.kpi?.annules   || 0,
-    tauxAnnulation: dash.kpi?.total ? (dash.kpi.annules / dash.kpi.total * 100) : null,
-    heures,
-    effectifMoyen:  effectuesSum ? effectifSum / effectuesSum : null,
-  };
-}
-
-function DeltaBadge({ current, previous, invert = false }) {
-  if (current == null || previous == null || !previous) return null;
-  const delta = (current - previous) / previous * 100;
-  if (!Number.isFinite(delta)) return null;
-  if (Math.abs(delta) < 0.05) {
-    return <span className="block text-[11px] font-medium text-gray-400 mt-1">= vs période préc.</span>;
-  }
-  const up   = delta > 0;
-  const good = invert ? !up : up;
-  return (
-    <span className={`block text-[11px] font-bold mt-1 ${good ? 'text-green-600' : 'text-red-500'}`}>
-      {up ? '▲' : '▼'} {Math.abs(delta).toFixed(1)} % <span className="font-normal text-gray-400">vs préc.</span>
-    </span>
-  );
-}
-
-const KPI_DEFS = [
-  { key: 'programmes',     label: 'Cours programmés',  border: '#94a3b8', bg: '#f8fafc', color: '#475569',
-    get: a => a?.programmes, fmt: v => v ?? '—' },
-  { key: 'effectues',      label: 'Cours effectués',    border: '#86efac', bg: '#f0fdf4', color: '#16a34a',
-    get: a => a?.effectues, fmt: v => v ?? '—' },
-  { key: 'heures',         label: 'Heures réalisées',   border: '#5bcae8', bg: '#eef9fd', color: '#12162B',
-    get: a => a?.heures, fmt: v => v != null ? `${fmtH(v)} h` : '—' },
-  { key: 'effectifMoyen',  label: 'Effectif moyen',     border: '#fcd34d', bg: '#fffbeb', color: '#b45309',
-    get: a => a?.effectifMoyen, fmt: v => v != null ? fmtH(v) : '—' },
-  { key: 'tauxAnnulation', label: "Taux d'annulation",  border: '#fca5a5', bg: '#fef2f2', color: '#dc2626',
-    get: a => a?.tauxAnnulation, fmt: v => v != null ? v.toFixed(1).replace('.', ',') + ' %' : '—', invert: true },
-];
-
-const DEFAULT_WIDGETS = {
-  kpi_programmes: false,
-  kpi_effectues: true,
-  kpi_heures: true,
-  kpi_effectifMoyen: true,
-  kpi_tauxAnnulation: true,
-  comparatif: true,
-  tableauMensuel: true,
-  graphique: true,
-  topCours: true,
-  topCoachs: true,
-};
-
-const WIDGETS_STORAGE_KEY = 'fitnessmov.dashboardWidgets';
-
-function loadWidgetPrefs() {
-  try {
-    const raw = localStorage.getItem(WIDGETS_STORAGE_KEY);
-    if (!raw) return DEFAULT_WIDGETS;
-    return { ...DEFAULT_WIDGETS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_WIDGETS;
-  }
-}
-
-function DashboardSettingsPopover({ widgets, onToggle }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleOutside(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
-    function handleEscape(e) { if (e.key === 'Escape') setOpen(false); }
-    document.addEventListener('mousedown', handleOutside);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [open]);
-
-  const Item = ({ k, label }) => (
-    <label className="flex items-center gap-2 text-sm text-gray-700 py-1 cursor-pointer">
-      <input type="checkbox" checked={!!widgets[k]} onChange={() => onToggle(k)} className="rounded" />
-      {label}
-    </label>
-  );
-
-  return (
-    <span className="relative inline-block" ref={ref}>
-      <button type="button" onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50">
-        <SlidersHorizontal size={15} /> Personnaliser
-      </button>
-      {open && (
-        <div onClick={e => e.stopPropagation()}
-          className="absolute z-30 top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-64">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Indicateurs</div>
-          {KPI_DEFS.map(d => <Item key={d.key} k={`kpi_${d.key}`} label={d.label} />)}
-          <Item k="comparatif" label="Comparatif vs période précédente" />
-          <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mt-3 mb-1">Sections</div>
-          <Item k="tableauMensuel" label="Tableau fréquentation mensuelle" />
-          <Item k="graphique" label="Graphique heures par mois" />
-          <Item k="topCours" label="Top cours" />
-          <Item k="topCoachs" label="Top coachs" />
-        </div>
-      )}
-    </span>
-  );
-}
-
-// ── Mini graphique SVG ─────────────────────────────────────────────────────────
-
-function LineChart({ data, xKey, yKey, color = '#5bcae8', label = '' }) {
-  if (!data || data.length === 0) return null;
-  const vals   = data.map(d => d[yKey] || 0);
-  const maxVal = Math.max(...vals, 1);
-  const W = 500, H = 160, PAD = { top: 16, right: 16, bottom: 40, left: 48 };
-  const iW = W - PAD.left - PAD.right;
-  const iH = H - PAD.top  - PAD.bottom;
-  const step = iW / (data.length - 1 || 1);
-
-  const pts = data.map((d, i) => ({
-    x: PAD.left + i * step,
-    y: PAD.top + iH - (d[yKey] || 0) / maxVal * iH,
-  }));
-  const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const area = `${path} L${pts[pts.length-1].x.toFixed(1)},${(PAD.top+iH).toFixed(1)} L${PAD.left},${(PAD.top+iH).toFixed(1)} Z`;
-
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxVal * f));
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 200 }}>
-      {/* Grille */}
-      {yTicks.map((t, i) => {
-        const y = PAD.top + iH - (t / maxVal) * iH;
-        return (
-          <g key={i}>
-            <line x1={PAD.left} y1={y} x2={W-PAD.right} y2={y} stroke="#e5e7eb" strokeWidth="1" />
-            <text x={PAD.left - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{t}</text>
-          </g>
-        );
-      })}
-      {/* Aire */}
-      <path d={area} fill={color} fillOpacity="0.12" />
-      {/* Ligne */}
-      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
-      {/* Points */}
-      {pts.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} />
-      ))}
-      {/* Labels X */}
-      {data.map((d, i) => (
-        <text key={i} x={pts[i].x} y={H - 4} textAnchor="middle" fontSize="9" fill="#6b7280"
-          transform={`rotate(-35, ${pts[i].x}, ${H-4})`}>
-          {MOIS_COURTS[d[xKey]?.slice(5,7)] || d[xKey]}
-        </text>
-      ))}
-      {/* Label Y */}
-      {label && (
-        <text x={12} y={PAD.top + iH/2} textAnchor="middle" fontSize="10" fill="#9ca3af"
-          transform={`rotate(-90, 12, ${PAD.top + iH/2})`}>{label}</text>
-      )}
-    </svg>
-  );
 }
 
 // ── Modale coach ───────────────────────────────────────────────────────────────
@@ -734,9 +510,6 @@ export default function Coaches() {
   const { user: me } = useAuth();
   const isManager = me?.role === 'manager';
   const [recap, setRecap]       = useState(null);
-  const [dashboard, setDash]    = useState(null);
-  const [dashboardPrev, setDashPrev] = useState(null); // période précédente, pour le comparatif
-  const [widgets, setWidgets]   = useState(loadWidgetPrefs);
   const [modal, setModal]       = useState(null);
   const [statsModal, setStatsModal] = useState(null);
   const [seancesModal, setSeancesModal] = useState(null); // { coach, mois } — mois=null pour le total
@@ -748,51 +521,29 @@ export default function Coaches() {
   const [inclureEffectue, setInclureEffectue] = useState(true);
   const [inclurePaye, setInclurePaye]         = useState(true);
 
-  // Tableau de bord : période
-  const [periodeMode, setPeriodeMode] = useState('scolaire'); // 'tout' | 'scolaire' | 'plage'
-  const [anneeScolaire, setAnneeScolaire] = useState(() => getAcademicYear().year);
-  const [plageDebut, setPlageDebut] = useState(() => getAcademicYear().debut);
-  const [plageFin, setPlageFin]     = useState(() => getAcademicYear().fin);
   const { months, debut, fin } = getLast13Months();
   const currentMois = (() => {
     const n = new Date();
     return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
   })();
 
-  function dashboardParams() {
-    return periodeMode === 'tout' ? { periode: 'tout' }
-      : periodeMode === 'scolaire' ? { debut: `${anneeScolaire}-09-01`, fin: `${anneeScolaire + 1}-08-31` }
-      : { debut: plageDebut, fin: plageFin };
-  }
-
   const load = useCallback(async () => {
     const myId = ++reqIdRef.current;
     setRefreshing(true);
     try {
-      const params = dashboardParams();
-      const prevRange = params.periode === 'tout' ? null : previousPeriodRange(params.debut, params.fin);
-      const [r, d, dPrev] = await Promise.all([
-        api.getCoachesRecap({ debut, fin, effectue: inclureEffectue ? 1 : 0, paye: inclurePaye ? 1 : 0 }),
-        api.getDashboard(params),
-        prevRange ? api.getDashboard(prevRange) : Promise.resolve(null),
-      ]);
+      const r = await api.getCoachesRecap({
+        debut, fin, effectue: inclureEffectue ? 1 : 0, paye: inclurePaye ? 1 : 0,
+      });
       if (myId !== reqIdRef.current) return; // une requête plus récente est en cours : on ignore
       setRecap(r);
-      setDash(d);
-      setDashPrev(dPrev);
     } catch(e) { console.error(e); }
     finally {
       if (myId === reqIdRef.current) setRefreshing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inclureEffectue, inclurePaye, periodeMode, anneeScolaire, plageDebut, plageFin]);
+  }, [inclureEffectue, inclurePaye]);
 
   useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    try { localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(widgets)); } catch { /* stockage indisponible, tant pis */ }
-  }, [widgets]);
-  function toggleWidget(key) { setWidgets(w => ({ ...w, [key]: !w[key] })); }
 
   async function handleSave(form) {
     if (modal?.id) await api.updateCoach(modal.id, form);
@@ -824,10 +575,6 @@ export default function Coaches() {
 
   const TH = 'z-20 bg-gray-100 px-2 py-2 text-xs font-bold text-gray-600 uppercase border border-gray-200 text-center whitespace-nowrap';
 
-  const mensuel = dashboard?.mensuel || [];
-  const topCours = dashboard?.topCours || [];
-  const topCoachs = dashboard?.topCoachs || [];
-  const ANNEES_DISPONIBLES = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 5 + i);
 
   return (
     <div className="space-y-8">
@@ -840,7 +587,10 @@ export default function Coaches() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-800">Récapitulatif des heures effectuées</h1>
-            <p className="text-xs text-gray-400 mt-0.5">13 derniers mois</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              13 derniers mois · les graphiques et statistiques sont désormais dans{' '}
+              <Link to="/analyse" className="text-sky-600 hover:underline font-medium">Analyse</Link>
+            </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
@@ -943,230 +693,6 @@ export default function Coaches() {
           </div>
         )}
       </div>
-
-      {/* ════════════════════════════════════════════════════════════
-          SECTION 2 — Dashboard KPI (saison en cours)
-      ════════════════════════════════════════════════════════════ */}
-
-      {dashboard && (
-        <div className={`transition-opacity duration-200 ${refreshing ? 'opacity-60' : 'opacity-100'}`}>
-          {/* Titre dashboard */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-1.5">
-              Tableau de bord · {periodeLabel(periodeMode, anneeScolaire, plageDebut, plageFin)}
-              {dashboard.insights?.generaux?.length > 0 && (
-                <Tooltip content={
-                  <ul className="space-y-1">
-                    {dashboard.insights.generaux.map((t, i) => <li key={i}>• {t}</li>)}
-                  </ul>
-                }>
-                  <Lightbulb className="h-4 w-4 text-amber-500 cursor-help" />
-                </Tooltip>
-              )}
-            </h2>
-            <DashboardSettingsPopover widgets={widgets} onToggle={toggleWidget} />
-          </div>
-
-          {/* Filtre période */}
-          <div className="flex flex-wrap items-center gap-3 mb-1 text-sm">
-            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 gap-1">
-              {[
-                { mode: 'scolaire', label: 'Année scolaire', Icon: Calendar },
-                { mode: 'plage', label: 'Plage personnalisée', Icon: CalendarRange },
-                { mode: 'tout', label: 'De tout temps', Icon: InfinityIcon },
-              ].map(({ mode, label, Icon }) => (
-                <button
-                  key={mode}
-                  onClick={() => setPeriodeMode(mode)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    periodeMode === mode
-                      ? 'bg-white text-sky-700 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}>
-                  <Icon size={15} />
-                  {label}
-                </button>
-              ))}
-            </div>
-            {periodeMode === 'scolaire' && (
-              <select value={anneeScolaire} onChange={e => setAnneeScolaire(Number(e.target.value))}
-                className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-sky-300">
-                {ANNEES_DISPONIBLES.map(y => <option key={y} value={y}>{y}–{y + 1}</option>)}
-              </select>
-            )}
-            {periodeMode === 'plage' && (
-              <div className="inline-flex items-center gap-2">
-                <input type="date" value={plageDebut} onChange={e => setPlageDebut(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-sky-300" />
-                <span className="text-gray-400">→</span>
-                <input type="date" value={plageFin} onChange={e => setPlageFin(e.target.value)}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-sky-300" />
-              </div>
-            )}
-          </div>
-
-          {widgets.comparatif && periodeMode !== 'tout' && dashboardPrev && (
-            <p className="text-xs text-gray-400 mb-4">
-              Comparé à la période précédente : {fmtDateFr(dashboardPrev.debut)} → {fmtDateFr(dashboardPrev.fin)}
-            </p>
-          )}
-          {(!widgets.comparatif || periodeMode === 'tout' || !dashboardPrev) && <div className="mb-4" />}
-
-          {/* KPI cards */}
-          {(() => {
-            const visibleKpis = KPI_DEFS.filter(d => widgets[`kpi_${d.key}`]);
-            if (visibleKpis.length === 0) return null;
-            const aggCur  = aggregateDashboard(dashboard);
-            const aggPrev = widgets.comparatif ? aggregateDashboard(dashboardPrev) : null;
-            return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-                {visibleKpis.map(d => {
-                  const val     = d.get(aggCur);
-                  const prevVal = aggPrev ? d.get(aggPrev) : null;
-                  return (
-                    <div key={d.key} className="border-2 rounded-lg p-5 text-center" style={{ borderColor: d.border, backgroundColor: d.bg }}>
-                      <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">{d.label}</div>
-                      <div className="text-4xl font-extrabold" style={{ color: d.color }}>{d.fmt(val)}</div>
-                      {widgets.comparatif && aggPrev && <DeltaBadge current={val} previous={prevVal} invert={d.invert} />}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-
-          {/* Tableau mensuel + graphique */}
-          {(widgets.tableauMensuel || widgets.graphique) && (
-            <div className={`grid grid-cols-1 gap-6 mb-6 ${widgets.tableauMensuel && widgets.graphique ? 'lg:grid-cols-2' : ''}`}>
-              {/* Tableau fréquentation mensuelle */}
-              {widgets.tableauMensuel && (
-                <div className="overflow-x-auto">
-                  <h3 className="text-sm font-bold text-gray-700 mb-2">Fréquentation mensuelle</h3>
-                  <table className="w-full border-collapse text-xs min-w-[520px]">
-                    <thead>
-                      <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
-                        {['Mois','Prog.','Effect.','Annulés','Annul. %','Effectif','Moy.','Heures'].map((h, i) => (
-                          <th key={h} className={`px-2 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mensuel.map((row, i) => {
-                        const taux = row.programmes ? (row.annules / row.programmes * 100).toFixed(2) : '0';
-                        const moy  = row.effectues  ? Math.round(row.effectif / row.effectues) : 0;
-                        const heurs = Math.round((row.total_minutes || 0) / 60 * 100) / 100;
-                        const bg   = i % 2 === 0 ? '#f9fafb' : '#ffffff';
-                        return (
-                          <tr key={row.mois} style={{ backgroundColor: bg }}>
-                            <td className="px-2 py-1 border-b border-gray-100 capitalize font-medium">
-                              {MOIS_LABELS[row.mois.slice(5,7)]}
-                            </td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{row.programmes}</td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums text-green-700">{row.effectues}</td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums text-red-500">{row.annules}</td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{taux} %</td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{row.effectif || 0}</td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums">{moy || '—'}</td>
-                            <td className="px-2 py-1 border-b border-gray-100 text-center tabular-nums font-medium" style={{ color: '#12162B' }}>{fmtH(heurs)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Graphique heures par mois */}
-              {widgets.graphique && (
-                <div>
-                  <h3 className="text-sm font-bold text-gray-700 mb-2">Total heures par mois</h3>
-                  <div className="border border-gray-200 rounded-lg p-3 bg-white">
-                    <LineChart
-                      data={mensuel.map(m => ({ mois: m.mois, heures: Math.round((m.total_minutes||0)/60*100)/100 }))}
-                      xKey="mois"
-                      yKey="heures"
-                      color="#5bcae8"
-                      label="Heures"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Top cours + Top coachs */}
-          {(widgets.topCours || widgets.topCoachs) && (
-            <div className={`grid grid-cols-1 gap-6 ${widgets.topCours && widgets.topCoachs ? 'lg:grid-cols-2' : ''}`}>
-              {widgets.topCours && (
-                <div className="overflow-x-auto">
-                  <h3 className="text-sm font-bold text-gray-700 mb-2">Top Cours</h3>
-                  <table className="w-full border-collapse text-xs min-w-[360px]">
-                    <thead>
-                      <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
-                        {['Cours','Séances','Participants','Moyenne'].map((h, i) => (
-                          <th key={h} className={`px-3 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topCours.map((row, i) => {
-                        const insight = dashboard.insights?.parCours?.[row.cours_type_id];
-                        return (
-                        <tr key={row.nom} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#ffffff' }}>
-                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">
-                            <Tooltip content={insight}>
-                              <span className={insight ? 'underline decoration-dotted decoration-amber-400 cursor-help' : ''}>{row.nom}</span>
-                            </Tooltip>
-                          </td>
-                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
-                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.total_presents || '—'}</td>
-                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {widgets.topCoachs && (
-                <div className="overflow-x-auto">
-                  <h3 className="text-sm font-bold text-gray-700 mb-2">Top Coachs</h3>
-                  <table className="w-full border-collapse text-xs min-w-[360px]">
-                    <thead>
-                      <tr style={{ backgroundColor: '#c9a464', color: '#fff' }}>
-                        {['Coach','Heures','Séances','Moy. présents'].map((h, i) => (
-                          <th key={h} className={`px-3 py-1.5 font-bold ${i === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topCoachs.map((row, i) => {
-                        const insight = dashboard.insights?.parCoach?.[row.coach_id];
-                        return (
-                        <tr key={row.coach} style={{ backgroundColor: i % 2 === 0 ? '#fdf6ec' : '#ffffff' }}>
-                          <td className="px-3 py-1.5 border-b border-gray-100 font-medium">
-                            <Tooltip content={insight}>
-                              <span className={insight ? 'underline decoration-dotted decoration-amber-400 cursor-help' : ''}>{row.coach}</span>
-                            </Tooltip>
-                          </td>
-                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums font-bold" style={{ color: '#12162B' }}>{fmtH(row.heures)}</td>
-                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.seances}</td>
-                          <td className="px-3 py-1.5 border-b border-gray-100 text-center tabular-nums">{row.moy_presents ?? '—'}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Modale détail des séances (clic sur un nombre d'heures) */}
       {seancesModal !== null && (() => {
         let modalDebut, modalFin, modalLabel;

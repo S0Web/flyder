@@ -87,6 +87,10 @@ export const api = {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
     return req(`/dashboard${qs ? `?${qs}` : ''}`);
   },
+  getAnalytics: (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+    return req(`/analytics${qs ? `?${qs}` : ''}`);
+  },
   getCoaches:      (tous = false) => req(`/coaches${tous ? '?tous=1' : ''}`),
   getCoachStats:   (id) => req(`/coaches/${id}/stats`),
   getCoachSeancesDetail: (id, params = {}) => {
