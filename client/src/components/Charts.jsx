@@ -118,11 +118,14 @@ export function LineChart({ data, series, yFmt = fmtInt, height = 230, xKey = 'l
 
   const allVals = data.flatMap(d => series.map(s => d[s.key] ?? 0));
   const maxVal  = Math.max(...allVals, 1);
+  // Marge de 15 % au-dessus du max : sans elle, le point le plus haut touche
+  // pile le plafond du tracé et se lit comme « coupé ».
+  const axisMax = maxVal * 1.15;
   const step    = data.length > 1 ? iW / (data.length - 1) : 0;
   const xAt     = (i) => PAD.left + (data.length > 1 ? i * step : iW / 2);
-  const yAt     = (v) => PAD.top + iH - ((v ?? 0) / maxVal) * iH;
+  const yAt     = (v) => PAD.top + iH - ((v ?? 0) / axisMax) * iH;
 
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(f => maxVal * f);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map(f => axisMax * f);
   // Sur une longue série, n'étiqueter qu'un point sur N pour éviter la bouillie.
   const labelEvery = Math.ceil(data.length / 12);
 
@@ -204,16 +207,18 @@ export function ColumnChart({ data, color = VIZ.aqua, yFmt = fmtInt, height = 21
   const iW = W - PAD.left - PAD.right;
   const iH = H - PAD.top - PAD.bottom;
   const maxVal = Math.max(...data.map(d => d.value ?? 0), 1);
+  // Même marge que LineChart : la barre la plus haute ne doit jamais toucher le plafond.
+  const axisMax = maxVal * 1.15;
   const slot = iW / data.length;
   const barW = Math.min(slot - 8, 54);
-  const ticks = [0, 0.5, 1].map(f => maxVal * f);
+  const ticks = [0, 0.5, 1].map(f => axisMax * f);
 
   return (
     <Scroller minWidth={520}>
       <div className="relative" onMouseLeave={() => setHover(null)}>
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full block" style={{ height }} role="img">
           {ticks.map((t, i) => {
-            const y = PAD.top + iH - (t / maxVal) * iH;
+            const y = PAD.top + iH - (t / axisMax) * iH;
             return (
               <g key={i}>
                 <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke={VIZ.grid} strokeWidth="1" />
@@ -222,7 +227,7 @@ export function ColumnChart({ data, color = VIZ.aqua, yFmt = fmtInt, height = 21
             );
           })}
           {data.map((d, i) => {
-            const h = ((d.value ?? 0) / maxVal) * iH;
+            const h = ((d.value ?? 0) / axisMax) * iH;
             const x = PAD.left + i * slot + (slot - barW) / 2;
             const y = PAD.top + iH - h;
             return (
@@ -465,7 +470,8 @@ export function StatTile({ label, value, delta, invert = false, spark, sparkColo
   const good = invert ? !up : up;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between min-h-[112px]">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between min-h-[112px]
+      shadow-sm hover:shadow-md hover:border-gray-300 transition-[box-shadow,border-color] duration-150">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 leading-tight">{label}</div>
       <div className="flex items-end justify-between gap-2 mt-2">
         <div>

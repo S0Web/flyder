@@ -77,6 +77,7 @@ export default function Analyse() {
 
   const [data, setData]   = useState(null);
   const [prev, setPrev]   = useState(null);
+  const [bornes, setBornes] = useState(null); // { min, max } — dates couvertes par les données
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -106,6 +107,7 @@ export default function Analyse() {
       if (myId !== reqIdRef.current) return; // une requête plus récente a pris la main
       setData(cur);
       setPrev(pr);
+      if (cur.bornes?.min) setBornes(cur.bornes);
     } catch (e) {
       if (myId === reqIdRef.current) setError(e.message);
     } finally {
@@ -114,6 +116,15 @@ export default function Analyse() {
   }, [params, categorie]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Années scolaires à proposer : seulement celles qui chevauchent au moins un
+  // jour de données réelles (pour la catégorie choisie), sinon le sélecteur mène
+  // systématiquement à un graphique vide. Tant que les bornes ne sont pas encore
+  // connues, on garde la liste complète plutôt que de vider le menu un instant.
+  const anneesAvecDonnees = useMemo(() => {
+    if (!bornes?.min || !bornes?.max) return ANNEES_DISPONIBLES;
+    return ANNEES_DISPONIBLES.filter(y => `${y}-09-01` <= bornes.max && `${y + 1}-08-31` >= bornes.min);
+  }, [bornes]);
 
   // Surlignage de la section courante dans la barre de navigation.
   useEffect(() => {
@@ -271,15 +282,18 @@ export default function Analyse() {
           {periodeMode === 'scolaire' && (
             <select value={anneeScolaire} onChange={e => setAnneeScolaire(Number(e.target.value))}
               className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-sky-300">
-              {ANNEES_DISPONIBLES.map(y => <option key={y} value={y}>{y}–{y + 1}</option>)}
+              {anneesAvecDonnees.map(y => <option key={y} value={y}>{y}–{y + 1}</option>)}
             </select>
           )}
           {periodeMode === 'plage' && (
             <div className="inline-flex items-center gap-1.5">
-              <input type="date" value={plageDebut} onChange={e => setPlageDebut(e.target.value)}
+              {/* min/max bornés aux données réelles : au-delà, la plage ne peut être que vide. */}
+              <input type="date" value={plageDebut} min={bornes?.min} max={bornes?.max}
+                onChange={e => setPlageDebut(e.target.value)}
                 className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-sky-300" />
               <span className="text-gray-400 text-sm">→</span>
-              <input type="date" value={plageFin} onChange={e => setPlageFin(e.target.value)}
+              <input type="date" value={plageFin} min={bornes?.min} max={bornes?.max}
+                onChange={e => setPlageFin(e.target.value)}
                 className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-sky-300" />
             </div>
           )}

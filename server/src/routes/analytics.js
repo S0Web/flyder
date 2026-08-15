@@ -39,6 +39,13 @@ router.get('/', (req, res) => {
 
   const FROM = 'FROM seances s JOIN cours_types ct ON ct.id = s.cours_type_id';
 
+  // ── Bornes des données disponibles (indépendant de la période choisie) ──
+  // Sert au client à ne proposer, dans le sélecteur d'année/plage, que des
+  // dates qui contiennent effectivement des séances (pour cette catégorie).
+  const catCond   = categorie ? 'WHERE ct.categorie = ?' : '';
+  const catParams = categorie ? [categorie] : [];
+  const bornes = db.get(`SELECT MIN(s.date) AS min, MAX(s.date) AS max ${FROM} ${catCond}`, catParams);
+
   // ── Totaux de la période ───────────────────────────────────────
   const kpi = db.get(`
     SELECT
@@ -177,7 +184,7 @@ router.get('/', (req, res) => {
 
   res.json({
     kpi, mensuel, mensuelCategorie, parJour, parHeure, heatmap,
-    categories, cours, coachs, distribution,
+    categories, cours, coachs, distribution, bornes,
     debut, fin, categorie,
   });
 });
