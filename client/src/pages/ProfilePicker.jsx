@@ -6,11 +6,13 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../lib/api';
 import logo from '../assets/logo-flyder-light.png';
 
-// Couleur/libellé d'avatar par rôle (pas colorForUser : ici on veut distinguer
-// la fonction de la personne, pas juste lui donner une couleur arbitraire).
+// Couleur d'avatar par rôle (pas colorForUser : ici on veut distinguer manager
+// vs utilisateur standard, pas donner une couleur arbitraire par personne).
+// Pas de libellé affiché : "role" ne reflète qu'un niveau de permission
+// (manager/user), pas la fonction réelle de la personne (coach, employé...).
 const ROLE_STYLE = {
-  manager: { label: 'Manager', color: '#12162B' },
-  user:    { label: 'Coach',   color: '#3D5AFE' },
+  manager: { color: '#12162B' },
+  user:    { color: '#3D5AFE' },
 };
 
 // Formulaire de démarrage : uniquement affiché quand la salle n'a encore aucun profil
@@ -282,7 +284,6 @@ export default function ProfilePicker() {
                   {selecting === p.id ? '…' : (p.prenom[0] || '').toUpperCase()}
                 </span>
                 <span className="text-sm font-semibold text-brand-ink">{p.prenom}</span>
-                <span className="text-xs text-brand-slate -mt-1.5">{role.label}</span>
               </button>
             );
           })}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Upload, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import { useDismiss } from '../lib/useDismiss';
 
 // Import groupé des fiches de paie : upload du PDF unique (toutes les fiches de tous
 // les salariés) -> analyse côté serveur (texte + reconnaissance de noms, pas d'IA) ->
@@ -16,6 +17,7 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
   const [groupes, setGroupes] = useState([]);
   const [pagesOrphelines, setPagesOrphelines] = useState([]);
   const [confirming, setConfirming] = useState(false);
+  const { closing, dismiss } = useDismiss(onClose);
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
@@ -47,7 +49,7 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
 
   async function handleAnnuler() {
     if (tempId) api.annulerImportFichesDePaie(tempId).catch(() => {});
-    onClose();
+    dismiss();
   }
 
   async function handleConfirmer() {
@@ -62,7 +64,7 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
       })));
       toast.success(`${res.count} fiche(s) de paie importée(s)`);
       onImported();
-      onClose();
+      dismiss();
     } catch (err) {
       toast.error('Échec de l’import : ' + err.message);
     } finally {

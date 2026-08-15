@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDismiss } from '../lib/useDismiss';
 
 export default function UserModal({ user, onSave, onClose }) {
   const isNew = !user?.id;
@@ -12,6 +13,7 @@ export default function UserModal({ user, onSave, onClose }) {
   });
   const [error, setError]   = useState(null);
   const [saving, setSaving] = useState(false);
+  const { closing, dismiss } = useDismiss(onClose);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -19,14 +21,20 @@ export default function UserModal({ user, onSave, onClose }) {
     setError(null);
     try {
       await onSave(form);
-      onClose();
+      dismiss();
     } catch(err) { setError(err.message); }
     finally { setSaving(false); }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 ${closing ? 'animate-overlayOut' : 'animate-overlayIn'}`}
+      onClick={dismiss}
+    >
+      <div
+        className={`bg-white rounded-2xl shadow-xl w-full max-w-sm ${closing ? 'animate-modalOut' : 'animate-modalIn'}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-6 pt-5 pb-4 border-b">
           <h2 className="text-lg font-bold text-gray-800">{isNew ? 'Nouvel utilisateur' : `${user.prenom} ${user.nom}`}</h2>
         </div>
@@ -75,10 +83,10 @@ export default function UserModal({ user, onSave, onClose }) {
             <p className="text-[11px] text-gray-400 mt-1">Sert à calculer le cumul de CP (2,5 jours acquis par mois).</p>
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
+            <button type="button" onClick={dismiss}
+              className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50 active:scale-[0.98] transition-transform">Annuler</button>
             <button type="submit" disabled={saving}
-              className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
+              className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50 active:scale-[0.98] transition-transform"
               style={{ backgroundColor: '#3D5AFE' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>

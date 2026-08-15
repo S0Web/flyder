@@ -183,7 +183,8 @@ function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete }) 
                     key={s.id}
                     onClick={() => onOpenCard(s)}
                     style={{ backgroundColor: bg }}
-                    className={`hover:opacity-80 cursor-pointer ${s.statut === 'annule' ? 'opacity-40' : ''}`}
+                    className={`relative hover:opacity-80 cursor-pointer has-[.animate-popoverIn]:z-40
+                      ${s.statut === 'annule' ? 'opacity-40' : ''}`}
                   >
                     <td className="px-3 py-1.5 border-b border-gray-100 tabular-nums text-xs text-gray-600 whitespace-nowrap">
                       {formatHoraire(startMins)} – {formatHoraire(endMins)}

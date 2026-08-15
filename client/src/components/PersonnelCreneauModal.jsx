@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { useDismiss } from '../lib/useDismiss';
 
 const TYPES = [
   { id: 'travail', label: 'Travail' },
@@ -24,12 +25,13 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
   const [notes, setNotes] = useState(existing[0]?.notes || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const { closing, dismiss } = useDismiss(onClose);
 
   useEffect(() => {
-    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    const fn = (e) => { if (e.key === 'Escape') dismiss(); };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [onClose]);
+  }, [dismiss]);
 
   function setSegment(i, field, value) {
     setSegments(segs => segs.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
@@ -53,7 +55,7 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
         throw new Error('Renseignez au moins un créneau (début/fin)');
       }
       await onSave(payload);
-      onClose();
+      dismiss();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -65,7 +67,7 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
     setSaving(true);
     try {
       await onSave({ type: 'travail', segments: [], notes: null });
-      onClose();
+      dismiss();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -76,8 +78,14 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
   const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 ${closing ? 'animate-overlayOut' : 'animate-overlayIn'}`}
+      onClick={dismiss}
+    >
+      <div
+        className={`bg-white rounded-2xl shadow-xl w-full max-w-sm ${closing ? 'animate-modalOut' : 'animate-modalIn'}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-6 pt-5 pb-4 border-b">
           <h2 className="text-lg font-bold text-gray-800">{employe.prenom} {employe.nom}</h2>
           <p className="text-sm text-gray-500 mt-0.5 capitalize">{dateLabel}</p>
@@ -150,12 +158,12 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
               </button>
             )}
             <div className="flex-1" />
-            <button type="button" onClick={onClose}
-              className="border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50">
+            <button type="button" onClick={dismiss}
+              className="border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 active:scale-[0.98] transition-transform">
               Annuler
             </button>
             <button type="submit" disabled={saving}
-              className="bg-sky-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-sky-700 disabled:opacity-50">
+              className="bg-sky-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-sky-700 disabled:opacity-50 active:scale-[0.98] transition-transform">
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
           </div>

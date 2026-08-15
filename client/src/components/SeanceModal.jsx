@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { STATUT_CONFIG } from '../lib/utils';
+import { useDismiss } from '../lib/useDismiss';
 import CoursCombobox from './CoursCombobox';
 
 // Convertit "9h30" ou "18:15" → "09:30" pour <input type="time">
@@ -30,6 +31,7 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState(null);
+  const { closing, dismiss } = useDismiss(onClose);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -48,7 +50,7 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
         duree_minutes:    Number(form.duree_minutes),
       };
       await onSave(payload);
-      onClose();
+      onClose(); // le parent démonte déjà la modale ; filet de sécurité seulement
     } catch (err) {
       setError(err.message);
     } finally {
@@ -57,15 +59,18 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
   }
 
   useEffect(() => {
-    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    const fn = (e) => { if (e.key === 'Escape') dismiss(); };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [onClose]);
+  }, [dismiss]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 ${closing ? 'animate-overlayOut' : 'animate-overlayIn'}`}
+      onClick={dismiss}
+    >
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className={`bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto ${closing ? 'animate-modalOut' : 'animate-modalIn'}`}
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 pt-5 pb-4 border-b">
@@ -212,13 +217,13 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2 text-sm font-medium hover:bg-gray-50"
+            <button type="button" onClick={dismiss}
+              className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2 text-sm font-medium hover:bg-gray-50 active:scale-[0.98] transition-transform"
             >
               Annuler
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 bg-sky-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-sky-700 disabled:opacity-50"
+              className="flex-1 bg-sky-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-sky-700 disabled:opacity-50 active:scale-[0.98] transition-transform"
             >
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>

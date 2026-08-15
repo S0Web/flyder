@@ -1,6 +1,7 @@
 import { StickyNote } from 'lucide-react';
 import { STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
 import { nextStatut } from '../lib/statutCycle';
+import { useFlashOnChange } from '../lib/useFlashOnChange';
 import HeadcountPopover from './HeadcountPopover';
 import PointeurBadge from './PointeurBadge';
 
@@ -32,6 +33,7 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
 
   const startMins = parseMinutes(seance.horaire);
   const endMins   = startMins + (seance.duree_minutes || 60);
+  const statutFlash = useFlashOnChange(seance.statut);
 
   function cycleStatut(e) {
     e.stopPropagation();
@@ -42,8 +44,11 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
     <div
       onClick={() => onClick(seance)}
       style={{ backgroundColor: bg }}
-      className={`relative pl-4 pr-2 py-1.5 cursor-pointer group rounded-lg transition-all
+      className={`relative pl-4 pr-2 py-1.5 cursor-pointer group rounded-lg
+        transition-[box-shadow,border-color] duration-150
         border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300
+        animate-fadeIn
+        has-[.animate-popoverIn]:z-40
         ${seance.statut === 'annule' ? 'opacity-40' : ''}
       `}
     >
@@ -87,7 +92,8 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
           onClick={cycleStatut}
           title={statut.label}
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide leading-none flex-shrink-0
-            ${statut.bg} ${statut.text} hover:opacity-80 transition-opacity`}
+            ${statut.bg} ${statut.text} hover:opacity-80 transition-opacity active:scale-90
+            ${statutFlash ? 'animate-pop' : ''}`}
         >
           <span className="sm:hidden">{statut.shortLabel || statut.label}</span>
           <span className="hidden sm:inline">{statut.label}</span>
@@ -107,7 +113,7 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
       {/* Supprimer (hover) */}
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(seance.id); }}
-        className="absolute top-0.5 right-1 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all text-base leading-none"
+        className="absolute top-0.5 right-1 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 active:scale-90 transition-all text-base leading-none"
         title="Supprimer" aria-label="Supprimer la séance"
       >×</button>
     </div>

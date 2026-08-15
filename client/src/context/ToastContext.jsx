@@ -12,13 +12,16 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const idRef = useRef(0);
 
+  // `leaving` déclenche le fondu de sortie ; le retrait réel du DOM est différé
+  // le temps que l'animation joue, sinon le toast disparaîtrait d'un coup.
   const remove = useCallback((id) => {
-    setToasts(ts => ts.filter(t => t.id !== id));
+    setToasts(ts => ts.map(t => t.id === id ? { ...t, leaving: true } : t));
+    setTimeout(() => setToasts(ts => ts.filter(t => t.id !== id)), 150);
   }, []);
 
   const push = useCallback((type, message) => {
     const id = ++idRef.current;
-    setToasts(ts => [...ts, { id, type, message }]);
+    setToasts(ts => [...ts, { id, type, message, leaving: false }]);
     setTimeout(() => remove(id), 4000);
   }, [remove]);
 
@@ -39,7 +42,8 @@ export function ToastProvider({ children }) {
               key={t.id}
               role="status"
               onClick={() => remove(t.id)}
-              className="flex items-start gap-2 px-4 py-2.5 rounded-lg shadow-lg border text-sm cursor-pointer animate-[fadeIn_0.15s_ease-out]"
+              className={`flex items-start gap-2 px-4 py-2.5 rounded-lg shadow-lg border text-sm cursor-pointer
+                ${t.leaving ? 'animate-fadeOut' : 'animate-fadeIn'}`}
               style={{ backgroundColor: s.bg, borderColor: s.border, color: s.text }}
             >
               <span className="font-bold leading-5">{s.icon}</span>
