@@ -287,7 +287,7 @@ db.run(`
     employe_id  INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
     date        TEXT NOT NULL,
     type        TEXT NOT NULL DEFAULT 'travail'
-                CHECK(type IN ('travail','cp','ecole','ferie','arret','repos')),
+                CHECK(type IN ('travail','cp','ecole','ferie','arret','repos','absent')),
     debut       TEXT,
     fin         TEXT,
     ordre       INTEGER NOT NULL DEFAULT 0,
@@ -296,47 +296,6 @@ db.run(`
   )
 `);
 db.run('CREATE INDEX IF NOT EXISTS idx_personnel_creneaux_emp_date ON personnel_creneaux(employe_id, date)');
-
-// Migration : fusionner le type "absent" dans "repos" (6 types au lieu de 7)
-;(function migrateMergeAbsentIntoRepos() {
-  try {
-    const cols = db.all('PRAGMA table_info(personnel_creneaux)');
-    if (cols.length === 0) return; // table pas encore créée avec des données à migrer
-    const hasAbsentRows = db.get("SELECT 1 FROM personnel_creneaux WHERE type = 'absent' LIMIT 1");
-    // Vérifie si la contrainte CHECK autorise encore 'absent' (ancienne définition)
-    const sqlDef = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='personnel_creneaux'");
-    const stillAllowsAbsent = sqlDef && sqlDef.sql.includes("'absent'");
-    if (!hasAbsentRows && !stillAllowsAbsent) return; // déjà migré
-
-    console.log('⚙️  Migration: fusion du type absent → repos...');
-    db.run('PRAGMA foreign_keys = OFF');
-    db.run('BEGIN');
-    db.run("UPDATE personnel_creneaux SET type = 'repos' WHERE type = 'absent'");
-    db.run(`CREATE TABLE personnel_creneaux_mig3 (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      employe_id  INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
-      date        TEXT NOT NULL,
-      type        TEXT NOT NULL DEFAULT 'travail'
-                  CHECK(type IN ('travail','cp','ecole','ferie','arret','repos')),
-      debut       TEXT,
-      fin         TEXT,
-      ordre       INTEGER NOT NULL DEFAULT 0,
-      notes       TEXT,
-      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-    )`);
-    db.run('INSERT INTO personnel_creneaux_mig3 SELECT * FROM personnel_creneaux');
-    db.run('DROP TABLE personnel_creneaux');
-    db.run('ALTER TABLE personnel_creneaux_mig3 RENAME TO personnel_creneaux');
-    db.run('CREATE INDEX IF NOT EXISTS idx_personnel_creneaux_emp_date ON personnel_creneaux(employe_id, date)');
-    db.run('COMMIT');
-    db.run('PRAGMA foreign_keys = ON');
-    console.log('✅ Migration absent→repos OK');
-  } catch (e) {
-    try { db.run('ROLLBACK'); } catch (_) {}
-    db.run('PRAGMA foreign_keys = ON');
-    console.error('Migration error (absent→repos):', e.message);
-  }
-})();
 
 db.run(`
   CREATE TABLE IF NOT EXISTS personnel_semaine_meta (
@@ -504,7 +463,10 @@ if (process.env.SALLE_NOM === 'Corbeil-Essonnes') {
   }
 }
 
-// ─── Planning personnel : réintroduit "Absent" comme type distinct de "Repos" ───
+// ─── Planning personnel : garantit que "Absent" est un type valide, distinct de
+// "Repos" ─── Ancienne base migrée avant l'introduction de ce type : recrée la table
+// une seule fois pour l'ajouter à la contrainte. Sans effet sur une base neuve, déjà
+// créée avec 'absent' dans le CREATE TABLE ci-dessus.
 ;(function reintroduceAbsent() {
   try {
     const sqlDef = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='personnel_creneaux'");
