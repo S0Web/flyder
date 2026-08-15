@@ -3,13 +3,20 @@ export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi
 export const STATUT_CONFIG = {
   programme: { label: 'Programmé', shortLabel: 'Prog.',  bg: 'bg-gray-200',    text: 'text-gray-700',  solid: 'bg-gray-400' },
   effectue:  { label: 'Effectué',  shortLabel: 'Eff.',   bg: 'bg-green-500',   text: 'text-white',     solid: 'bg-green-500' },
-  annule:    { label: 'Annulé',    shortLabel: 'Annulé', bg: 'bg-red-500',     text: 'text-white',     solid: 'bg-red-500' },
+  annule:    { label: 'Annulé',    shortLabel: 'Annulé', bg: 'bg-red-100',     text: 'text-red-600',   solid: 'bg-red-500' },
   paye:      { label: 'Payé',      shortLabel: 'Payé',   bg: 'bg-emerald-700', text: 'text-white',     solid: 'bg-emerald-700' },
 };
 
+// Catégories — paliers d'intensité pour rester lisible sans être criard :
+// cell (fond très pâle des colonnes), card (fond pastel des cartes), accent
+// (pastille/badge, couleur pleine), label (fond plein de la colonne
+// Aqua/Fitness — porte l'encre pour fitness, jamais le corail : cf. règle
+// charte "le corail n'est jamais dominant").
 export const CATEGORIE_CONFIG = {
-  aqua:    { bg: 'bg-aqua-light',   border: 'border-aqua',   dot: 'bg-aqua',   hdr: '#2fa8cc', cell: '#eef9fd' },
-  fitness: { bg: 'bg-fitness-light', border: 'border-fitness', dot: 'bg-fitness', hdr: '#c9a464', cell: '#fdf6ec' },
+  aqua:    { bg: 'bg-aqua-light',   border: 'border-aqua',   dot: 'bg-aqua',
+             cell: '#F5F7FF', card: '#E4E9FF', accent: '#3D5AFE', label: '#3D5AFE' },
+  fitness: { bg: 'bg-fitness-light', border: 'border-fitness', dot: 'bg-fitness',
+             cell: '#FFF6F1', card: '#FFE7D9', accent: '#FF5A36', label: '#12162B' },
 };
 
 // Disciplines des coachs — utilisé par la fiche Coach (Coaches.jsx) et l'Annuaire.

@@ -29,17 +29,21 @@ export default {
           coral: '#FF5A36',
           slate: '#8B93A7',
         },
+        // Aqua/fitness reskinnés sur la charte v1 : le bleu Flyder porte l'identité
+        // aqua de bout en bout ; fitness s'appuie sur l'encre pour les grandes
+        // surfaces (en-têtes) et réserve le corail signature aux accents (carte,
+        // pastille) — cf. la règle "jamais dominant" de la charte graphique.
         aqua: {
-          light:  '#d6f3fb',
-          DEFAULT:'#5bcae8',
-          dark:   '#2fa8cc',
-          darker: '#1a7a9b',
+          light:  '#EEF1FF',
+          DEFAULT:'#3D5AFE',
+          dark:   '#6B82FF',
+          darker: '#2743C4',
         },
         fitness: {
-          light:  '#f9eedc',
-          DEFAULT:'#e8cb9f',
-          dark:   '#c9a464',
-          darker: '#9a7535',
+          light:  '#F4F1EC',
+          DEFAULT:'#FF5A36',
+          dark:   '#4B5468',
+          darker: '#12162B',
         },
       }
     },

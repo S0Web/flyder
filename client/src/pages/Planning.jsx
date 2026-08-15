@@ -3,7 +3,7 @@ import { Plus, Copy, LayoutGrid, List } from 'lucide-react';
 import { api } from '../lib/api';
 import {
   getLundi, getSemaine, toISO,
-  semaineSuivante, semainePrecedente, STATUT_CONFIG,
+  semaineSuivante, semainePrecedente, STATUT_CONFIG, CATEGORIE_CONFIG,
 } from '../lib/utils';
 import { useToast } from '../context/ToastContext';
 import SeanceCard from '../components/SeanceCard';
@@ -38,10 +38,10 @@ function formatHoraire(mins) {
 const CUTOFF = 14 * 60;
 
 const ROWS = [
-  { id: 'aqua-matin',     l1: 'Aqua',    l2: 'Matin',      categorie: 'aqua',    matin: true,  hdrBg: '#2fa8cc', hdrTxt: '#fff', cellBg: '#eef9fd' },
-  { id: 'fitness-matin',  l1: 'Fitness', l2: 'Matin',      categorie: 'fitness', matin: true,  hdrBg: '#c9a464', hdrTxt: '#fff', cellBg: '#fdf6ec' },
-  { id: 'aqua-apmidi',    l1: 'Aqua',    l2: 'Après-midi', categorie: 'aqua',    matin: false, hdrBg: '#1a7a9b', hdrTxt: '#fff', cellBg: '#e8f7fc' },
-  { id: 'fitness-apmidi', l1: 'Fitness', l2: 'Après-midi', categorie: 'fitness', matin: false, hdrBg: '#9a7535', hdrTxt: '#fff', cellBg: '#faeedd' },
+  { id: 'aqua-matin',     l1: 'Aqua',    l2: 'Matin',      categorie: 'aqua',    matin: true },
+  { id: 'fitness-matin',  l1: 'Fitness', l2: 'Matin',      categorie: 'fitness', matin: true },
+  { id: 'aqua-apmidi',    l1: 'Aqua',    l2: 'Après-midi', categorie: 'aqua',    matin: false },
+  { id: 'fitness-apmidi', l1: 'Fitness', l2: 'Après-midi', categorie: 'fitness', matin: false },
 ];
 
 // ── Vue grille ─────────────────────────────────────────────────────────────────
@@ -81,15 +81,17 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
         </thead>
 
         <tbody>
-          {ROWS.map(row => (
+          {ROWS.map(row => {
+            const cat = CATEGORIE_CONFIG[row.categorie] || CATEGORIE_CONFIG.fitness;
+            return (
             <tr key={row.id}>
               {/* Label en 2 lignes */}
               <td
-                style={{ backgroundColor: row.hdrBg, color: row.hdrTxt }}
-                className="sticky left-0 z-10 border border-gray-300 px-1.5 py-2 align-middle text-center"
+                style={{ backgroundColor: cat.label }}
+                className="sticky left-0 z-10 border border-gray-200 px-2 py-2 align-middle"
               >
-                <div className="text-[11px] font-bold uppercase leading-tight">{row.l1}</div>
-                <div className="text-[10px] font-medium opacity-80 leading-tight">{row.l2}</div>
+                <div className="text-[11px] font-bold uppercase leading-tight text-white">{row.l1}</div>
+                <div className="text-[10px] font-medium text-white/70 leading-tight">{row.l2}</div>
               </td>
 
               {semaine.map((date) => {
@@ -100,7 +102,7 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
                   (row.matin ? parseMinutes(s.horaire) < CUTOFF : parseMinutes(s.horaire) >= CUTOFF)
                 );
                 return (
-                  <td key={iso} style={{ backgroundColor: row.cellBg }} className="border border-gray-200 align-top p-1 min-w-[110px]">
+                  <td key={iso} style={{ backgroundColor: cat.cell }} className="border border-gray-100 align-top p-1 min-w-[110px]">
                     <div className="space-y-1.5">
                       {loading && cellSeances.length === 0 && (
                         <div className="h-4 bg-white/60 rounded-md animate-pulse" />
@@ -111,14 +113,15 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
                       <button
                         onClick={() => onAdd(iso)}
                         aria-label="Ajouter une séance"
-                        className="w-full flex items-center justify-center text-gray-400 hover:text-sky-600 py-0.5 border border-dashed border-gray-300 hover:border-sky-300 bg-white/40 rounded-md transition-colors"
+                        className="w-full flex items-center justify-center text-gray-400 hover:text-sky-600 py-0.5 hover:bg-white/70 rounded-md transition-colors"
                       ><Plus className="h-3 w-3" /></button>
                     </div>
                   </td>
                 );
               })}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

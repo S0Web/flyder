@@ -1,5 +1,5 @@
 import { StickyNote } from 'lucide-react';
-import { STATUT_CONFIG } from '../lib/utils';
+import { STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
 import { nextStatut } from '../lib/statutCycle';
 import HeadcountPopover from './HeadcountPopover';
 import PointeurBadge from './PointeurBadge';
@@ -23,11 +23,12 @@ function formatHoraire(mins) {
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
 }
 
-const BORDER_COLOR = { aqua: '#5bcae8', fitness: '#e8cb9f' };
-
 export default function SeanceCard({ seance, profils = [], onPatch, onDelete, onClick }) {
   const statut = STATUT_CONFIG[seance.statut] || STATUT_CONFIG.programme;
   const sansCoach = !seance.coach_prenom && !seance.coach_nom;
+  const cat = CATEGORIE_CONFIG[seance.categorie] || CATEGORIE_CONFIG.fitness;
+  const bg = sansCoach ? '#fee2e2' : cat.card;
+  const accent = sansCoach ? '#ef4444' : cat.accent;
 
   const startMins = parseMinutes(seance.horaire);
   const endMins   = startMins + (seance.duree_minutes || 60);
@@ -37,20 +38,18 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
     onPatch(seance.id, { statut: nextStatut(seance.statut) });
   }
 
-  const borderLeft = sansCoach
-    ? '4px solid #ef4444'
-    : `4px solid ${BORDER_COLOR[seance.categorie] || '#5bcae8'}`;
-
   return (
     <div
       onClick={() => onClick(seance)}
-      style={{ borderLeft, backgroundColor: sansCoach ? '#fee2e2' : '#ffffff' }}
-      className={`relative px-2 py-1.5 cursor-pointer group rounded-md transition-all
-        border hover:shadow-sm hover:border-gray-300
-        ${sansCoach ? 'border-red-300' : 'border-gray-200'}
+      style={{ backgroundColor: bg }}
+      className={`relative pl-4 pr-2 py-1.5 cursor-pointer group rounded-lg transition-all
+        border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300
         ${seance.statut === 'annule' ? 'opacity-40' : ''}
       `}
     >
+      {/* Trait d'accent (catégorie / alerte) */}
+      <span className="absolute left-1.5 top-1.5 bottom-1.5 w-1 rounded-full" style={{ backgroundColor: accent }} />
+
       {/* Alerte sans coach */}
       {sansCoach && (
         <div className="text-[10px] font-bold text-red-600 uppercase tracking-wide mb-0.5">
