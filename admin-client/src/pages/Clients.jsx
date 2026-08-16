@@ -16,6 +16,19 @@ const EMPTY_FORM = {
   contact_nom: '', contact_email: '', contact_telephone: '', date_debut: '', notes: '',
 };
 
+// Défini hors de ClientModal : un composant redéfini à chaque rendu du parent
+// (comme c'était le cas ici) change d'identité à chaque frappe, ce qui force React
+// à démonter/remonter le champ et fait perdre le focus après une seule lettre tapée.
+function Field({ label, k, value, onChange, type = 'text' }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <input type={type} value={value || ''} onChange={e => onChange(k, e.target.value)}
+        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+    </div>
+  );
+}
+
 function ClientModal({ client, onSave, onClose }) {
   const isNew = !client?.id;
   const [form, setForm] = useState(() => client ? { ...EMPTY_FORM, ...client } : EMPTY_FORM);
@@ -38,14 +51,6 @@ function ClientModal({ client, onSave, onClose }) {
     }
   }
 
-  const Field = ({ label, k, type = 'text' }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <input type={type} value={form[k] || ''} onChange={e => set(k, e.target.value)}
-        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -60,8 +65,8 @@ function ClientModal({ client, onSave, onClose }) {
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Sous-domaine" k="sous_domaine" />
-            <Field label="SALLE_NOM (env Railway)" k="salle_nom_env" />
+            <Field label="Sous-domaine" k="sous_domaine" value={form.sous_domaine} onChange={set} />
+            <Field label="SALLE_NOM (env Railway)" k="salle_nom_env" value={form.salle_nom_env} onChange={set} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -71,19 +76,19 @@ function ClientModal({ client, onSave, onClose }) {
                 {Object.entries(STATUT_CONFIG).map(([k, cfg]) => <option key={k} value={k}>{cfg.label}</option>)}
               </select>
             </div>
-            <Field label="Plan" k="plan" />
+            <Field label="Plan" k="plan" value={form.plan} onChange={set} />
           </div>
           <div className="pt-2 border-t border-gray-100">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Contact</p>
             <div className="space-y-3">
-              <Field label="Nom du contact" k="contact_nom" />
+              <Field label="Nom du contact" k="contact_nom" value={form.contact_nom} onChange={set} />
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Email" k="contact_email" type="email" />
-                <Field label="Téléphone" k="contact_telephone" />
+                <Field label="Email" k="contact_email" type="email" value={form.contact_email} onChange={set} />
+                <Field label="Téléphone" k="contact_telephone" value={form.contact_telephone} onChange={set} />
               </div>
             </div>
           </div>
-          <Field label="Date de début" k="date_debut" type="date" />
+          <Field label="Date de début" k="date_debut" type="date" value={form.date_debut} onChange={set} />
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
             <textarea value={form.notes || ''} onChange={e => set('notes', e.target.value)} rows={3}
