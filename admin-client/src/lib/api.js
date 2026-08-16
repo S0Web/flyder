@@ -25,6 +25,8 @@ async function req(path, options = {}) {
 }
 
 export const api = {
+  needsSetup: () => req('/auth/needs-setup'),
+  setup:  (data) => req('/auth/setup', { method: 'POST', body: JSON.stringify(data) }),
   login:  (email, password) => req('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   logout: () => req('/auth/logout', { method: 'POST' }),
   me:     () => req('/auth/me'),

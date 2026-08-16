@@ -2,8 +2,34 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const db = require('../db/database');
-const { verifyPassword } = require('../lib/passwordHash');
+const { verifyPassword, hashPassword } = require('../lib/passwordHash');
 const { requireAuth, getToken } = require('../middleware/auth');
+
+// GET /api/auth/needs-setup — indique s'il faut créer le tout premier compte admin.
+// Public (comme /login) : il n'y a personne à authentifier tant qu'aucun compte
+// n'existe.
+router.get('/needs-setup', (req, res) => {
+  const count = db.get('SELECT COUNT(*) as n FROM admin_users').n;
+  res.json({ needsSetup: count === 0 });
+});
+
+// POST /api/auth/setup — crée le tout premier compte admin. Se ferme définitivement
+// dès qu'un compte existe (même logique que POST /api/auth/profiles côté salles) :
+// ce back-office n'a qu'un seul propriétaire, pas d'inscription libre.
+router.post('/setup', (req, res) => {
+  const count = db.get('SELECT COUNT(*) as n FROM admin_users').n;
+  if (count > 0) return res.status(403).json({ error: 'Un compte admin existe déjà.' });
+
+  const { email, password, nom } = req.body;
+  if (!email || !email.trim()) return res.status(400).json({ error: 'Email requis' });
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Le mot de passe doit faire au moins 8 caractères' });
+
+  db.run(
+    'INSERT INTO admin_users (email, password_hash, nom) VALUES (?, ?, ?)',
+    [email.trim().toLowerCase(), hashPassword(password), (nom || '').trim()]
+  );
+  res.status(201).json({ ok: true });
+});
 
 // POST /api/auth/login
 router.post('/login', (req, res) => {
