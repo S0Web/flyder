@@ -15,7 +15,6 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
   const [tempId, setTempId] = useState(null);
   const [totalPages, setTotalPages] = useState(0);
   const [groupes, setGroupes] = useState([]);
-  const [pagesOrphelines, setPagesOrphelines] = useState([]);
   const [confirming, setConfirming] = useState(false);
   const { closing, dismiss } = useDismiss(onClose);
 
@@ -29,7 +28,6 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
       setTempId(res.tempId);
       setTotalPages(res.totalPages);
       setGroupes(res.groupes);
-      setPagesOrphelines(res.pagesOrphelines);
       setEtape('revue');
     } catch (err) {
       toast.error('Échec de l’analyse : ' + err.message);
@@ -46,6 +44,8 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
   function retirerGroupe(i) {
     setGroupes(gs => gs.filter((_, idx) => idx !== i));
   }
+
+  const sansSalarie = groupes.filter(g => !g.employeId).length;
 
   async function handleAnnuler() {
     if (tempId) api.annulerImportFichesDePaie(tempId).catch(() => {});
@@ -107,7 +107,7 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
             <div className="space-y-4">
               <p className="text-xs text-gray-500">
                 {totalPages} page(s) au total — {groupes.length} fiche(s) détectée(s)
-                {pagesOrphelines.length > 0 && `, ${pagesOrphelines.length} page(s) non reconnue(s)`}.
+                {sansSalarie > 0 && `, dont ${sansSalarie} sans salarié identifié`}.
                 Corrige le salarié ou les pages si besoin avant de confirmer.
               </p>
 
@@ -156,14 +156,12 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
                 )}
               </div>
 
-              {pagesOrphelines.length > 0 && (
+              {sansSalarie > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <p className="text-xs font-semibold text-amber-700 mb-1">Pages non reconnues (à traiter manuellement)</p>
-                  <ul className="text-xs text-amber-700 space-y-0.5">
-                    {pagesOrphelines.map(p => (
-                      <li key={p.page}>Page {p.page} — « {p.extrait} »</li>
-                    ))}
-                  </ul>
+                  <p className="text-xs text-amber-700">
+                    {sansSalarie} fiche(s) sans salarié reconnu (personne sans profil dans l'app, ou nom illisible) —
+                    sélectionne le salarié correspondant avant de confirmer.
+                  </p>
                 </div>
               )}
             </div>
@@ -174,7 +172,7 @@ export default function ImportFichesDePaieModal({ users, onClose, onImported }) 
           <button onClick={handleAnnuler}
             className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
           {etape === 'revue' && (
-            <button onClick={handleConfirmer} disabled={confirming || groupes.length === 0}
+            <button onClick={handleConfirmer} disabled={confirming || groupes.length === 0 || sansSalarie > 0}
               className="flex-1 flex items-center justify-center gap-1.5 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
               style={{ backgroundColor: '#3D5AFE' }}>
               <Upload className="h-4 w-4" /> {confirming ? 'Import…' : `Importer ${groupes.length} fiche(s)`}

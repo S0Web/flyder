@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, BookOpen } from 'lucide-react
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useDismiss } from '../lib/useDismiss';
 import { FORMATION_ICONS, formationIcon } from '../lib/formationIcons';
 
 const PALETTE = [
@@ -22,6 +23,7 @@ function CategorieModal({ categorie, onSave, onDelete, onClose }) {
   });
   const [error, setError]   = useState(null);
   const [saving, setSaving] = useState(false);
+  const { closing, dismiss } = useDismiss(onClose);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -31,7 +33,7 @@ function CategorieModal({ categorie, onSave, onDelete, onClose }) {
     setError(null);
     try {
       await onSave(form);
-      onClose();
+      onClose(); // le parent démonte déjà la modale ; filet de sécurité seulement
     } catch (err) {
       setError(err.message);
     } finally {
@@ -39,9 +41,21 @@ function CategorieModal({ categorie, onSave, onDelete, onClose }) {
     }
   }
 
+  useEffect(() => {
+    const fn = (e) => { if (e.key === 'Escape') dismiss(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, [dismiss]);
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 ${closing ? 'animate-overlayOut' : 'animate-overlayIn'}`}
+      onClick={dismiss}
+    >
+      <div
+        className={`bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto ${closing ? 'animate-modalOut' : 'animate-modalIn'}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-6 pt-5 pb-4 border-b">
           <h2 className="text-lg font-bold text-gray-800">{isNew ? 'Nouvelle catégorie' : 'Modifier la catégorie'}</h2>
         </div>
@@ -85,7 +99,7 @@ function CategorieModal({ categorie, onSave, onDelete, onClose }) {
                 <Trash2 className="h-4 w-4" />
               </button>
             )}
-            <button type="button" onClick={onClose}
+            <button type="button" onClick={dismiss}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
@@ -177,6 +191,7 @@ export default function Formation() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -206,15 +221,16 @@ export default function Formation() {
           ))}
         </div>
       )}
-
-      {modal !== null && (
-        <CategorieModal
-          categorie={modal?.id ? modal : null}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onClose={() => setModal(null)}
-        />
-      )}
     </div>
+
+    {modal !== null && (
+      <CategorieModal
+        categorie={modal?.id ? modal : null}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        onClose={() => setModal(null)}
+      />
+    )}
+    </>
   );
 }

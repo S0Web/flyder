@@ -44,6 +44,14 @@ function detecterEmploye(texte, employes) {
   return meilleur;
 }
 
+// Cherche le matricule (identifiant salarié imprimé sur CHAQUE page d'un bulletin,
+// y compris ses pages de suite) — sert à délimiter fiablement les fiches, indépendamment
+// de la reconnaissance du nom (qui elle ne dit rien sur les frontières entre documents).
+function detecterMatricule(texte) {
+  const m = texte.match(/Matricule[\s\S]{0,200}?\b(\d{5,7})\b/);
+  return m ? m[1] : null;
+}
+
 // Cherche une période "mois-année" dans le texte : soit "du JJ/MM/AAAA au JJ/MM/AAAA"
 // (on garde le mois de début), soit un nom de mois français suivi d'une année.
 function detecterPeriode(texte) {
@@ -60,10 +68,13 @@ function detecterPeriode(texte) {
 }
 
 // employes : [{ id, prenom, nom }] — comptes actifs, candidats au matching.
-// Retourne { groupes: [{ employeId, employeNom, periode, pageDebut, pageFin, extrait }],
-//            pagesOrphelines: [{ page, extrait }] } — pageDebut/pageFin en 1-indexé
-// (pratique pour l'affichage et pour pdf-lib qui attend du 0-indexé — la conversion
-// se fait à l'usage).
+// Retourne { totalPages, groupes: [{ employeId, employeNom, matricule, periode, pageDebut,
+// pageFin, extrait }] } — les frontières entre fiches sont déterminées par le matricule
+// (imprimé sur chaque page, y compris les pages de suite), pas par la reconnaissance du
+// nom : celle-ci ne sert qu'à pré-remplir employeId (peut rester null si le salarié n'a
+// pas de profil connu — le manager choisit alors manuellement dans l'interface de revue).
+// pageDebut/pageFin en 1-indexé (pratique pour l'affichage et pour pdf-lib qui attend du
+// 0-indexé — la conversion se fait à l'usage).
 async function analyserFichesDePaie(buffer, employes) {
   const parser = new PDFParse({ data: buffer });
   let result;
@@ -74,35 +85,47 @@ async function analyserFichesDePaie(buffer, employes) {
   }
 
   const groupes = [];
-  const pagesOrphelines = [];
   let groupeCourant = null;
 
   for (const page of result.pages) {
+    const matricule = detecterMatricule(page.text);
     const emp = detecterEmploye(page.text, employes);
     const periode = detecterPeriode(page.text);
     const extrait = page.text.replace(/\s+/g, ' ').trim().slice(0, 140);
 
-    if (emp) {
+    // Une page de suite d'un même bulletin répète systématiquement l'en-tête (matricule,
+    // identité...) — un nom reconnu à nouveau ne signale donc PAS un nouveau document tant
+    // que le matricule n'a pas changé. Sans matricule détectable (page d'annexe atypique),
+    // on suppose par défaut la suite de la fiche en cours.
+    const suite = groupeCourant && (
+      (matricule && matricule === groupeCourant.matricule) ||
+      (!matricule && !emp)
+    );
+
+    if (suite) {
+      groupeCourant.pageFin = page.num;
+      // Le nom n'est parfois lisible que sur la 1ère page (photo de l'adresse coupée etc.) ;
+      // on complète l'identification si une page suivante de la même fiche l'apporte.
+      if (!groupeCourant.employeId && emp) {
+        groupeCourant.employeId = emp.id;
+        groupeCourant.employeNom = `${emp.prenom} ${emp.nom}`;
+      }
+    } else {
       if (groupeCourant) groupes.push(groupeCourant);
       groupeCourant = {
-        employeId: emp.id,
-        employeNom: `${emp.prenom} ${emp.nom}`,
+        employeId: emp?.id ?? null,
+        employeNom: emp ? `${emp.prenom} ${emp.nom}` : null,
+        matricule,
         periode,
         pageDebut: page.num,
         pageFin: page.num,
         extrait,
       };
-    } else if (groupeCourant) {
-      // Page sans nom détecté juste après une page reconnue : probablement une
-      // annexe/suite de la même fiche.
-      groupeCourant.pageFin = page.num;
-    } else {
-      pagesOrphelines.push({ page: page.num, extrait });
     }
   }
   if (groupeCourant) groupes.push(groupeCourant);
 
-  return { totalPages: result.total, groupes, pagesOrphelines };
+  return { totalPages: result.total, groupes };
 }
 
-module.exports = { analyserFichesDePaie, detecterEmploye, detecterPeriode };
+module.exports = { analyserFichesDePaie, detecterEmploye, detecterPeriode, detecterMatricule };

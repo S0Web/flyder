@@ -48,8 +48,8 @@ const ROWS = [
 
 function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd }) {
   return (
-    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-      <table className="w-full border-collapse table-fixed min-w-[860px]">
+    <div className="overflow-x-auto -mx-4 md:mx-0">
+      <table className="w-full border-collapse table-fixed min-w-[860px] mx-4 md:mx-0">
         <colgroup>
           <col style={{ width: '72px' }} />
           {semaine.map((_, i) => <col key={i} />)}
@@ -448,17 +448,17 @@ export default function Planning() {
 
         {/* Barre navigation */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button onClick={() => setLundi(semainePrecedente(lundi))} aria-label="Semaine précédente"
-              className="px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">←</button>
+              className="flex-shrink-0 px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">←</button>
             <button onClick={() => setLundi(getLundi())}
               style={isCurrentWeek ? { backgroundColor: '#3D5AFE', color: '#fff' } : {}}
-              className={`px-2.5 py-1.5 text-sm font-medium rounded transition-colors ${
+              className={`flex-shrink-0 px-2.5 py-1.5 text-sm font-medium rounded transition-colors ${
                 isCurrentWeek ? '' : 'border border-gray-300 text-gray-600 hover:bg-gray-100'
               }`}>Auj.</button>
             <button onClick={() => setLundi(semaineSuivante(lundi))} aria-label="Semaine suivante"
-              className="px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">→</button>
-            <span className="ml-1 text-xs sm:text-sm font-semibold text-gray-700 truncate">
+              className="flex-shrink-0 px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">→</button>
+            <span className="ml-1 whitespace-nowrap text-xs sm:text-sm font-semibold text-gray-700">
               <span className="hidden sm:inline">
                 {semaine[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                 {' – '}

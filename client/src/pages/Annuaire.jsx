@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import { useDismiss } from '../lib/useDismiss';
 import { DISCIPLINE_CONFIG } from '../lib/utils';
 
 // Catégories affichées (filtres + sections). Les coachs viennent de la table
@@ -31,6 +32,7 @@ function ContactModal({ contact, onSave, onDelete, onClose }) {
   });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const { closing, dismiss } = useDismiss(onClose);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -40,7 +42,7 @@ function ContactModal({ contact, onSave, onDelete, onClose }) {
     setSaving(true);
     try {
       await onSave(form);
-      onClose();
+      onClose(); // le parent démonte déjà la modale ; filet de sécurité seulement
     } catch (err) {
       setError(err.message);
     } finally {
@@ -49,18 +51,24 @@ function ContactModal({ contact, onSave, onDelete, onClose }) {
   }
 
   useEffect(() => {
-    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    const fn = (e) => { if (e.key === 'Escape') dismiss(); };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [onClose]);
+  }, [dismiss]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 ${closing ? 'animate-overlayOut' : 'animate-overlayIn'}`}
+      onClick={dismiss}
+    >
+      <div
+        className={`bg-white rounded-2xl shadow-xl w-full max-w-sm ${closing ? 'animate-modalOut' : 'animate-modalIn'}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-6 pt-5 pb-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">{isNew ? 'Nouveau contact' : contact.nom}</h2>
           {!isNew && (
-            <button onClick={() => { onDelete(contact); onClose(); }} className="text-xs px-2 py-1 rounded text-red-500 hover:bg-red-50">
+            <button onClick={() => { onDelete(contact); dismiss(); }} className="text-xs px-2 py-1 rounded text-red-500 hover:bg-red-50">
               Supprimer
             </button>
           )}
@@ -95,7 +103,7 @@ function ContactModal({ contact, onSave, onDelete, onClose }) {
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
+            <button type="button" onClick={dismiss}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
@@ -117,6 +125,7 @@ function CoachQuickEditModal({ coach, onSave, onClose }) {
   });
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const { closing, dismiss } = useDismiss(onClose);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
   function toggleCategorieExtra(id) {
@@ -135,7 +144,7 @@ function CoachQuickEditModal({ coach, onSave, onClose }) {
     try {
       const { categoriesExtra, ...rest } = form;
       await onSave({ ...rest, categories_extra: categoriesExtra });
-      onClose();
+      onClose(); // le parent démonte déjà la modale ; filet de sécurité seulement
     } catch (err) {
       setError(err.message);
     } finally {
@@ -144,17 +153,23 @@ function CoachQuickEditModal({ coach, onSave, onClose }) {
   }
 
   useEffect(() => {
-    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    const fn = (e) => { if (e.key === 'Escape') dismiss(); };
     window.addEventListener('keydown', fn);
     return () => window.removeEventListener('keydown', fn);
-  }, [onClose]);
+  }, [dismiss]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+    <div
+      className={`fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 ${closing ? 'animate-overlayOut' : 'animate-overlayIn'}`}
+      onClick={dismiss}
+    >
+      <div
+        className={`bg-white rounded-2xl shadow-xl w-full max-w-sm ${closing ? 'animate-modalOut' : 'animate-modalIn'}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-6 pt-5 pb-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">{coach.nom}</h2>
-          <Link to="/coaches" onClick={onClose} className="text-xs text-sky-600 hover:underline">Gérer dans Coaches →</Link>
+          <Link to="/coaches" onClick={dismiss} className="text-xs text-sky-600 hover:underline">Gérer dans Coaches →</Link>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">{error}</div>}
@@ -192,7 +207,7 @@ function CoachQuickEditModal({ coach, onSave, onClose }) {
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
+            <button type="button" onClick={dismiss}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving}
               className="flex-1 text-white rounded py-2 text-sm font-medium disabled:opacity-50"
@@ -265,6 +280,7 @@ export default function Annuaire() {
   }
 
   return (
+    <>
     <div className="space-y-4 max-w-2xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-lg font-bold text-gray-800">Annuaire</h1>
@@ -346,21 +362,22 @@ export default function Annuaire() {
           ))}
         </div>
       )}
-
-      {modal !== null && (modal.categorie === 'coach' ? (
-        <CoachQuickEditModal
-          coach={modal}
-          onSave={handleSave}
-          onClose={() => setModal(null)}
-        />
-      ) : (
-        <ContactModal
-          contact={modal?.id ? modal : null}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onClose={() => setModal(null)}
-        />
-      ))}
     </div>
+
+    {modal !== null && (modal.categorie === 'coach' ? (
+      <CoachQuickEditModal
+        coach={modal}
+        onSave={handleSave}
+        onClose={() => setModal(null)}
+      />
+    ) : (
+      <ContactModal
+        contact={modal?.id ? modal : null}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        onClose={() => setModal(null)}
+      />
+    ))}
+    </>
   );
 }
