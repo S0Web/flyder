@@ -91,6 +91,12 @@ export const api = {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
     return req(`/analytics${qs ? `?${qs}` : ''}`);
   },
+  getTickets:      () => req('/tickets'),
+  getTicket:       (id) => req(`/tickets/${id}`),
+  getTicketsUnreadCount: () => req('/tickets/unread-count'),
+  createTicket:    (message) => req('/tickets', { method: 'POST', body: JSON.stringify({ message }) }),
+  replyTicket:     (id, corps) => req(`/tickets/${id}/messages`, { method: 'POST', body: JSON.stringify({ corps }) }),
+  setTicketStatut: (id, statut) => req(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ statut }) }),
   getCoaches:      (tous = false) => req(`/coaches${tous ? '?tous=1' : ''}`),
   getCoachStats:   (id) => req(`/coaches/${id}/stats`),
   getCoachSeancesDetail: (id, params = {}) => {

@@ -5,8 +5,11 @@ const path    = require('path');
 require('./db/database');
 
 const { requireAuth } = require('./middleware/auth');
-const authRouter    = require('./routes/auth');
-const clientsRouter = require('./routes/clients');
+const { requireClientApiKey } = require('./middleware/clientAuth');
+const authRouter      = require('./routes/auth');
+const clientsRouter   = require('./routes/clients');
+const ticketsRouter    = require('./routes/tickets');
+const gymTicketsRouter = require('./routes/gymTickets');
 
 const app  = express();
 const PORT = process.env.PORT || 3002;
@@ -23,6 +26,8 @@ app.use(express.json());
 
 app.use('/api/auth', authRouter);
 app.use('/api/clients', requireAuth, clientsRouter);
+app.use('/api/tickets', requireAuth, ticketsRouter);
+app.use('/api/gym/tickets', requireClientApiKey, gymTicketsRouter);
 
 const clientDist = path.join(__dirname, '../public');
 app.use(express.static(clientDist));

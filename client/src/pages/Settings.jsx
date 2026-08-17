@@ -6,8 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useToast } from '../context/ToastContext';
 import { parseServerDate, colorForUser } from '../lib/utils';
+import { useTicketsUnreadCount } from '../lib/useTicketsUnreadCount';
 import UserModal from '../components/UserModal';
 import ImportFichesDePaieModal from '../components/ImportFichesDePaieModal';
+import TicketsTab from '../components/TicketsTab';
 
 const AUDIT_PAGE = 50;
 
@@ -132,6 +134,7 @@ export default function Settings() {
   const { salleNom, corbeilHistoriqueImporte, refetch: refetchConfig } = useConfig();
   const toast = useToast();
   const isManager = me?.role === 'manager';
+  const { count: ticketsNonLus, refetch: refetchTicketsNonLus } = useTicketsUnreadCount(!!me);
   const [tab, setTab]     = useState('profil');
   const [users, setUsers] = useState([]);
   const [audit, setAudit] = useState([]);
@@ -261,6 +264,9 @@ export default function Settings() {
 
   const TABS = [
     { id: 'profil', label: 'Mon profil' },
+    // Visible par tout profil (pas seulement les managers) — le support est
+    // ouvert à toute la salle, cf. plan.
+    { id: 'tickets', label: 'Support', badge: ticketsNonLus > 0 },
     ...(isManager ? [{ id: 'users', label: 'Utilisateurs' }, { id: 'audit', label: 'Historique' }, { id: 'acces', label: 'Accès' }] : []),
   ];
 
@@ -272,8 +278,11 @@ export default function Settings() {
       <div className="flex gap-1 border-b border-gray-200">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === t.id ? 'border-sky-500 text-sky-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            className={`relative px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === t.id ? 'border-sky-500 text-sky-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             {t.label}
+            {t.badge && (
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 animate-pop" aria-label="Nouvelle réponse" />
+            )}
           </button>
         ))}
       </div>
@@ -307,6 +316,9 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Support */}
+      {tab === 'tickets' && <TicketsTab onRead={refetchTicketsNonLus} />}
 
       {/* Utilisateurs */}
       {tab === 'users' && isManager && (

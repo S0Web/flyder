@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
+import { useTicketsUnreadCount } from '../lib/useTicketsUnreadCount';
 import { colorForUser } from '../lib/utils';
 import logo from '../assets/logo-flyder-dark.png';
 
@@ -38,25 +39,30 @@ function Bubble({ user, size = 'h-7 w-7' }) {
   );
 }
 
-function NavItem({ to, label, icon: Icon, end, onClick }) {
+function NavItem({ to, label, icon: Icon, end, onClick, badge }) {
   return (
     <NavLink
       to={to}
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        `relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
           isActive ? 'bg-white/20 text-white' : 'text-brand-cream/70 hover:bg-white/10 hover:text-white'
         }`
       }
     >
-      <Icon className="h-4.5 w-4.5 flex-shrink-0" strokeWidth={1.8} />
+      <span className="relative flex-shrink-0">
+        <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
+        {badge && (
+          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-brand-ink animate-pop" aria-label="Nouvelle réponse support" />
+        )}
+      </span>
       {label}
     </NavLink>
   );
 }
 
-function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
+function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, ticketsNonLus }) {
   return (
     <>
       <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
@@ -70,7 +76,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
 
       {user && (
         <div className="border-t border-white/10 p-2 space-y-0.5 flex-shrink-0">
-          <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} />
+          <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} badge={ticketsNonLus > 0} />
           <button
             onClick={switchProfile}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-cream/70 hover:bg-white/10 hover:text-white transition-colors"
@@ -87,6 +93,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate }) {
 export default function Layout({ children }) {
   const { user, switchProfile } = useAuth();
   const { salleNom } = useConfig();
+  const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
   const [menuOpen, setMenuOpen] = useState(false);
   const restricted = user?.privileged === false;
   const links = restricted ? ALL_LINKS.filter(l => l.to !== '/annuaire') : ALL_LINKS;
@@ -95,7 +102,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-brand-cream flex">
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-brand-ink sticky top-0 h-screen shadow-md">
-        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} />
+        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} ticketsNonLus={ticketsNonLus} />
       </aside>
 
       {/* Barre + tiroir mobile */}
@@ -116,7 +123,7 @@ export default function Layout({ children }) {
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
           <aside className="relative w-64 bg-brand-ink flex flex-col h-full shadow-xl">
-            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} />
+            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} ticketsNonLus={ticketsNonLus} />
           </aside>
         </div>
       )}

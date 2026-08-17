@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, LogOut, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import { api } from '../lib/api';
-import { useAuth } from '../context/AuthContext';
-import logo from '../assets/logo-flyder-dark.png';
+import AdminLayout from '../components/AdminLayout';
 
 const STATUT_CONFIG = {
   essai:    { label: 'Essai',    bg: 'bg-amber-100',  text: 'text-amber-700' },
@@ -29,7 +28,72 @@ function Field({ label, k, value, onChange, type = 'text' }) {
   );
 }
 
-function ClientModal({ client, onSave, onClose }) {
+// Clé de service (ADMIN_API_KEY côté salle) : hachée en base, donc jamais
+// relisible après coup — seule la génération/régénération la révèle, une fois.
+function ApiKeySection({ client, onKeyGenerated }) {
+  const [generating, setGenerating] = useState(false);
+  const [freshKey, setFreshKey] = useState(null);
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  async function handleGenerate() {
+    if (client.api_key_hash && !confirm(
+      "Régénérer la clé ? L'ancienne cessera immédiatement de fonctionner — il faudra mettre à jour " +
+      'la variable ADMIN_API_KEY sur Railway pour cette salle.'
+    )) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const { apiKey } = await api.regenerateClientApiKey(client.id);
+      setFreshKey(apiKey);
+      onKeyGenerated();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(freshKey).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="pt-2 border-t border-gray-100">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Clé API (support)</p>
+      {freshKey ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+          <p className="text-xs text-amber-800 font-medium">
+            Copie-la maintenant dans les variables Railway de cette salle (ADMIN_API_KEY) — elle ne sera plus jamais affichée.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-white border border-amber-200 rounded px-2 py-1.5 overflow-x-auto whitespace-nowrap">{freshKey}</code>
+            <button type="button" onClick={handleCopy}
+              className="text-xs px-2.5 py-1.5 rounded border border-amber-300 text-amber-800 hover:bg-amber-100 flex-shrink-0">
+              {copied ? 'Copié !' : 'Copier'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-500">
+            {client.api_key_hash ? 'Une clé est configurée.' : "Aucune clé générée pour l'instant."}
+          </p>
+          <button type="button" onClick={handleGenerate} disabled={generating}
+            className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex-shrink-0">
+            {generating ? '…' : client.api_key_hash ? 'Régénérer' : 'Générer une clé'}
+          </button>
+        </div>
+      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function ClientModal({ client, onSave, onClose, onKeyGenerated }) {
   const isNew = !client?.id;
   const [form, setForm] = useState(() => client ? { ...EMPTY_FORM, ...client } : EMPTY_FORM);
   const [error, setError] = useState(null);
@@ -94,6 +158,7 @@ function ClientModal({ client, onSave, onClose }) {
             <textarea value={form.notes || ''} onChange={e => set('notes', e.target.value)} rows={3}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
           </div>
+          {!isNew && <ApiKeySection client={client} onKeyGenerated={onKeyGenerated} />}
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
@@ -110,7 +175,6 @@ function ClientModal({ client, onSave, onClose }) {
 }
 
 export default function Clients() {
-  const { admin, logout } = useAuth();
   const [clients, setClients] = useState(null);
   const [modal, setModal] = useState(null);
 
@@ -134,94 +198,82 @@ export default function Clients() {
   const counts = clients ? clients.reduce((acc, c) => { acc[c.statut] = (acc[c.statut] || 0) + 1; return acc; }, {}) : {};
 
   return (
-    <div className="min-h-screen bg-brand-cream">
-      <header className="bg-brand-ink px-4 sm:px-6 py-3 flex items-center justify-between">
-        <img src={logo} alt="Flyder" className="h-6" />
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-brand-slate hidden sm:inline">{admin?.nom || admin?.email}</span>
-          <button onClick={logout} className="flex items-center gap-1.5 text-sm text-brand-slate hover:text-white">
-            <LogOut className="h-4 w-4" /> Déconnexion
-          </button>
+    <AdminLayout>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-gray-800">Clients</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {clients ? `${clients.length} client(s)` : '…'}
+            {clients && clients.length > 0 && (
+              <> — {Object.entries(counts).map(([k, n]) => `${n} ${STATUT_CONFIG[k]?.label.toLowerCase()}`).join(', ')}</>
+            )}
+          </p>
         </div>
-      </header>
+        <button onClick={() => setModal({})}
+          className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium"
+          style={{ backgroundColor: '#3D5AFE' }}>
+          <Plus className="h-4 w-4" /> Nouveau client
+        </button>
+      </div>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-bold text-gray-800">Clients</h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {clients ? `${clients.length} client(s)` : '…'}
-              {clients && clients.length > 0 && (
-                <> — {Object.entries(counts).map(([k, n]) => `${n} ${STATUT_CONFIG[k]?.label.toLowerCase()}`).join(', ')}</>
-              )}
-            </p>
-          </div>
-          <button onClick={() => setModal({})}
-            className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium"
-            style={{ backgroundColor: '#3D5AFE' }}>
-            <Plus className="h-4 w-4" /> Nouveau client
-          </button>
+      {clients === null ? (
+        <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>
+      ) : clients.length === 0 ? (
+        <div className="text-center py-10 text-gray-400 text-sm italic">Aucun client pour l'instant.</div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+          <table className="w-full border-collapse text-sm min-w-[640px]">
+            <thead>
+              <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
+                {['Nom', 'Sous-domaine', 'Statut', 'Plan', 'Contact', ''].map(h => (
+                  <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {clients.map((c, i) => {
+                const statutCfg = STATUT_CONFIG[c.statut] || STATUT_CONFIG.essai;
+                return (
+                  <tr key={c.id} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#fff' }}>
+                    <td className="px-3 py-2 font-medium">{c.nom}</td>
+                    <td className="px-3 py-2 text-gray-500">
+                      {c.sous_domaine ? (
+                        <a href={`https://${c.sous_domaine}`} target="_blank" rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-sky-600 hover:underline">
+                          {c.sous_domaine} <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${statutCfg.bg} ${statutCfg.text}`}>
+                        {statutCfg.label}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-500">{c.plan || '—'}</td>
+                    <td className="px-3 py-2 text-gray-500">
+                      {c.contact_email || c.contact_nom || '—'}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <button onClick={() => setModal(c)} title="Modifier"
+                        className="h-7 w-7 inline-flex items-center justify-center rounded text-sky-600 hover:bg-sky-50">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => handleDelete(c)} title="Supprimer"
+                        className="h-7 w-7 inline-flex items-center justify-center rounded text-red-500 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-
-        {clients === null ? (
-          <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>
-        ) : clients.length === 0 ? (
-          <div className="text-center py-10 text-gray-400 text-sm italic">Aucun client pour l'instant.</div>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
-            <table className="w-full border-collapse text-sm min-w-[640px]">
-              <thead>
-                <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
-                  {['Nom', 'Sous-domaine', 'Statut', 'Plan', 'Contact', ''].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((c, i) => {
-                  const statutCfg = STATUT_CONFIG[c.statut] || STATUT_CONFIG.essai;
-                  return (
-                    <tr key={c.id} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#fff' }}>
-                      <td className="px-3 py-2 font-medium">{c.nom}</td>
-                      <td className="px-3 py-2 text-gray-500">
-                        {c.sous_domaine ? (
-                          <a href={`https://${c.sous_domaine}`} target="_blank" rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-sky-600 hover:underline">
-                            {c.sous_domaine} <ExternalLink className="h-3 w-3" />
-                          </a>
-                        ) : '—'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${statutCfg.bg} ${statutCfg.text}`}>
-                          {statutCfg.label}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-gray-500">{c.plan || '—'}</td>
-                      <td className="px-3 py-2 text-gray-500">
-                        {c.contact_email || c.contact_nom || '—'}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <button onClick={() => setModal(c)} title="Modifier"
-                          className="h-7 w-7 inline-flex items-center justify-center rounded text-sky-600 hover:bg-sky-50">
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleDelete(c)} title="Supprimer"
-                          className="h-7 w-7 inline-flex items-center justify-center rounded text-red-500 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
+      )}
 
       {modal !== null && (
-        <ClientModal client={modal?.id ? modal : null} onSave={handleSave} onClose={() => setModal(null)} />
+        <ClientModal client={modal?.id ? modal : null} onSave={handleSave} onClose={() => setModal(null)} onKeyGenerated={load} />
       )}
-    </div>
+    </AdminLayout>
   );
 }

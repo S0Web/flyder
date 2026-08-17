@@ -36,4 +36,14 @@ export const api = {
   createClient:  (data) => req('/clients', { method: 'POST', body: JSON.stringify(data) }),
   updateClient:  (id, data) => req(`/clients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteClient:  (id) => req(`/clients/${id}`, { method: 'DELETE' }),
+  regenerateClientApiKey: (id) => req(`/clients/${id}/regenerate-key`, { method: 'POST' }),
+
+  getTickets:    (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+    return req(`/tickets${qs ? `?${qs}` : ''}`);
+  },
+  getTicket:       (id) => req(`/tickets/${id}`),
+  createTicket:    (clientId, message) => req('/tickets', { method: 'POST', body: JSON.stringify({ client_id: clientId, message }) }),
+  replyTicket:     (id, corps) => req(`/tickets/${id}/messages`, { method: 'POST', body: JSON.stringify({ corps }) }),
+  setTicketStatut: (id, statut) => req(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ statut }) }),
 };

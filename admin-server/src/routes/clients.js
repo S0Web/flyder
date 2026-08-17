@@ -1,6 +1,8 @@
+const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
+const { hashKey } = require('../middleware/clientAuth');
 
 const STATUTS_VALIDES = ['essai', 'actif', 'suspendu', 'resilie'];
 
@@ -53,6 +55,18 @@ router.put('/:id', (req, res) => {
      req.params.id]
   );
   res.json(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]));
+});
+
+// POST /api/clients/:id/regenerate-key — (re)génère la clé de service utilisée
+// par le serveur de cette salle pour appeler /api/gym/*. La valeur en clair
+// n'est renvoyée qu'ici, une seule fois : seule son empreinte est conservée.
+router.post('/:id/regenerate-key', (req, res) => {
+  const client = db.get('SELECT id FROM clients WHERE id = ?', [req.params.id]);
+  if (!client) return res.status(404).json({ error: 'Client introuvable' });
+
+  const clair = crypto.randomBytes(24).toString('hex');
+  db.run('UPDATE clients SET api_key_hash = ?, updated_at = datetime(\'now\') WHERE id = ?', [hashKey(clair), req.params.id]);
+  res.json({ apiKey: clair });
 });
 
 // DELETE /api/clients/:id
