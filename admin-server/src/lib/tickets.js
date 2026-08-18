@@ -1,4 +1,12 @@
 const db = require('../db/database');
+const { envoyerNotificationTicket } = require('./mailer');
+
+// Notifie le propriétaire uniquement quand une SALLE écrit (jamais sur ses
+// propres messages admin, ça n'aurait aucun sens de s'auto-notifier).
+function notifier(clientId, auteurNom, message) {
+  const client = db.get('SELECT nom FROM clients WHERE id = ?', [clientId]);
+  envoyerNotificationTicket({ clientNom: client?.nom || 'Salle inconnue', auteurNom, message }).catch(() => {});
+}
 
 // Le sujet affiché dans les listes n'est jamais saisi séparément (le formulaire
 // n'a qu'un seul champ, cf. la capture d'écran d'origine) — on le dérive du
@@ -20,6 +28,7 @@ function creerTicket({ clientId, message, auteurNom, auteurRole }) {
     'INSERT INTO ticket_messages (ticket_id, auteur_nom, auteur_role, corps) VALUES (?, ?, ?, ?)',
     [ticketId, auteurNom, auteurRole, message]
   );
+  if (auteurRole === 'salle') notifier(clientId, auteurNom, message);
   return db.get('SELECT * FROM tickets WHERE id = ?', [ticketId]);
 }
 
@@ -35,6 +44,8 @@ function ajouterMessage({ ticketId, corps, auteurNom, auteurRole }) {
     db.run("UPDATE tickets SET non_lu_salle = 1, updated_at = datetime('now') WHERE id = ?", [ticketId]);
   } else {
     db.run("UPDATE tickets SET updated_at = datetime('now') WHERE id = ?", [ticketId]);
+    const ticket = db.get('SELECT client_id FROM tickets WHERE id = ?', [ticketId]);
+    if (ticket) notifier(ticket.client_id, auteurNom, corps);
   }
 }
 
