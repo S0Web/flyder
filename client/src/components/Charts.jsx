@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { Table2, ChevronDown } from 'lucide-react';
 import { VIZ, RAMP, fmtInt, fmtDec, JOURS_COURTS, JOURS_LONGS } from '../lib/chartTheme';
 
@@ -85,10 +85,25 @@ function Scroller({ minWidth = 560, children }) {
 
 // Info-bulle HTML positionnée au-dessus du SVG (plus simple à styler qu'un <text>).
 function Tip({ x, y, children }) {
+  const ref = useRef(null);
+  const [flip, setFlip] = useState(false);
+
+  // Par défaut l'infobulle se déploie au-dessus du point survolé — mais un
+  // point proche du haut du graphique la ferait déborder au-dessus de son
+  // cadre (coupée par la carte, cf. bug remonté). Mesurée avant peinture
+  // (useLayoutEffect) pour basculer sous le point sans flash visible.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const parent = el?.offsetParent;
+    if (!el || !parent) return;
+    setFlip(el.getBoundingClientRect().top < parent.getBoundingClientRect().top);
+  }, [x, y, children]);
+
   return (
     <div
+      ref={ref}
       className="pointer-events-none absolute z-20 rounded-lg bg-brand-ink text-white text-[11px] leading-snug px-2.5 py-1.5 shadow-lg whitespace-nowrap"
-      style={{ left: `${x}%`, top: y, transform: 'translate(-50%, -100%)' }}
+      style={{ left: `${x}%`, top: y, transform: `translate(-50%, ${flip ? '8px' : '-100%'})` }}
     >
       {children}
     </div>
@@ -178,7 +193,7 @@ export function LineChart({ data, series, yFmt = fmtInt, height = 230, xKey = 'l
         </svg>
 
         {hover != null && (
-          <Tip x={(xAt(hover) / W) * 100} y={Math.max(Math.min(...series.map(s => yAt(data[hover][s.key]))) - 8, PAD.top + 4)}>
+          <Tip x={(xAt(hover) / W) * 100} y={Math.min(...series.map(s => yAt(data[hover][s.key]))) - 8}>
             <div className="font-semibold mb-0.5">{data[hover][xKey]}</div>
             {series.map(s => (
               <div key={s.key} className="flex items-center gap-1.5">
@@ -242,7 +257,7 @@ export function ColumnChart({ data, color = VIZ.aqua, yFmt = fmtInt, height = 21
         </svg>
         {hover != null && (
           <Tip x={((PAD.left + hover * slot + slot / 2) / W) * 100}
-            y={Math.max(PAD.top + iH - ((data[hover].value ?? 0) / axisMax) * iH - 8, PAD.top + 4)}>
+            y={PAD.top + iH - ((data[hover].value ?? 0) / axisMax) * iH - 8}>
             <div className="font-semibold">{data[hover].full || data[hover].label}</div>
             <div className="tabular-nums">{yFmt(data[hover].value)}</div>
             {tipExtra && <div className="text-white/70">{tipExtra(data[hover])}</div>}
