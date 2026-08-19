@@ -1,0 +1,6 @@
+- Contrat AE, alternants 
+- fiche de paie (robot etecte chaque fueille et la rentre dans chaque profil) et arret maladies 
+- Formation à compléter
+- préciser ce que le coach fait dans coaches (aqua, fitness, pole dance) 
+- recalcule des CP à savoir qu'une semaine de CP représente 6 CP, le salarié obtient 2,5 CP/mois pour rappel.
+- dans la formation, créer des étapes dans les 2 points déjà mis (comment faire une vente, comment encaisser, comment inscrire....)

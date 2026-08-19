@@ -1,0 +1,161 @@
+From 87b21377aa5180fe1f0b9f2c52441c73654ba7e5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 18 Aug 2026 13:05:13 +0000
+Subject: [PATCH] =?UTF-8?q?Envoie=20une=20notification=20par=20email=20qua?=
+ =?UTF-8?q?nd=20une=20salle=20=C3=A9crit=20sur=20un=20ticket?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Pas de service tiers : envoi via le Gmail personnel du propriétaire (Nodemailer
++ mot de passe d'application), vers lui-même. GMAIL_USER et GMAIL_APP_PASSWORD
+sont lus depuis les variables d'environnement uniquement — jamais dans le code.
+
+Ne notifie que sur les messages "salle" (nouveau ticket ou réponse) : le
+propriétaire n'a pas besoin d'être notifié de ses propres messages. Un échec
+d'envoi (mailer non configuré, Gmail indisponible...) est toujours avalé
+silencieusement (juste loggé) — un souci d'email ne doit jamais empêcher une
+salle d'écrire son ticket.
+
+Testé : le flux ticket → tentative d'envoi ne plante pas, que le mailer soit
+configuré ou non. L'envoi réel n'a pas pu être vérifié depuis cet environnement
+(connexions SMTP sortantes bloquées ici), à confirmer une fois déployé.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HhWbZzuHrdjFGASuFbVyzu
+---
+ admin-server/package.json       |  3 ++-
+ admin-server/src/lib/mailer.js  | 41 +++++++++++++++++++++++++++++++++
+ admin-server/src/lib/tickets.js | 11 +++++++++
+ package-lock.json               | 12 +++++++++-
+ 4 files changed, 65 insertions(+), 2 deletions(-)
+ create mode 100644 admin-server/src/lib/mailer.js
+
+diff --git a/admin-server/package.json b/admin-server/package.json
+index c138aa1..840de3b 100644
+--- a/admin-server/package.json
++++ b/admin-server/package.json
+@@ -11,7 +11,8 @@
+   "dependencies": {
+     "cors": "^2.8.5",
+     "express": "^4.18.3",
+-    "node-sqlite3-wasm": "^0.8.58"
++    "node-sqlite3-wasm": "^0.8.58",
++    "nodemailer": "^6.9.16"
+   },
+   "devDependencies": {
+     "nodemon": "^3.1.0"
+diff --git a/admin-server/src/lib/mailer.js b/admin-server/src/lib/mailer.js
+new file mode 100644
+index 0000000..0ad0657
+--- /dev/null
++++ b/admin-server/src/lib/mailer.js
+@@ -0,0 +1,41 @@
++const nodemailer = require('nodemailer');
++
++// Notification par email quand une salle écrit sur un ticket — pas de service
++// tiers, on envoie depuis le Gmail perso du propriétaire vers lui-même via un
++// mot de passe d'application. Ni GMAIL_USER ni GMAIL_APP_PASSWORD ne sont
++// jamais écrits dans le code, uniquement lus depuis les variables d'environnement.
++function isConfigured() {
++  return !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
++}
++
++let transporter = null;
++function getTransporter() {
++  if (!transporter) {
++    transporter = nodemailer.createTransport({
++      service: 'gmail',
++      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
++    });
++  }
++  return transporter;
++}
++
++// N'échoue jamais bruyamment : un souci d'envoi ne doit pas empêcher la salle
++// d'écrire son ticket, juste priver le propriétaire de la notification.
++async function envoyerNotificationTicket({ clientNom, auteurNom, message }) {
++  if (!isConfigured()) {
++    console.warn('Mailer non configuré (GMAIL_USER/GMAIL_APP_PASSWORD manquants) — notification ticket non envoyée');
++    return;
++  }
++  try {
++    await getTransporter().sendMail({
++      from: `Flyder <${process.env.GMAIL_USER}>`,
++      to: process.env.GMAIL_USER,
++      subject: `[Flyder] Nouveau message — ${clientNom}`,
++      text: `${auteurNom} (${clientNom}) a écrit sur un ticket de support :\n\n${message}\n\n— Réponds depuis le back-office : admin.flyder.fr`,
++    });
++  } catch (e) {
++    console.error('Échec envoi notification ticket:', e.message);
++  }
++}
++
++module.exports = { envoyerNotificationTicket, isConfigured };
+diff --git a/admin-server/src/lib/tickets.js b/admin-server/src/lib/tickets.js
+index 7f7b15b..9972dba 100644
+--- a/admin-server/src/lib/tickets.js
++++ b/admin-server/src/lib/tickets.js
+@@ -1,4 +1,12 @@
+ const db = require('../db/database');
++const { envoyerNotificationTicket } = require('./mailer');
++
++// Notifie le propriétaire uniquement quand une SALLE écrit (jamais sur ses
++// propres messages admin, ça n'aurait aucun sens de s'auto-notifier).
++function notifier(clientId, auteurNom, message) {
++  const client = db.get('SELECT nom FROM clients WHERE id = ?', [clientId]);
++  envoyerNotificationTicket({ clientNom: client?.nom || 'Salle inconnue', auteurNom, message }).catch(() => {});
++}
+ 
+ // Le sujet affiché dans les listes n'est jamais saisi séparément (le formulaire
+ // n'a qu'un seul champ, cf. la capture d'écran d'origine) — on le dérive du
+@@ -20,6 +28,7 @@ function creerTicket({ clientId, message, auteurNom, auteurRole }) {
+     'INSERT INTO ticket_messages (ticket_id, auteur_nom, auteur_role, corps) VALUES (?, ?, ?, ?)',
+     [ticketId, auteurNom, auteurRole, message]
+   );
++  if (auteurRole === 'salle') notifier(clientId, auteurNom, message);
+   return db.get('SELECT * FROM tickets WHERE id = ?', [ticketId]);
+ }
+ 
+@@ -35,6 +44,8 @@ function ajouterMessage({ ticketId, corps, auteurNom, auteurRole }) {
+     db.run("UPDATE tickets SET non_lu_salle = 1, updated_at = datetime('now') WHERE id = ?", [ticketId]);
+   } else {
+     db.run("UPDATE tickets SET updated_at = datetime('now') WHERE id = ?", [ticketId]);
++    const ticket = db.get('SELECT client_id FROM tickets WHERE id = ?', [ticketId]);
++    if (ticket) notifier(ticket.client_id, auteurNom, corps);
+   }
+ }
+ 
+diff --git a/package-lock.json b/package-lock.json
+index 4f1f350..b0eca01 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -40,7 +40,8 @@
+       "dependencies": {
+         "cors": "^2.8.5",
+         "express": "^4.18.3",
+-        "node-sqlite3-wasm": "^0.8.58"
++        "node-sqlite3-wasm": "^0.8.58",
++        "nodemailer": "^6.9.16"
+       },
+       "devDependencies": {
+         "nodemon": "^3.1.0"
+@@ -3420,6 +3421,15 @@
+       "integrity": "sha512-oXh7/N26JzIZF2jLq6sOUzyT0vh97uyg2259budPaaDFE7vaR1F4RqWT3wc0u7N3zJEup0EPr78jgVypr4/7yQ==",
+       "license": "MIT"
+     },
++    "node_modules/nodemailer": {
++      "version": "6.10.1",
++      "resolved": "https://registry.npmjs.org/nodemailer/-/nodemailer-6.10.1.tgz",
++      "integrity": "sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==",
++      "license": "MIT-0",
++      "engines": {
++        "node": ">=6.0.0"
++      }
++    },
+     "node_modules/nodemon": {
+       "version": "3.1.14",
+       "resolved": "https://registry.npmjs.org/nodemon/-/nodemon-3.1.14.tgz",
+-- 
+2.43.0
+
