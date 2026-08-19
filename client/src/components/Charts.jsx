@@ -178,7 +178,7 @@ export function LineChart({ data, series, yFmt = fmtInt, height = 230, xKey = 'l
         </svg>
 
         {hover != null && (
-          <Tip x={(xAt(hover) / W) * 100} y={PAD.top + 4}>
+          <Tip x={(xAt(hover) / W) * 100} y={Math.max(Math.min(...series.map(s => yAt(data[hover][s.key]))) - 8, PAD.top + 4)}>
             <div className="font-semibold mb-0.5">{data[hover][xKey]}</div>
             {series.map(s => (
               <div key={s.key} className="flex items-center gap-1.5">
@@ -241,7 +241,8 @@ export function ColumnChart({ data, color = VIZ.aqua, yFmt = fmtInt, height = 21
           })}
         </svg>
         {hover != null && (
-          <Tip x={((PAD.left + hover * slot + slot / 2) / W) * 100} y={PAD.top + 4}>
+          <Tip x={((PAD.left + hover * slot + slot / 2) / W) * 100}
+            y={Math.max(PAD.top + iH - ((data[hover].value ?? 0) / axisMax) * iH - 8, PAD.top + 4)}>
             <div className="font-semibold">{data[hover].full || data[hover].label}</div>
             <div className="tabular-nums">{yFmt(data[hover].value)}</div>
             {tipExtra && <div className="text-white/70">{tipExtra(data[hover])}</div>}
