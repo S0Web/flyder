@@ -45,10 +45,14 @@ export default function AccesTab() {
     <div className="space-y-4">
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <p className="text-sm text-gray-600">
-          Un manager peut toujours tout modifier. Depuis un compte utilisateur simple, la modification et
-          l'accès à l'annuaire ne sont possibles que depuis une IP de cette liste (typiquement le Wi-Fi de
-          la salle) — ailleurs, l'accès est en lecture seule et l'annuaire est masqué.
+            <b>Manager</b> : Toutes les permissions. <br/><br/>
+            <b>Utilisateurs</b> :
+            <ul style={{ listStyleType: 'disc', paddingLeft: '1rem', marginTop: '0.25rem' }}>
+             <li>Depuis une adresse IP autorisée : Permissions restreintes</li>
+             <li>Depuis une adresse IP quelconque : Lecture seule</li>
+            </ul>
         </p>
+        <br/>
         {votreIp && (
           <p className="text-xs text-gray-400 mt-2">
             Votre adresse IP actuelle : <span className="font-mono text-gray-600">{votreIp}</span>

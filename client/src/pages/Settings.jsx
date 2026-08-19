@@ -48,45 +48,10 @@ export default function Settings() {
   const [importModal, setImportModal] = useState(false);
   const [backing, setBacking] = useState(false);
   const [backupError, setBackupError] = useState(null);
-  const [seedingBallancourt, setSeedingBallancourt] = useState(false);
-  const [seedBallancourtResult, setSeedBallancourtResult] = useState(null);
-  const [seedingCorbeil, setSeedingCorbeil] = useState(false);
-  const [seedCorbeilResult, setSeedCorbeilResult] = useState(null);
   const [seedingDemo, setSeedingDemo] = useState(false);
   const [seedDemoResult, setSeedDemoResult] = useState(null);
 
-  async function handleSeedBallancourt() {
-    setSeedingBallancourt(true);
-    setSeedBallancourtResult(null);
-    try {
-      const res = await api.seedBallancourt();
-      setSeedBallancourtResult({
-        ok: true,
-        message: `${res.seancesCreees} séance(s) et ${res.joursCreees} jour(s) de planning personnel importés (${res.seancesIgnorees} séance(s) et ${res.joursIgnores} jour(s) déjà présents ignorés).`,
-      });
-    } catch (err) {
-      setSeedBallancourtResult({ ok: false, message: err.message });
-    } finally {
-      setSeedingBallancourt(false);
-    }
-  }
-
-  async function handleSeedCorbeil() {
-    setSeedingCorbeil(true);
-    setSeedCorbeilResult(null);
-    try {
-      const res = await api.seedCorbeilHistorique();
-      setSeedCorbeilResult({
-        ok: true,
-        message: `${res.seancesCreees} séance(s) importées (${res.seancesIgnorees} déjà présentes ignorées).`,
-      });
-      await refetchConfig();
-    } catch (err) {
-      setSeedCorbeilResult({ ok: false, message: err.message });
-    } finally {
-      setSeedingCorbeil(false);
-    }
-  }
+  
 
   async function handleSeedDemo() {
     if (!confirm('Réinitialiser les données de démonstration ? Les coachs et séances fictifs actuels seront effacés puis régénérés.')) return;
@@ -326,7 +291,7 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Sauvegarde — discrète (usage exceptionnel) */}
+          {/* Sauvegarde */}
           <div className="mt-6 text-right">
             <button onClick={handleBackup} disabled={backing}
               className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 hover:underline disabled:opacity-50">
@@ -413,7 +378,7 @@ export default function Settings() {
           )}
         </div>
       )}
-
+      {/* Préférences */}
       {tab === 'preferences' && isManager && <div className="motion-safe:animate-fadeIn"><Preferences /></div>}
 
       {modal !== null && (
