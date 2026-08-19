@@ -13,6 +13,7 @@ import Formation from './pages/Formation';
 import FormationCategorie from './pages/FormationCategorie';
 import Settings from './pages/Settings';
 import FicheEmploye from './pages/FicheEmploye';
+import Nouveautes from './pages/Nouveautes';
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
@@ -35,6 +36,7 @@ function ProtectedRoutes() {
         <Route path="/formation"                        element={<Formation />} />
         <Route path="/formation/:categorieId"           element={<FormationCategorie />} />
         <Route path="/formation/:categorieId/:articleId" element={<FormationCategorie />} />
+        <Route path="/nouveautes"         element={<Nouveautes />} />
         <Route path="/parametres"         element={<Settings />} />
         <Route path="/parametres/utilisateurs/:id" element={<FicheEmploye />} />
         <Route path="*"                   element={<Navigate to="/" replace />} />

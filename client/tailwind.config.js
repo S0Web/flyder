@@ -55,6 +55,10 @@ export default {
         modalOut:   { from: { opacity: 1, transform: 'scale(1) translateY(0)' },         to: { opacity: 0, transform: 'scale(0.97) translateY(4px)' } },
         // Pulse de confirmation (statut qui change, effectif mis à jour...)
         pop:        { '0%': { transform: 'scale(1)' }, '40%': { transform: 'scale(1.18)' }, '100%': { transform: 'scale(1)' } },
+        // Changement de page (sidebar) : léger glissement horizontal plutôt qu'un
+        // simple fondu, pour donner une direction au changement plutôt qu'un
+        // "ça apparaît" sec.
+        pageIn:     { from: { opacity: 0, transform: 'translateX(10px)' },                to: { opacity: 1, transform: 'translateX(0)' } },
       },
       animation: {
         fadeIn:     'fadeIn 0.15s ease-out',
@@ -69,6 +73,7 @@ export default {
         modalIn:    'modalIn 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
         modalOut:   'modalOut 0.13s ease-in forwards',
         pop:        'pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        pageIn:     'pageIn 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },

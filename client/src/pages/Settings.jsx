@@ -7,11 +7,9 @@ import { useConfig } from '../context/ConfigContext';
 import { useToast } from '../context/ToastContext';
 import { parseServerDate, colorForUser } from '../lib/utils';
 import { useTicketsUnreadCount } from '../lib/useTicketsUnreadCount';
-import { useChangelogUnread } from '../lib/useChangelogUnread';
 import UserModal from '../components/UserModal';
 import ImportFichesDePaieModal from '../components/ImportFichesDePaieModal';
 import TicketsTab from '../components/TicketsTab';
-import ChangelogTab from '../components/ChangelogTab';
 
 const AUDIT_PAGE = 50;
 
@@ -137,7 +135,6 @@ export default function Settings() {
   const toast = useToast();
   const isManager = me?.role === 'manager';
   const { count: ticketsNonLus, refetch: refetchTicketsNonLus } = useTicketsUnreadCount(!!me);
-  const { count: changelogNonLus, refetch: refetchChangelogNonLus } = useChangelogUnread(!!me);
   const [tab, setTab]     = useState('profil');
   const [users, setUsers] = useState([]);
   const [audit, setAudit] = useState([]);
@@ -270,7 +267,6 @@ export default function Settings() {
     // Visible par tout profil (pas seulement les managers) — le support est
     // ouvert à toute la salle, cf. plan.
     { id: 'tickets', label: 'Support', badge: ticketsNonLus > 0 },
-    { id: 'nouveautes', label: 'Nouveautés', badge: changelogNonLus > 0 },
     ...(isManager ? [{ id: 'users', label: 'Utilisateurs' }, { id: 'audit', label: 'Historique' }, { id: 'acces', label: 'Accès' }] : []),
   ];
 
@@ -293,7 +289,7 @@ export default function Settings() {
 
       {/* Mon profil */}
       {tab === 'profil' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 motion-safe:animate-fadeIn">
           <div className="flex items-center gap-4 mb-4">
             <div className="h-14 w-14 rounded-full flex items-center justify-center text-white text-xl font-bold"
               style={{ backgroundColor: colorForUser(me?.id) }}>
@@ -322,14 +318,13 @@ export default function Settings() {
       )}
 
       {/* Support */}
-      {tab === 'tickets' && <TicketsTab onRead={refetchTicketsNonLus} />}
-
-      {/* Nouveautés */}
-      {tab === 'nouveautes' && <ChangelogTab onRead={refetchChangelogNonLus} />}
+      {tab === 'tickets' && (
+        <div className="motion-safe:animate-fadeIn"><TicketsTab onRead={refetchTicketsNonLus} /></div>
+      )}
 
       {/* Utilisateurs */}
       {tab === 'users' && isManager && (
-        <div>
+        <div className="motion-safe:animate-fadeIn">
           <div className="flex justify-between items-center mb-3 gap-3">
             <span className="text-sm text-gray-500">{users.length} utilisateur(s)</span>
             <div className="flex gap-2">
@@ -444,7 +439,7 @@ export default function Settings() {
 
       {/* Historique */}
       {tab === 'audit' && isManager && (
-        <div>
+        <div className="motion-safe:animate-fadeIn">
           {/* Filtres & tri */}
           <div className="flex flex-wrap items-end gap-2 mb-3 text-xs">
             <label className="flex flex-col gap-0.5">
@@ -519,7 +514,7 @@ export default function Settings() {
         </div>
       )}
 
-      {tab === 'acces' && isManager && <AccesTab />}
+      {tab === 'acces' && isManager && <div className="motion-safe:animate-fadeIn"><AccesTab /></div>}
 
       {modal !== null && (
         <UserModal

@@ -515,6 +515,7 @@ export default function Coaches() {
   const [seancesModal, setSeancesModal] = useState(null); // { coach, mois } — mois=null pour le total
   const [showInactifs, setShowInactifs] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [hoverRow, setHoverRow] = useState(null);
   const reqIdRef = useRef(0);
 
   // Récapitulatif des heures : quels statuts comptent comme "réalisé"
@@ -616,7 +617,8 @@ export default function Coaches() {
         {recap === null ? (
           <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>
         ) : (
-          <div className={`overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 transition-opacity duration-200 ${refreshing ? 'opacity-60' : 'opacity-100'}`}>
+          <div className={`bg-white border border-gray-200 rounded-xl overflow-x-auto transition-opacity duration-200 ${refreshing ? 'opacity-60' : 'opacity-100'}`}
+            onMouseLeave={() => setHoverRow(null)}>
           <table className="w-full border-collapse text-sm min-w-[860px]">
             <thead>
               <tr>
@@ -632,9 +634,11 @@ export default function Coaches() {
             </thead>
             <tbody>
               {displayed.map((coach, i) => {
-                const bg = i % 2 === 0 ? '#ffffff' : '#f9fafb';
+                const isHover = hoverRow === i;
+                const bg = isHover ? '#eef1ff' : (i % 2 === 0 ? '#ffffff' : '#f9fafb');
                 return (
-                  <tr key={coach.id} style={{ backgroundColor: bg }} className={coach.actif ? '' : 'opacity-40'}>
+                  <tr key={coach.id} style={{ backgroundColor: bg }} className={`transition-colors duration-150 ${coach.actif ? '' : 'opacity-40'}`}
+                    onMouseEnter={() => setHoverRow(i)}>
                     <td className="sticky left-0 z-10 border-b border-gray-100 px-2 py-1.5 font-semibold" style={{ backgroundColor: bg, maxWidth: 120 }}>
                       <button onClick={() => setStatsModal(coach)} title={`${coach.prenom} ${coach.nom}`}
                         className="hover:underline text-left flex items-center gap-1 w-full" style={{ color: '#12162B' }}>
@@ -646,7 +650,7 @@ export default function Coaches() {
                       const v = coach.mois[m];
                       return (
                         <td key={m} className="border-b border-gray-100 p-0 text-center text-xs tabular-nums"
-                          style={{ backgroundColor: m === currentMois ? '#eef9fd' : undefined }}>
+                          style={{ backgroundColor: isHover ? '#eef1ff' : (m === currentMois ? '#eef9fd' : undefined) }}>
                           {v ? (
                             <button onClick={() => setSeancesModal({ coach, mois: m })}
                               className="w-full h-full px-2 py-1.5 tabular-nums hover:underline hover:bg-sky-50/60"

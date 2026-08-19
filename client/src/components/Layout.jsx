@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Settings as GearIcon, Menu as MenuIcon, X as XIcon,
+  Settings as GearIcon, Menu as MenuIcon, X as XIcon, Megaphone,
   CalendarDays, CalendarRange, ClipboardList, BarChart3, BookUser, GraduationCap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -41,7 +41,7 @@ function Bubble({ user, size = 'h-7 w-7' }) {
   );
 }
 
-function NavItem({ to, label, icon: Icon, end, onClick, badge }) {
+function NavItem({ to, label, icon: Icon, end, onClick, badge, highlight }) {
   return (
     <NavLink
       to={to}
@@ -49,7 +49,9 @@ function NavItem({ to, label, icon: Icon, end, onClick, badge }) {
       onClick={onClick}
       className={({ isActive }) =>
         `relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-          isActive ? 'bg-white/20 text-white' : 'text-brand-cream/70 hover:bg-white/10 hover:text-white'
+          isActive ? 'bg-white/20 text-white'
+          : highlight ? 'bg-sky-500/20 text-white hover:bg-sky-500/25'
+          : 'text-brand-cream/70 hover:bg-white/10 hover:text-white'
         }`
       }
     >
@@ -64,7 +66,7 @@ function NavItem({ to, label, icon: Icon, end, onClick, badge }) {
   );
 }
 
-function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, parametresNonLu }) {
+function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, parametresNonLu, changelogNonLu }) {
   return (
     <>
       <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
@@ -78,6 +80,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, para
 
       {user && (
         <div className="border-t border-white/10 p-2 space-y-0.5 flex-shrink-0">
+          <NavItem to="/nouveautes" label="Nouveautés" icon={Megaphone} onClick={onNavigate} highlight={changelogNonLu} />
           <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} badge={parametresNonLu} />
           <button
             onClick={switchProfile}
@@ -97,8 +100,9 @@ export default function Layout({ children }) {
   const { salleNom } = useConfig();
   const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
   const { count: changelogNonLus } = useChangelogUnread(!!user);
-  const parametresNonLu = ticketsNonLus > 0 || changelogNonLus > 0;
+  const parametresNonLu = ticketsNonLus > 0;
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
   const restricted = user?.privileged === false;
   const links = restricted ? ALL_LINKS.filter(l => l.to !== '/annuaire') : ALL_LINKS;
 
@@ -108,7 +112,7 @@ export default function Layout({ children }) {
 
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-brand-ink sticky top-0 h-screen shadow-md">
-        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} parametresNonLu={parametresNonLu} />
+        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} parametresNonLu={parametresNonLu} changelogNonLu={changelogNonLus > 0} />
       </aside>
 
       {/* Barre + tiroir mobile */}
@@ -129,7 +133,7 @@ export default function Layout({ children }) {
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
           <aside className="relative w-64 bg-brand-ink flex flex-col h-full shadow-xl">
-            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} parametresNonLu={parametresNonLu} />
+            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} parametresNonLu={parametresNonLu} changelogNonLu={changelogNonLus > 0} />
           </aside>
         </div>
       )}
@@ -142,7 +146,9 @@ export default function Layout({ children }) {
           </div>
         )}
         <main className={`flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 ${!restricted ? 'mt-14 lg:mt-0' : ''}`}>
-          {children}
+          <div key={location.pathname} className="motion-safe:animate-pageIn">
+            {children}
+          </div>
         </main>
       </div>
     </div>
