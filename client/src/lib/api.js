@@ -99,6 +99,8 @@ export const api = {
   setTicketStatut: (id, statut) => req(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ statut }) }),
   getChangelog:    () => req('/changelog'),
   markChangelogVu: (id) => req('/changelog/vu', { method: 'POST', body: JSON.stringify({ id }) }),
+  getPreferences:    () => req('/preferences'),
+  updatePreferences: (data) => req('/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
   getCoaches:      (tous = false) => req(`/coaches${tous ? '?tous=1' : ''}`),
   getCoachStats:   (id) => req(`/coaches/${id}/stats`),
   getCoachSeancesDetail: (id, params = {}) => {

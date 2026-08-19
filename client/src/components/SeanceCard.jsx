@@ -24,9 +24,20 @@ function formatHoraire(mins) {
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
 }
 
-export default function SeanceCard({ seance, profils = [], onPatch, onDelete, onClick }) {
+// Jours restants avant la séance (négatif si déjà passée) — sert à ne signaler
+// une séance sans coach que si elle approche (seuil réglable dans Préférences),
+// pour ne pas alerter sur un planning encore squelettique très en avance.
+function joursAvant(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+
+export default function SeanceCard({ seance, profils = [], onPatch, onDelete, onClick, alerteSansCoachJours = Infinity }) {
   const statut = STATUT_CONFIG[seance.statut] || STATUT_CONFIG.programme;
-  const sansCoach = !seance.coach_prenom && !seance.coach_nom;
+  const sansCoach = !seance.coach_prenom && !seance.coach_nom && joursAvant(seance.date) <= alerteSansCoachJours;
   const cat = CATEGORIE_CONFIG[seance.categorie] || CATEGORIE_CONFIG.fitness;
   const bg = sansCoach ? '#fee2e2' : cat.card;
   const accent = sansCoach ? '#ef4444' : cat.accent;

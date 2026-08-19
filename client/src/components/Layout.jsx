@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Settings as GearIcon, Menu as MenuIcon, X as XIcon, Megaphone,
+  Settings as GearIcon, Menu as MenuIcon, X as XIcon, Megaphone, LifeBuoy,
   CalendarDays, CalendarRange, ClipboardList, BarChart3, BookUser, GraduationCap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useTicketsUnreadCount } from '../lib/useTicketsUnreadCount';
 import { useChangelogUnread } from '../lib/useChangelogUnread';
+import { useIdleLogout } from '../lib/useIdleLogout';
 import { colorForUser } from '../lib/utils';
 import ChangelogPopup from './ChangelogPopup';
 import logo from '../assets/logo-flyder-dark.png';
@@ -66,7 +67,7 @@ function NavItem({ to, label, icon: Icon, end, onClick, badge, highlight }) {
   );
 }
 
-function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, parametresNonLu, changelogNonLu }) {
+function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, ticketsNonLu, changelogNonLu }) {
   return (
     <>
       <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
@@ -80,8 +81,9 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, para
 
       {user && (
         <div className="border-t border-white/10 p-2 space-y-0.5 flex-shrink-0">
+          <NavItem to="/support" label="Support" icon={LifeBuoy} onClick={onNavigate} badge={ticketsNonLu} />
           <NavItem to="/nouveautes" label="Nouveautés" icon={Megaphone} onClick={onNavigate} highlight={changelogNonLu} />
-          <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} badge={parametresNonLu} />
+          <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} />
           <button
             onClick={switchProfile}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-cream/70 hover:bg-white/10 hover:text-white transition-colors"
@@ -100,7 +102,7 @@ export default function Layout({ children }) {
   const { salleNom } = useConfig();
   const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
   const { count: changelogNonLus } = useChangelogUnread(!!user);
-  const parametresNonLu = ticketsNonLus > 0;
+  useIdleLogout(!!user);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const restricted = user?.privileged === false;
@@ -112,7 +114,7 @@ export default function Layout({ children }) {
 
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-brand-ink sticky top-0 h-screen shadow-md">
-        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} parametresNonLu={parametresNonLu} changelogNonLu={changelogNonLus > 0} />
+        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} ticketsNonLu={ticketsNonLus > 0} changelogNonLu={changelogNonLus > 0} />
       </aside>
 
       {/* Barre + tiroir mobile */}
@@ -133,7 +135,7 @@ export default function Layout({ children }) {
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
           <aside className="relative w-64 bg-brand-ink flex flex-col h-full shadow-xl">
-            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} parametresNonLu={parametresNonLu} changelogNonLu={changelogNonLus > 0} />
+            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} ticketsNonLu={ticketsNonLus > 0} changelogNonLu={changelogNonLus > 0} />
           </aside>
         </div>
       )}

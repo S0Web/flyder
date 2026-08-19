@@ -4,6 +4,7 @@ const db      = require('../db/database');
 const { requireAuth, requireManager } = require('../middleware/auth');
 const { isPrivileged } = require('../middleware/ipAccess');
 const { soldeCp, prisDepuisContrat } = require('../lib/cp');
+const { getPreference } = require('../lib/preferences');
 
 // GET /api/app-users — liste (manager seulement) — hors profils supprimés
 router.get('/', requireManager, (req, res) => {
@@ -54,7 +55,8 @@ function cpDetail(id) {
   const user = db.get('SELECT id, date_debut_contrat, cp_ajuste FROM app_users WHERE id = ?', [id]);
   if (!user) return null;
   const pris = prisDepuisContrat(id, user.date_debut_contrat);
-  return { date_debut_contrat: user.date_debut_contrat, ...soldeCp(user.date_debut_contrat, user.cp_ajuste, pris) };
+  const taux = parseFloat(getPreference('conges_taux_mensuel'));
+  return { date_debut_contrat: user.date_debut_contrat, ...soldeCp(user.date_debut_contrat, user.cp_ajuste, pris, taux) };
 }
 
 // GET /api/app-users/:id/cp — détail du cumul de CP (manager, ou le salarié pour lui-même)

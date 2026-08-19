@@ -1,6 +1,7 @@
-// Calcul du cumul de congés payés : 2,5 jours acquis par mois plein écoulé depuis la
-// date de début de contrat, plus un ajustement manuel (cp_ajuste) que le manager peut
-// modifier librement (reprise d'ancienneté, régularisation, etc.).
+// Calcul du cumul de congés payés : un nombre de jours (2,5 par défaut, réglable par
+// salle dans Préférences) acquis par mois plein écoulé depuis la date de début de
+// contrat, plus un ajustement manuel (cp_ajuste) que le manager peut modifier
+// librement (reprise d'ancienneté, régularisation, etc.).
 
 const db = require('../db/database');
 
@@ -27,10 +28,11 @@ function moisEcoules(dateDebut) {
   return Math.max(0, mois);
 }
 
-// Solde de CP : calculeADate (2,5j/mois depuis la date de contrat) + ajuste (manuel) - pris.
-function soldeCp(dateDebutContrat, cpAjuste, totalPris) {
+// Solde de CP : calculeADate (tauxMensuel j/mois depuis la date de contrat, 2,5 = légal
+// standard mais réglable par salle dans Préférences) + ajuste (manuel) - pris.
+function soldeCp(dateDebutContrat, cpAjuste, totalPris, tauxMensuel = 2.5) {
   const ajuste = cpAjuste || 0;
-  const calculeADate = dateDebutContrat ? Math.round(moisEcoules(dateDebutContrat) * 2.5 * 100) / 100 : 0;
+  const calculeADate = dateDebutContrat ? Math.round(moisEcoules(dateDebutContrat) * tauxMensuel * 100) / 100 : 0;
   const acquis = Math.round((calculeADate + ajuste) * 100) / 100;
   return {
     calculeADate,

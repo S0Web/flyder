@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db/database');
 const { upsertJour } = require('../db/personnelWrite');
 const { soldeCp, prisDepuisContrat } = require('../lib/cp');
+const { getPreference } = require('../lib/preferences');
 
 function getSemaineBounds(iso) {
   const [y, m, d] = iso.split('-').map(Number);
@@ -46,12 +47,14 @@ router.get('/cp-summary', (req, res) => {
   const anneeCourante = String(now.getFullYear());
   const moisCourant = `${anneeCourante}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+  const taux = parseFloat(getPreference('conges_taux_mensuel'));
+
   function withDetails(rows) {
     return rows.filter(r => r.date_debut_contrat).map(r => {
       const totalPris = prisDepuisContrat(r.id, r.date_debut_contrat);
       const prisAnnee = prisDepuisContrat(r.id, r.date_debut_contrat, `AND strftime('%Y', date) = ?`, [anneeCourante]);
       const prisMois = prisDepuisContrat(r.id, r.date_debut_contrat, `AND strftime('%Y-%m', date) = ?`, [moisCourant]);
-      const { restant } = soldeCp(r.date_debut_contrat, r.cp_ajuste, totalPris);
+      const { restant } = soldeCp(r.date_debut_contrat, r.cp_ajuste, totalPris, taux);
       return { id: r.id, prenom: r.prenom, nom: r.nom, prisMois, prisAnnee, restant };
     });
   }

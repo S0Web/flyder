@@ -517,6 +517,14 @@ tryAlter('ALTER TABLE coaches ADD COLUMN adresse TEXT');
 tryAlter('ALTER TABLE app_users ADD COLUMN dernier_changelog_vu_id INTEGER NOT NULL DEFAULT 0');
 tryAlter('ALTER TABLE coaches ADD COLUMN tarif_horaire REAL');
 
+// ─── Préférences par salle : clé/valeur, extensible sans migration à chaque ajout ───
+db.run(`
+  CREATE TABLE IF NOT EXISTS preferences (
+    cle    TEXT PRIMARY KEY,
+    valeur TEXT
+  )
+`);
+
 // ─── Accès en écriture restreint : IP autorisées à modifier depuis un compte non-manager ───
 db.run(`
   CREATE TABLE IF NOT EXISTS ip_autorisees (

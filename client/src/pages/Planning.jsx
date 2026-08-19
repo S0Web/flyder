@@ -6,6 +6,7 @@ import {
   semaineSuivante, semainePrecedente, STATUT_CONFIG, CATEGORIE_CONFIG,
 } from '../lib/utils';
 import { useToast } from '../context/ToastContext';
+import { usePreferences } from '../lib/usePreferences';
 import SeanceCard from '../components/SeanceCard';
 import SeanceModal from '../components/SeanceModal';
 import MiniCalendar from '../components/MiniCalendar';
@@ -35,6 +36,16 @@ function formatHoraire(mins) {
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
 }
 
+// Jours restants avant la séance (négatif si déjà passée) — cf. Préférences >
+// Alertes : une séance sans coach n'est signalée que si elle approche.
+function joursAvant(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+
 const CUTOFF = 14 * 60;
 
 const ROWS = [
@@ -46,7 +57,7 @@ const ROWS = [
 
 // ── Vue grille ─────────────────────────────────────────────────────────────────
 
-function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd }) {
+function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd, alerteSansCoachJours }) {
   return (
     <div className="overflow-x-auto -mx-4 md:mx-0">
       <table className="w-full border-collapse table-fixed min-w-[860px] mx-4 md:mx-0">
@@ -108,7 +119,7 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
                         <div className="h-4 bg-white/60 rounded-md animate-pulse" />
                       )}
                       {cellSeances.map(s => (
-                        <SeanceCard key={s.id} seance={s} profils={profils} onPatch={onPatch} onDelete={onDelete} onClick={onOpenCard} />
+                        <SeanceCard key={s.id} seance={s} profils={profils} onPatch={onPatch} onDelete={onDelete} onClick={onOpenCard} alerteSansCoachJours={alerteSansCoachJours} />
                       ))}
                       <button
                         onClick={() => onAdd(iso)}
@@ -130,7 +141,7 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
 
 // ── Vue liste ──────────────────────────────────────────────────────────────────
 
-function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete }) {
+function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete, alerteSansCoachJours }) {
   if (loading) return <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>;
   if (!seances.length) return null;
 
@@ -175,7 +186,7 @@ function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete }) 
                 const endMins = startMins + (s.duree_minutes || 60);
                 const statut = STATUT_CONFIG[s.statut] || STATUT_CONFIG.programme;
                 const isAqua = s.categorie === 'aqua';
-                const sansCoach = !s.coach_prenom && !s.coach_nom;
+                const sansCoach = !s.coach_prenom && !s.coach_nom && joursAvant(s.date) <= alerteSansCoachJours;
                 const bg = sansCoach ? '#fee2e2' : (i % 2 === 0 ? '#ffffff' : '#f9fafb');
 
                 return (
@@ -250,6 +261,8 @@ export default function Planning() {
   const [vue, setVue]             = useState('grille');
   const [dupliquer, setDupliquer] = useState(false);
   const [filtreCours, setFiltreCours] = useState(() => new Set());
+  const { prefs } = usePreferences();
+  const alerteSansCoachJours = prefs ? parseInt(prefs.alerte_sans_coach_jours, 10) : Infinity;
 
   const semaine = getSemaine(lundi);
 
@@ -519,6 +532,7 @@ export default function Planning() {
             onPatch={handlePatch}
             onDelete={handleDelete}
             onAdd={(iso) => setModal(`new:${iso}`)}
+            alerteSansCoachJours={alerteSansCoachJours}
           />
         )}
 
@@ -533,6 +547,7 @@ export default function Planning() {
               onOpenCard={(s) => setModal(s)}
               onPatch={handlePatch}
               onDelete={handleDelete}
+              alerteSansCoachJours={alerteSansCoachJours}
             />
           )
         )}
