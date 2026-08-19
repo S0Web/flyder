@@ -274,6 +274,18 @@ export default function Planning() {
 
   useEffect(() => { loadSeances(); }, [loadSeances]);
 
+  // Rafraîchissement automatique léger : un autre poste (autre onglet, autre
+  // salarié, autre appareil) peut modifier le planning de cette semaine à tout
+  // moment. Purement en tâche de fond — ni `loading` ni `error` ne bougent —
+  // pour ne jamais interrompre une saisie en cours par un état de chargement.
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (document.hidden) return;
+      api.getSeances(toISO(lundi)).then(setSeances).catch(() => {});
+    }, 5000);
+    return () => clearInterval(iv);
+  }, [lundi]);
+
   // Retire du filtre les cours qui n'ont plus lieu cette semaine (sinon un filtre actif
   // sur un cours absent de la nouvelle semaine masquerait silencieusement toute la liste).
   useEffect(() => {
