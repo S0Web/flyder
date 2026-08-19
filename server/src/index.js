@@ -47,6 +47,7 @@ const formationRouter = require('./routes/formation');
 const employeDocumentsRouter = require('./routes/employeDocuments');
 const coachDocumentsRouter = require('./routes/coachDocuments');
 const ticketsRouter = require('./routes/tickets');
+const changelogRouter = require('./routes/changelog');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -85,6 +86,7 @@ app.use('/api/pointeurs',   requireAuth, requireWriteAccess, pointeursRouter);
 app.use('/api/dashboard',   requireAuth, dashboardRouter);
 app.use('/api/analytics',   requireAuth, analyticsRouter);
 app.use('/api/tickets',     requireAuth, ticketsRouter);
+app.use('/api/changelog',   requireAuth, changelogRouter);
 app.use('/api/app-users',   appUsersRouter);
 app.use('/api/tasks',       requireAuth, requireWriteAccess, tasksRouter);
 app.use('/api/personnel-creneaux',  requireAuth, requireWriteAccess, personnelCreneauxRouter);

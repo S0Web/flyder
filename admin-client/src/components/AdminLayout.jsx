@@ -6,6 +6,7 @@ import logo from '../assets/logo-flyder-dark.png';
 const LINKS = [
   { to: '/', label: 'Clients', end: true },
   { to: '/tickets', label: 'Tickets' },
+  { to: '/nouveautes', label: 'Nouveautés' },
 ];
 
 export default function AdminLayout({ children }) {

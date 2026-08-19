@@ -10,6 +10,8 @@ const authRouter      = require('./routes/auth');
 const clientsRouter   = require('./routes/clients');
 const ticketsRouter    = require('./routes/tickets');
 const gymTicketsRouter = require('./routes/gymTickets');
+const changelogRouter    = require('./routes/changelog');
+const gymChangelogRouter = require('./routes/gymChangelog');
 
 const app  = express();
 const PORT = process.env.PORT || 3002;
@@ -28,6 +30,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/clients', requireAuth, clientsRouter);
 app.use('/api/tickets', requireAuth, ticketsRouter);
 app.use('/api/gym/tickets', requireClientApiKey, gymTicketsRouter);
+app.use('/api/changelog', requireAuth, changelogRouter);
+app.use('/api/gym/changelog', requireClientApiKey, gymChangelogRouter);
 
 const clientDist = path.join(__dirname, '../public');
 app.use(express.static(clientDist));

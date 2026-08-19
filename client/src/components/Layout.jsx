@@ -7,7 +7,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useTicketsUnreadCount } from '../lib/useTicketsUnreadCount';
+import { useChangelogUnread } from '../lib/useChangelogUnread';
 import { colorForUser } from '../lib/utils';
+import ChangelogPopup from './ChangelogPopup';
 import logo from '../assets/logo-flyder-dark.png';
 
 const ALL_LINKS = [
@@ -54,7 +56,7 @@ function NavItem({ to, label, icon: Icon, end, onClick, badge }) {
       <span className="relative flex-shrink-0">
         <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
         {badge && (
-          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-brand-ink animate-pop" aria-label="Nouvelle réponse support" />
+          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-brand-ink animate-pop" aria-label="Nouveauté" />
         )}
       </span>
       {label}
@@ -62,7 +64,7 @@ function NavItem({ to, label, icon: Icon, end, onClick, badge }) {
   );
 }
 
-function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, ticketsNonLus }) {
+function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, parametresNonLu }) {
   return (
     <>
       <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
@@ -76,7 +78,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, tick
 
       {user && (
         <div className="border-t border-white/10 p-2 space-y-0.5 flex-shrink-0">
-          <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} badge={ticketsNonLus > 0} />
+          <NavItem to="/parametres" label="Paramètres" icon={GearIcon} onClick={onNavigate} badge={parametresNonLu} />
           <button
             onClick={switchProfile}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-cream/70 hover:bg-white/10 hover:text-white transition-colors"
@@ -94,15 +96,19 @@ export default function Layout({ children }) {
   const { user, switchProfile } = useAuth();
   const { salleNom } = useConfig();
   const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
+  const { count: changelogNonLus } = useChangelogUnread(!!user);
+  const parametresNonLu = ticketsNonLus > 0 || changelogNonLus > 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const restricted = user?.privileged === false;
   const links = restricted ? ALL_LINKS.filter(l => l.to !== '/annuaire') : ALL_LINKS;
 
   return (
     <div className="min-h-screen bg-brand-cream flex">
+      <ChangelogPopup enabled={!!user} />
+
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-brand-ink sticky top-0 h-screen shadow-md">
-        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} ticketsNonLus={ticketsNonLus} />
+        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} parametresNonLu={parametresNonLu} />
       </aside>
 
       {/* Barre + tiroir mobile */}
@@ -123,7 +129,7 @@ export default function Layout({ children }) {
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
           <aside className="relative w-64 bg-brand-ink flex flex-col h-full shadow-xl">
-            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} ticketsNonLus={ticketsNonLus} />
+            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} parametresNonLu={parametresNonLu} />
           </aside>
         </div>
       )}

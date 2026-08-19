@@ -97,6 +97,8 @@ export const api = {
   createTicket:    (message) => req('/tickets', { method: 'POST', body: JSON.stringify({ message }) }),
   replyTicket:     (id, corps) => req(`/tickets/${id}/messages`, { method: 'POST', body: JSON.stringify({ corps }) }),
   setTicketStatut: (id, statut) => req(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ statut }) }),
+  getChangelog:    () => req('/changelog'),
+  markChangelogVu: (id) => req('/changelog/vu', { method: 'POST', body: JSON.stringify({ id }) }),
   getCoaches:      (tous = false) => req(`/coaches${tous ? '?tous=1' : ''}`),
   getCoachStats:   (id) => req(`/coaches/${id}/stats`),
   getCoachSeancesDetail: (id, params = {}) => {

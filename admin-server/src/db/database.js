@@ -88,4 +88,15 @@ db.run(`
   )
 `);
 
+// ─── Nouveautés (annonces diffusées à toutes les salles) ───────────────────────
+db.run(`
+  CREATE TABLE IF NOT EXISTS changelog_entries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    titre       TEXT NOT NULL,
+    corps       TEXT NOT NULL,
+    importante  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
 module.exports = db;

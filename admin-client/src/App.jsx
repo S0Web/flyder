@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Clients from './pages/Clients';
 import Tickets from './pages/Tickets';
+import Nouveautes from './pages/Nouveautes';
 
 function Protected({ children }) {
   const { admin, loading } = useAuth();
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/" element={<Protected><Clients /></Protected>} />
           <Route path="/tickets" element={<Protected><Tickets /></Protected>} />
+          <Route path="/nouveautes" element={<Protected><Nouveautes /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -46,4 +46,9 @@ export const api = {
   createTicket:    (clientId, message) => req('/tickets', { method: 'POST', body: JSON.stringify({ client_id: clientId, message }) }),
   replyTicket:     (id, corps) => req(`/tickets/${id}/messages`, { method: 'POST', body: JSON.stringify({ corps }) }),
   setTicketStatut: (id, statut) => req(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ statut }) }),
+
+  getChangelog:   () => req('/changelog'),
+  createChangelogEntry: (data) => req('/changelog', { method: 'POST', body: JSON.stringify(data) }),
+  updateChangelogEntry: (id, data) => req(`/changelog/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteChangelogEntry: (id) => req(`/changelog/${id}`, { method: 'DELETE' }),
 };

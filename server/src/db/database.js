@@ -512,6 +512,9 @@ tryAlter("ALTER TABLE coaches ADD COLUMN categories_extra TEXT NOT NULL DEFAULT 
 // PDF du récapitulatif d'heures, pour comparer avec la facture envoyée par le coach ───
 tryAlter('ALTER TABLE coaches ADD COLUMN siret TEXT');
 tryAlter('ALTER TABLE coaches ADD COLUMN adresse TEXT');
+
+// ─── Nouveautés : dernière annonce (id, relayé depuis admin-server) vue par chaque profil ───
+tryAlter('ALTER TABLE app_users ADD COLUMN dernier_changelog_vu_id INTEGER NOT NULL DEFAULT 0');
 tryAlter('ALTER TABLE coaches ADD COLUMN tarif_horaire REAL');
 
 // ─── Accès en écriture restreint : IP autorisées à modifier depuis un compte non-manager ───

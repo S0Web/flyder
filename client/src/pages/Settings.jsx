@@ -7,9 +7,11 @@ import { useConfig } from '../context/ConfigContext';
 import { useToast } from '../context/ToastContext';
 import { parseServerDate, colorForUser } from '../lib/utils';
 import { useTicketsUnreadCount } from '../lib/useTicketsUnreadCount';
+import { useChangelogUnread } from '../lib/useChangelogUnread';
 import UserModal from '../components/UserModal';
 import ImportFichesDePaieModal from '../components/ImportFichesDePaieModal';
 import TicketsTab from '../components/TicketsTab';
+import ChangelogTab from '../components/ChangelogTab';
 
 const AUDIT_PAGE = 50;
 
@@ -135,6 +137,7 @@ export default function Settings() {
   const toast = useToast();
   const isManager = me?.role === 'manager';
   const { count: ticketsNonLus, refetch: refetchTicketsNonLus } = useTicketsUnreadCount(!!me);
+  const { count: changelogNonLus, refetch: refetchChangelogNonLus } = useChangelogUnread(!!me);
   const [tab, setTab]     = useState('profil');
   const [users, setUsers] = useState([]);
   const [audit, setAudit] = useState([]);
@@ -267,6 +270,7 @@ export default function Settings() {
     // Visible par tout profil (pas seulement les managers) — le support est
     // ouvert à toute la salle, cf. plan.
     { id: 'tickets', label: 'Support', badge: ticketsNonLus > 0 },
+    { id: 'nouveautes', label: 'Nouveautés', badge: changelogNonLus > 0 },
     ...(isManager ? [{ id: 'users', label: 'Utilisateurs' }, { id: 'audit', label: 'Historique' }, { id: 'acces', label: 'Accès' }] : []),
   ];
 
@@ -319,6 +323,9 @@ export default function Settings() {
 
       {/* Support */}
       {tab === 'tickets' && <TicketsTab onRead={refetchTicketsNonLus} />}
+
+      {/* Nouveautés */}
+      {tab === 'nouveautes' && <ChangelogTab onRead={refetchChangelogNonLus} />}
 
       {/* Utilisateurs */}
       {tab === 'users' && isManager && (
