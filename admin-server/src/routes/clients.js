@@ -92,6 +92,7 @@ router.post('/:id/checkout', async (req, res) => {
         : { customer_email: client.contact_email || undefined }),
       line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
       allow_promotion_codes: true,
+      payment_method_collection: 'if_required',
       success_url: `${baseUrl}/?checkout=success`,
       cancel_url: `${baseUrl}/?checkout=cancel`,
     });
