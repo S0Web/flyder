@@ -49,6 +49,7 @@ const coachDocumentsRouter = require('./routes/coachDocuments');
 const ticketsRouter = require('./routes/tickets');
 const changelogRouter = require('./routes/changelog');
 const preferencesRouter = require('./routes/preferences');
+const { scheduleDailyBackup } = require('./lib/backup');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -125,6 +126,7 @@ app.use((err, req, res, next) => {
 function startServer(retry = 0) {
   const server = app.listen(PORT, () => {
     console.log(`🚀 Flyder — http://localhost:${PORT}`);
+    scheduleDailyBackup();
   });
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE' && retry < 3) {

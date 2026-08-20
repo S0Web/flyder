@@ -9,6 +9,7 @@
     "create-admin": "node src/db/createAdmin.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1114.0",
     "cors": "^2.8.5",
     "express": "^4.18.3",
     "node-sqlite3-wasm": "^0.8.58",

@@ -81,9 +81,31 @@ de salle affiché) — la variable est purement cosmétique/organisationnelle.
 
 ## Sauvegardes
 
-Chaque salle a son propre fichier de base. Depuis l'app (manager) : **Paramètres → Utilisateurs →
-« Télécharger une sauvegarde »** récupère une copie complète du `.db` de **cette** salle. À faire de
-temps en temps pour chaque salle.
+Chaque salle a son propre fichier de base. Depuis l'app (manager) : **Paramètres →
+« Télécharger une sauvegarde »** récupère une copie complète du `.db` de **cette** salle,
+à faire manuellement de temps en temps.
+
+En plus de ça, une **sauvegarde automatique quotidienne, chiffrée**, tourne côté serveur
+(`server/src/lib/backup.js`, même chose sur `admin-server`) — elle checkpointe la base,
+la chiffre (AES-256-GCM) et l'envoie sur un bucket Cloudflare R2, hors de Railway (pour
+survivre à un problème *sur* Railway). 30 jours d'historique conservés, purge automatique
+au-delà.
+
+Variables d'environnement à ajouter sur **chaque service** (les salles et `admin-server`)
+pour l'activer — sans elles, la sauvegarde auto est simplement ignorée (aucune erreur) :
+
+| Variable                  | Rôle                                                             |
+|----------------------------|-------------------------------------------------------------------|
+| `R2_ACCOUNT_ID`             | Identifiant de compte Cloudflare                                  |
+| `R2_ACCESS_KEY_ID`          | Clé d'API R2 (permissions lecture/écriture sur le bucket)         |
+| `R2_SECRET_ACCESS_KEY`      | Secret associé                                                    |
+| `R2_BUCKET`                 | Nom du bucket R2                                                  |
+| `BACKUP_ENCRYPTION_KEY`     | Clé de chiffrement — **la même valeur partout**, à ne jamais perdre |
+
+Pour restaurer une sauvegarde : télécharger le fichier `.db.enc` correspondant depuis le
+bucket R2, puis `BACKUP_ENCRYPTION_KEY=... node src/db/restoreBackup.js <fichier.db.enc> <sortie.db>`
+depuis `server/` ou `admin-server/` selon le cas — le fichier obtenu remplace directement
+le fichier `DB_PATH` sur le volume Railway (service arrêté pendant le remplacement).
 
 ---
 

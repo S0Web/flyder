@@ -12,6 +12,7 @@ const ticketsRouter    = require('./routes/tickets');
 const gymTicketsRouter = require('./routes/gymTickets');
 const changelogRouter    = require('./routes/changelog');
 const gymChangelogRouter = require('./routes/gymChangelog');
+const { scheduleDailyBackup } = require('./lib/backup');
 
 const app  = express();
 const PORT = process.env.PORT || 3002;
@@ -46,4 +47,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`🔐 Flyder Admin — http://localhost:${PORT}`);
+  scheduleDailyBackup();
 });
