@@ -1,0 +1,407 @@
+From a1cf329ae21a47f280605209ec383504549edd1d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 20 Aug 2026 12:09:36 +0000
+Subject: [PATCH] Ajoute la facturation Stripe : checkout, portail client,
+ webhooks
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Génère un lien de paiement Stripe Checkout et un lien vers le portail de
+gestion d'abonnement depuis la fiche client de l'admin. Un webhook Stripe
+synchronise en retour le statut du client (actif/suspendu/résilié) selon
+les événements d'abonnement, en gardant client_reference_id comme seul
+lien entre un client du registre et son Customer/Subscription Stripe.
+---
+ admin-client/src/lib/api.js              |  2 +
+ admin-client/src/pages/Clients.jsx       | 82 ++++++++++++++++++++++++
+ admin-server/package.json                |  3 +-
+ admin-server/src/db/database.js          |  6 ++
+ admin-server/src/index.js                |  5 ++
+ admin-server/src/lib/stripe.js           | 11 ++++
+ admin-server/src/routes/clients.js       | 55 ++++++++++++++++
+ admin-server/src/routes/stripeWebhook.js | 75 ++++++++++++++++++++++
+ package-lock.json                        | 20 +++++-
+ 9 files changed, 257 insertions(+), 2 deletions(-)
+ create mode 100644 admin-server/src/lib/stripe.js
+ create mode 100644 admin-server/src/routes/stripeWebhook.js
+
+diff --git a/admin-client/src/lib/api.js b/admin-client/src/lib/api.js
+index d670f34..e224829 100644
+--- a/admin-client/src/lib/api.js
++++ b/admin-client/src/lib/api.js
+@@ -37,6 +37,8 @@ export const api = {
+   updateClient:  (id, data) => req(`/clients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+   deleteClient:  (id) => req(`/clients/${id}`, { method: 'DELETE' }),
+   regenerateClientApiKey: (id) => req(`/clients/${id}/regenerate-key`, { method: 'POST' }),
++  createCheckoutLink: (id) => req(`/clients/${id}/checkout`, { method: 'POST' }),
++  createPortalLink:   (id) => req(`/clients/${id}/portal`, { method: 'POST' }),
+ 
+   getTickets:    (params = {}) => {
+     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+diff --git a/admin-client/src/pages/Clients.jsx b/admin-client/src/pages/Clients.jsx
+index d410a2c..47baa20 100644
+--- a/admin-client/src/pages/Clients.jsx
++++ b/admin-client/src/pages/Clients.jsx
+@@ -93,6 +93,87 @@ function ApiKeySection({ client, onKeyGenerated }) {
+   );
+ }
+ 
++// Facturation Stripe : soit un Customer est déjà lié (bouton vers le Customer
++// Portal, où le client gère lui-même son moyen de paiement), soit pas encore
++// (génère un lien de Checkout à transmettre — ne s'ouvre pas tout seul, un
++// manager doit pouvoir le relire/copier avant de l'envoyer).
++function BillingSection({ client }) {
++  const [loading, setLoading] = useState(null); // 'checkout' | 'portal' | null
++  const [link, setLink] = useState(null);
++  const [copied, setCopied] = useState(false);
++  const [error, setError] = useState(null);
++
++  async function handleCheckout() {
++    setLoading('checkout');
++    setError(null);
++    try {
++      const { url } = await api.createCheckoutLink(client.id);
++      setLink(url);
++    } catch (err) {
++      setError(err.message);
++    } finally {
++      setLoading(null);
++    }
++  }
++
++  async function handlePortal() {
++    setLoading('portal');
++    setError(null);
++    try {
++      const { url } = await api.createPortalLink(client.id);
++      window.open(url, '_blank');
++    } catch (err) {
++      setError(err.message);
++    } finally {
++      setLoading(null);
++    }
++  }
++
++  function handleCopy() {
++    navigator.clipboard.writeText(link).then(() => {
++      setCopied(true);
++      setTimeout(() => setCopied(false), 2000);
++    });
++  }
++
++  return (
++    <div className="pt-2 border-t border-gray-100">
++      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Facturation</p>
++      {client.stripe_customer_id ? (
++        <div className="flex items-center justify-between gap-3">
++          <p className="text-xs text-gray-500">Abonnement Stripe lié.</p>
++          <button type="button" onClick={handlePortal} disabled={loading === 'portal'}
++            className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1 flex-shrink-0">
++            {loading === 'portal' ? '…' : <>Portail client <ExternalLink className="h-3 w-3" /></>}
++          </button>
++        </div>
++      ) : link ? (
++        <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 space-y-2">
++          <p className="text-xs text-sky-800 font-medium">
++            Envoie ce lien au client pour qu'il règle son abonnement.
++          </p>
++          <div className="flex items-center gap-2">
++            <code className="flex-1 text-xs bg-white border border-sky-200 rounded px-2 py-1.5 overflow-x-auto whitespace-nowrap">{link}</code>
++            <button type="button" onClick={handleCopy}
++              className="text-xs px-2.5 py-1.5 rounded border border-sky-300 text-sky-800 hover:bg-sky-100 flex-shrink-0">
++              {copied ? 'Copié !' : 'Copier'}
++            </button>
++          </div>
++        </div>
++      ) : (
++        <div className="flex items-center justify-between gap-3">
++          <p className="text-xs text-gray-500">Aucun abonnement pour l'instant.</p>
++          <button type="button" onClick={handleCheckout} disabled={loading === 'checkout'}
++            className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex-shrink-0">
++            {loading === 'checkout' ? '…' : 'Créer un lien de paiement'}
++          </button>
++        </div>
++      )}
++      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
++    </div>
++  );
++}
++
+ function ClientModal({ client, onSave, onClose, onKeyGenerated }) {
+   const isNew = !client?.id;
+   const [form, setForm] = useState(() => client ? { ...EMPTY_FORM, ...client } : EMPTY_FORM);
+@@ -159,6 +240,7 @@ function ClientModal({ client, onSave, onClose, onKeyGenerated }) {
+               className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+           </div>
+           {!isNew && <ApiKeySection client={client} onKeyGenerated={onKeyGenerated} />}
++          {!isNew && <BillingSection client={client} />}
+           <div className="flex gap-2 pt-1">
+             <button type="button" onClick={onClose}
+               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
+diff --git a/admin-server/package.json b/admin-server/package.json
+index d7bde7c..e24af9d 100644
+--- a/admin-server/package.json
++++ b/admin-server/package.json
+@@ -13,7 +13,8 @@
+     "cors": "^2.8.5",
+     "express": "^4.18.3",
+     "node-sqlite3-wasm": "^0.8.58",
+-    "nodemailer": "^6.9.16"
++    "nodemailer": "^6.9.16",
++    "stripe": "^22.5.0"
+   },
+   "devDependencies": {
+     "nodemon": "^3.1.0"
+diff --git a/admin-server/src/db/database.js b/admin-server/src/db/database.js
+index 669ad7d..03fb23f 100644
+--- a/admin-server/src/db/database.js
++++ b/admin-server/src/db/database.js
+@@ -64,6 +64,12 @@ db.run(`
+ // clair — voir admin-server/src/routes/clients.js pour la génération.
+ tryAlter('ALTER TABLE clients ADD COLUMN api_key_hash TEXT');
+ 
++// Facturation Stripe — remplis une fois qu'un client a un abonnement (même en
++// période gratuite via un code promo : Stripe garde la trace de l'abonnement,
++// juste facturé à 0€ jusqu'à expiration du coupon).
++tryAlter('ALTER TABLE clients ADD COLUMN stripe_customer_id TEXT');
++tryAlter('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
++
+ // ─── Tickets de support (un inbox unique pour toutes les salles) ───────────────
+ db.run(`
+   CREATE TABLE IF NOT EXISTS tickets (
+diff --git a/admin-server/src/index.js b/admin-server/src/index.js
+index 8e774b2..b45cbd6 100644
+--- a/admin-server/src/index.js
++++ b/admin-server/src/index.js
+@@ -12,6 +12,7 @@ const ticketsRouter    = require('./routes/tickets');
+ const gymTicketsRouter = require('./routes/gymTickets');
+ const changelogRouter    = require('./routes/changelog');
+ const gymChangelogRouter = require('./routes/gymChangelog');
++const stripeWebhookRouter = require('./routes/stripeWebhook');
+ const { scheduleDailyBackup } = require('./lib/backup');
+ 
+ const app  = express();
+@@ -25,6 +26,10 @@ app.use(cors({
+   allowedHeaders: ['Content-Type', 'Authorization'],
+ }));
+ 
++// Le webhook Stripe doit être monté AVANT express.json() : la vérification de
++// signature a besoin du corps de requête brut, pas déjà parsé en JSON.
++app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookRouter);
++
+ app.use(express.json());
+ 
+ app.use('/api/auth', authRouter);
+diff --git a/admin-server/src/lib/stripe.js b/admin-server/src/lib/stripe.js
+new file mode 100644
+index 0000000..6bfff64
+--- /dev/null
++++ b/admin-server/src/lib/stripe.js
+@@ -0,0 +1,11 @@
++const Stripe = require('stripe');
++
++function isConfigured() {
++  return !!process.env.STRIPE_SECRET_KEY;
++}
++
++function getClient() {
++  return new Stripe(process.env.STRIPE_SECRET_KEY);
++}
++
++module.exports = { isConfigured, getClient };
+diff --git a/admin-server/src/routes/clients.js b/admin-server/src/routes/clients.js
+index 976edaf..afe54ca 100644
+--- a/admin-server/src/routes/clients.js
++++ b/admin-server/src/routes/clients.js
+@@ -3,6 +3,7 @@ const express = require('express');
+ const router = express.Router();
+ const db = require('../db/database');
+ const { hashKey } = require('../middleware/clientAuth');
++const stripeLib = require('../lib/stripe');
+ 
+ const STATUTS_VALIDES = ['essai', 'actif', 'suspendu', 'resilie'];
+ 
+@@ -69,6 +70,60 @@ router.post('/:id/regenerate-key', (req, res) => {
+   res.json({ apiKey: clair });
+ });
+ 
++// POST /api/clients/:id/checkout — crée une session Stripe Checkout (mode
++// abonnement) pour ce client et renvoie l'URL à lui transmettre. Réutilise le
++// Customer Stripe existant s'il y en a déjà un, pour ne pas en créer un
++// second à chaque nouvelle tentative de paiement.
++router.post('/:id/checkout', async (req, res) => {
++  if (!stripeLib.isConfigured()) return res.status(503).json({ error: 'Stripe non configuré (STRIPE_SECRET_KEY manquant)' });
++  if (!process.env.STRIPE_PRICE_ID) return res.status(503).json({ error: 'STRIPE_PRICE_ID non configuré' });
++
++  const client = db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
++  if (!client) return res.status(404).json({ error: 'Client introuvable' });
++
++  try {
++    const stripe = stripeLib.getClient();
++    const baseUrl = process.env.ADMIN_PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
++    const session = await stripe.checkout.sessions.create({
++      mode: 'subscription',
++      client_reference_id: String(client.id),
++      ...(client.stripe_customer_id
++        ? { customer: client.stripe_customer_id }
++        : { customer_email: client.contact_email || undefined }),
++      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
++      allow_promotion_codes: true,
++      success_url: `${baseUrl}/?checkout=success`,
++      cancel_url: `${baseUrl}/?checkout=cancel`,
++    });
++    res.json({ url: session.url });
++  } catch (e) {
++    res.status(500).json({ error: e.message });
++  }
++});
++
++// POST /api/clients/:id/portal — lien vers le Customer Portal Stripe (le
++// client y gère lui-même son moyen de paiement / résiliation). Suppose un
++// Customer déjà créé, donc un premier paiement déjà passé par /checkout.
++router.post('/:id/portal', async (req, res) => {
++  if (!stripeLib.isConfigured()) return res.status(503).json({ error: 'Stripe non configuré (STRIPE_SECRET_KEY manquant)' });
++
++  const client = db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
++  if (!client) return res.status(404).json({ error: 'Client introuvable' });
++  if (!client.stripe_customer_id) return res.status(400).json({ error: "Ce client n'a pas encore de compte Stripe — crée d'abord un lien de paiement" });
++
++  try {
++    const stripe = stripeLib.getClient();
++    const baseUrl = process.env.ADMIN_PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
++    const session = await stripe.billingPortal.sessions.create({
++      customer: client.stripe_customer_id,
++      return_url: baseUrl,
++    });
++    res.json({ url: session.url });
++  } catch (e) {
++    res.status(500).json({ error: e.message });
++  }
++});
++
+ // DELETE /api/clients/:id
+ router.delete('/:id', (req, res) => {
+   const client = db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
+diff --git a/admin-server/src/routes/stripeWebhook.js b/admin-server/src/routes/stripeWebhook.js
+new file mode 100644
+index 0000000..8bf8c4e
+--- /dev/null
++++ b/admin-server/src/routes/stripeWebhook.js
+@@ -0,0 +1,75 @@
++const express = require('express');
++const router = express.Router();
++const db = require('../db/database');
++const { isConfigured, getClient } = require('../lib/stripe');
++
++// Traduit le statut Stripe vers le statut interne (mêmes valeurs que
++// STATUTS_VALIDES dans clients.js) — un seul mapping plutôt que de gérer
++// chaque type d'événement séparément, plus robuste aux transitions oubliées.
++function mapStripeStatus(stripeStatus) {
++  if (['active', 'trialing'].includes(stripeStatus)) return 'actif';
++  if (['past_due', 'unpaid', 'incomplete'].includes(stripeStatus)) return 'suspendu';
++  if (['canceled', 'incomplete_expired'].includes(stripeStatus)) return 'resilie';
++  return null;
++}
++
++// Monté avec express.raw() dans index.js (avant express.json() global) — la
++// vérification de signature Stripe a besoin du corps brut, pas parsé.
++router.post('/', (req, res) => {
++  if (!isConfigured() || !process.env.STRIPE_WEBHOOK_SECRET) {
++    return res.status(503).send('Stripe non configuré');
++  }
++
++  const stripe = getClient();
++  let event;
++  try {
++    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], process.env.STRIPE_WEBHOOK_SECRET);
++  } catch (err) {
++    console.error('Signature webhook Stripe invalide :', err.message);
++    return res.status(400).send(`Webhook Error: ${err.message}`);
++  }
++
++  try {
++    switch (event.type) {
++      // Premier paiement réussi : c'est le seul événement qui porte notre
++      // client_reference_id, donc le seul endroit où on peut faire le lien
++      // entre un client du registre et son Customer/Subscription Stripe.
++      case 'checkout.session.completed': {
++        const session = event.data.object;
++        if (session.client_reference_id) {
++          db.run(
++            `UPDATE clients SET stripe_customer_id = ?, stripe_subscription_id = ?, statut = 'actif', updated_at = datetime('now') WHERE id = ?`,
++            [session.customer, session.subscription, session.client_reference_id]
++          );
++        }
++        break;
++      }
++      case 'customer.subscription.created':
++      case 'customer.subscription.updated': {
++        const sub = event.data.object;
++        const statut = mapStripeStatus(sub.status);
++        if (statut) {
++          db.run(
++            `UPDATE clients SET statut = ?, stripe_subscription_id = ?, updated_at = datetime('now') WHERE stripe_customer_id = ?`,
++            [statut, sub.id, sub.customer]
++          );
++        }
++        break;
++      }
++      case 'customer.subscription.deleted': {
++        const sub = event.data.object;
++        db.run(
++          `UPDATE clients SET statut = 'resilie', updated_at = datetime('now') WHERE stripe_customer_id = ?`,
++          [sub.customer]
++        );
++        break;
++      }
++    }
++  } catch (e) {
++    console.error('Erreur traitement webhook Stripe :', e.message);
++  }
++
++  res.json({ received: true });
++});
++
++module.exports = router;
+diff --git a/package-lock.json b/package-lock.json
+index 224daaa..a97b278 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -42,7 +42,8 @@
+         "cors": "^2.8.5",
+         "express": "^4.18.3",
+         "node-sqlite3-wasm": "^0.8.58",
+-        "nodemailer": "^6.9.16"
++        "nodemailer": "^6.9.16",
++        "stripe": "^22.5.0"
+       },
+       "devDependencies": {
+         "nodemon": "^3.1.0"
+@@ -4996,6 +4997,23 @@
+         "node": ">=8"
+       }
+     },
++    "node_modules/stripe": {
++      "version": "22.5.0",
++      "resolved": "https://registry.npmjs.org/stripe/-/stripe-22.5.0.tgz",
++      "integrity": "sha512-QVwMwriC0bbySx6R4dpsvJ0W//GojC1kwWVS6rPSoVqDUIZX4Hy3TaUrd2AZeXEAaKbfWIjQjvo3vKAReHZ0vQ==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=18"
++      },
++      "peerDependencies": {
++        "@types/node": ">=18"
++      },
++      "peerDependenciesMeta": {
++        "@types/node": {
++          "optional": true
++        }
++      }
++    },
+     "node_modules/sucrase": {
+       "version": "3.35.1",
+       "resolved": "https://registry.npmjs.org/sucrase/-/sucrase-3.35.1.tgz",
+-- 
+2.43.0
+

@@ -64,6 +64,12 @@ db.run(`
 // clair — voir admin-server/src/routes/clients.js pour la génération.
 tryAlter('ALTER TABLE clients ADD COLUMN api_key_hash TEXT');
 
+// Facturation Stripe — remplis une fois qu'un client a un abonnement (même en
+// période gratuite via un code promo : Stripe garde la trace de l'abonnement,
+// juste facturé à 0€ jusqu'à expiration du coupon).
+tryAlter('ALTER TABLE clients ADD COLUMN stripe_customer_id TEXT');
+tryAlter('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
+
 // ─── Tickets de support (un inbox unique pour toutes les salles) ───────────────
 db.run(`
   CREATE TABLE IF NOT EXISTS tickets (

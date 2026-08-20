@@ -12,6 +12,7 @@ const ticketsRouter    = require('./routes/tickets');
 const gymTicketsRouter = require('./routes/gymTickets');
 const changelogRouter    = require('./routes/changelog');
 const gymChangelogRouter = require('./routes/gymChangelog');
+const stripeWebhookRouter = require('./routes/stripeWebhook');
 const { scheduleDailyBackup } = require('./lib/backup');
 
 const app  = express();
@@ -24,6 +25,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Le webhook Stripe doit être monté AVANT express.json() : la vérification de
+// signature a besoin du corps de requête brut, pas déjà parsé en JSON.
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookRouter);
 
 app.use(express.json());
 

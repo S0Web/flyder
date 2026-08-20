@@ -93,6 +93,87 @@ function ApiKeySection({ client, onKeyGenerated }) {
   );
 }
 
+// Facturation Stripe : soit un Customer est déjà lié (bouton vers le Customer
+// Portal, où le client gère lui-même son moyen de paiement), soit pas encore
+// (génère un lien de Checkout à transmettre — ne s'ouvre pas tout seul, un
+// manager doit pouvoir le relire/copier avant de l'envoyer).
+function BillingSection({ client }) {
+  const [loading, setLoading] = useState(null); // 'checkout' | 'portal' | null
+  const [link, setLink] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleCheckout() {
+    setLoading('checkout');
+    setError(null);
+    try {
+      const { url } = await api.createCheckoutLink(client.id);
+      setLink(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handlePortal() {
+    setLoading('portal');
+    setError(null);
+    try {
+      const { url } = await api.createPortalLink(client.id);
+      window.open(url, '_blank');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="pt-2 border-t border-gray-100">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Facturation</p>
+      {client.stripe_customer_id ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-500">Abonnement Stripe lié.</p>
+          <button type="button" onClick={handlePortal} disabled={loading === 'portal'}
+            className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1 flex-shrink-0">
+            {loading === 'portal' ? '…' : <>Portail client <ExternalLink className="h-3 w-3" /></>}
+          </button>
+        </div>
+      ) : link ? (
+        <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 space-y-2">
+          <p className="text-xs text-sky-800 font-medium">
+            Envoie ce lien au client pour qu'il règle son abonnement.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-white border border-sky-200 rounded px-2 py-1.5 overflow-x-auto whitespace-nowrap">{link}</code>
+            <button type="button" onClick={handleCopy}
+              className="text-xs px-2.5 py-1.5 rounded border border-sky-300 text-sky-800 hover:bg-sky-100 flex-shrink-0">
+              {copied ? 'Copié !' : 'Copier'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-500">Aucun abonnement pour l'instant.</p>
+          <button type="button" onClick={handleCheckout} disabled={loading === 'checkout'}
+            className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex-shrink-0">
+            {loading === 'checkout' ? '…' : 'Créer un lien de paiement'}
+          </button>
+        </div>
+      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
 function ClientModal({ client, onSave, onClose, onKeyGenerated }) {
   const isNew = !client?.id;
   const [form, setForm] = useState(() => client ? { ...EMPTY_FORM, ...client } : EMPTY_FORM);
@@ -159,6 +240,7 @@ function ClientModal({ client, onSave, onClose, onKeyGenerated }) {
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
           </div>
           {!isNew && <ApiKeySection client={client} onKeyGenerated={onKeyGenerated} />}
+          {!isNew && <BillingSection client={client} />}
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>

@@ -1,0 +1,885 @@
+From 1984b01a230ddf4a63f34c5699944b230d7504da Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 20 Aug 2026 11:12:30 +0000
+Subject: [PATCH] =?UTF-8?q?Ajoute=20la=20sauvegarde=20automatique=20quotid?=
+ =?UTF-8?q?ienne,=20chiffr=C3=A9e,=20hors=20Railway?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Chaque service (salles + admin-server) checkpointe sa base SQLite une fois
+par jour, la chiffre (AES-256-GCM) et l'envoie sur un bucket Cloudflare R2 —
+délibérément hors Railway, pour survivre à un problème sur l'hébergeur
+lui-même plutôt que de dépendre de lui pour la restauration. 30 jours
+d'historique, purge automatique des sauvegardes plus anciennes.
+
+Silencieuse si les variables R2_*/BACKUP_ENCRYPTION_KEY ne sont pas
+configurées (même principe que le mailer de tickets) — un service continue
+de fonctionner normalement tant qu'on n'a pas mis en place le bucket.
+
+Ajoute aussi un script de restauration (restoreBackup.js) : sans lui, une
+sauvegarde chiffrée est juste un fichier illisible.
+
+Testé : le chiffrement/déchiffrement est vérifié bit à bit (round-trip),
+une mauvaise clé échoue proprement plutôt que de produire un fichier
+corrompu silencieusement (le tag d'authentification GCM le garantit), et
+le démarrage du serveur sans configuration R2 ne plante pas.
+
+DEPLOIEMENT.md documente les variables d'environnement à ajouter sur
+chaque service pour l'activer.
+---
+ DEPLOIEMENT.md                       |  28 +-
+ admin-server/package.json            |   1 +
+ admin-server/src/db/restoreBackup.js |  38 +++
+ admin-server/src/index.js            |   2 +
+ admin-server/src/lib/backup.js       |  91 ++++++
+ package-lock.json                    | 398 ++++++++++++++++++++++++++-
+ server/package.json                  |   1 +
+ server/src/db/restoreBackup.js       |  38 +++
+ server/src/index.js                  |   2 +
+ server/src/lib/backup.js             | 100 +++++++
+ 10 files changed, 695 insertions(+), 4 deletions(-)
+ create mode 100644 admin-server/src/db/restoreBackup.js
+ create mode 100644 admin-server/src/lib/backup.js
+ create mode 100644 server/src/db/restoreBackup.js
+ create mode 100644 server/src/lib/backup.js
+
+diff --git a/DEPLOIEMENT.md b/DEPLOIEMENT.md
+index 9be5cf6..f1db268 100644
+--- a/DEPLOIEMENT.md
++++ b/DEPLOIEMENT.md
+@@ -81,9 +81,31 @@ de salle affiché) — la variable est purement cosmétique/organisationnelle.
+ 
+ ## Sauvegardes
+ 
+-Chaque salle a son propre fichier de base. Depuis l'app (manager) : **Paramètres → Utilisateurs →
+-« Télécharger une sauvegarde »** récupère une copie complète du `.db` de **cette** salle. À faire de
+-temps en temps pour chaque salle.
++Chaque salle a son propre fichier de base. Depuis l'app (manager) : **Paramètres →
++« Télécharger une sauvegarde »** récupère une copie complète du `.db` de **cette** salle,
++à faire manuellement de temps en temps.
++
++En plus de ça, une **sauvegarde automatique quotidienne, chiffrée**, tourne côté serveur
++(`server/src/lib/backup.js`, même chose sur `admin-server`) — elle checkpointe la base,
++la chiffre (AES-256-GCM) et l'envoie sur un bucket Cloudflare R2, hors de Railway (pour
++survivre à un problème *sur* Railway). 30 jours d'historique conservés, purge automatique
++au-delà.
++
++Variables d'environnement à ajouter sur **chaque service** (les salles et `admin-server`)
++pour l'activer — sans elles, la sauvegarde auto est simplement ignorée (aucune erreur) :
++
++| Variable                  | Rôle                                                             |
++|----------------------------|-------------------------------------------------------------------|
++| `R2_ACCOUNT_ID`             | Identifiant de compte Cloudflare                                  |
++| `R2_ACCESS_KEY_ID`          | Clé d'API R2 (permissions lecture/écriture sur le bucket)         |
++| `R2_SECRET_ACCESS_KEY`      | Secret associé                                                    |
++| `R2_BUCKET`                 | Nom du bucket R2                                                  |
++| `BACKUP_ENCRYPTION_KEY`     | Clé de chiffrement — **la même valeur partout**, à ne jamais perdre |
++
++Pour restaurer une sauvegarde : télécharger le fichier `.db.enc` correspondant depuis le
++bucket R2, puis `BACKUP_ENCRYPTION_KEY=... node src/db/restoreBackup.js <fichier.db.enc> <sortie.db>`
++depuis `server/` ou `admin-server/` selon le cas — le fichier obtenu remplace directement
++le fichier `DB_PATH` sur le volume Railway (service arrêté pendant le remplacement).
+ 
+ ---
+ 
+diff --git a/admin-server/package.json b/admin-server/package.json
+index 840de3b..d7bde7c 100644
+--- a/admin-server/package.json
++++ b/admin-server/package.json
+@@ -9,6 +9,7 @@
+     "create-admin": "node src/db/createAdmin.js"
+   },
+   "dependencies": {
++    "@aws-sdk/client-s3": "^3.1114.0",
+     "cors": "^2.8.5",
+     "express": "^4.18.3",
+     "node-sqlite3-wasm": "^0.8.58",
+diff --git a/admin-server/src/db/restoreBackup.js b/admin-server/src/db/restoreBackup.js
+new file mode 100644
+index 0000000..425ad88
+--- /dev/null
++++ b/admin-server/src/db/restoreBackup.js
+@@ -0,0 +1,38 @@
++// Déchiffre une sauvegarde automatique téléchargée depuis le bucket R2.
++// Usage : BACKUP_ENCRYPTION_KEY=... node src/db/restoreBackup.js <fichier.db.enc> <sortie.db>
++//
++// Le fichier obtenu peut ensuite remplacer le fichier pointé par DB_PATH sur
++// le volume Railway (arrêter le service, remplacer le fichier, redémarrer).
++
++const fs = require('fs');
++const crypto = require('crypto');
++
++const [, , inputPath, outputPath] = process.argv;
++
++if (!inputPath || !outputPath) {
++  console.error('Usage : BACKUP_ENCRYPTION_KEY=... node src/db/restoreBackup.js <fichier.db.enc> <sortie.db>');
++  process.exit(1);
++}
++if (!process.env.BACKUP_ENCRYPTION_KEY) {
++  console.error('Variable BACKUP_ENCRYPTION_KEY manquante — c\'est la même valeur que sur le service Railway concerné.');
++  process.exit(1);
++}
++
++// Format : [12 octets IV][16 octets tag d'authentification][ciphertext] — cf. lib/backup.js
++const data = fs.readFileSync(inputPath);
++const iv = data.subarray(0, 12);
++const authTag = data.subarray(12, 28);
++const ciphertext = data.subarray(28);
++
++const key = crypto.createHash('sha256').update(process.env.BACKUP_ENCRYPTION_KEY).digest();
++const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
++decipher.setAuthTag(authTag);
++
++try {
++  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
++  fs.writeFileSync(outputPath, decrypted);
++  console.log(`✅ Base restaurée : ${outputPath}`);
++} catch (e) {
++  console.error('Échec du déchiffrement — clé incorrecte ou fichier corrompu :', e.message);
++  process.exit(1);
++}
+diff --git a/admin-server/src/index.js b/admin-server/src/index.js
+index e4bf5c5..8e774b2 100644
+--- a/admin-server/src/index.js
++++ b/admin-server/src/index.js
+@@ -12,6 +12,7 @@ const ticketsRouter    = require('./routes/tickets');
+ const gymTicketsRouter = require('./routes/gymTickets');
+ const changelogRouter    = require('./routes/changelog');
+ const gymChangelogRouter = require('./routes/gymChangelog');
++const { scheduleDailyBackup } = require('./lib/backup');
+ 
+ const app  = express();
+ const PORT = process.env.PORT || 3002;
+@@ -46,4 +47,5 @@ app.use((err, req, res, next) => {
+ 
+ app.listen(PORT, () => {
+   console.log(`🔐 Flyder Admin — http://localhost:${PORT}`);
++  scheduleDailyBackup();
+ });
+diff --git a/admin-server/src/lib/backup.js b/admin-server/src/lib/backup.js
+new file mode 100644
+index 0000000..72c449a
+--- /dev/null
++++ b/admin-server/src/lib/backup.js
+@@ -0,0 +1,91 @@
++const fs = require('fs');
++const path = require('path');
++const crypto = require('crypto');
++const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } = require('@aws-sdk/client-s3');
++const db = require('../db/database');
++
++// Sauvegarde automatique quotidienne, chiffrée, vers un stockage objet externe
++// à Railway (Cloudflare R2 — compatible S3) — le but est de survivre à un
++// problème *sur* Railway (volume perdu, mauvaise manip), donc hors de Railway.
++// Silencieuse si non configurée : ce service continue de fonctionner normalement.
++
++const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/admin.db');
++const RETENTION_JOURS = 30;
++
++function isConfigured() {
++  return !!(
++    process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID &&
++    process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET &&
++    process.env.BACKUP_ENCRYPTION_KEY
++  );
++}
++
++function getClient() {
++  return new S3Client({
++    region: 'auto',
++    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
++    credentials: {
++      accessKeyId: process.env.R2_ACCESS_KEY_ID,
++      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
++    },
++  });
++}
++
++// AES-256-GCM : cette base contient le registre clients (coordonnées) et les
++// messages de support — le chiffrement du bucket seul ne suffit pas, la clé
++// ne doit exister que dans les variables d'env Railway, jamais dans le bucket.
++// Format du fichier : [12 octets IV][16 octets tag d'authentification][ciphertext]
++function encrypt(buffer) {
++  const key = crypto.createHash('sha256').update(process.env.BACKUP_ENCRYPTION_KEY).digest();
++  const iv = crypto.randomBytes(12);
++  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
++  const ciphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
++  return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]);
++}
++
++const BACKUP_PREFIX = 'admin-server';
++
++async function pruneOldBackups(client) {
++  const list = await client.send(new ListObjectsV2Command({ Bucket: process.env.R2_BUCKET, Prefix: `${BACKUP_PREFIX}/` }));
++  const cutoff = Date.now() - RETENTION_JOURS * 24 * 60 * 60 * 1000;
++  for (const obj of list.Contents || []) {
++    if (obj.LastModified && obj.LastModified.getTime() < cutoff) {
++      await client.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET, Key: obj.Key }));
++    }
++  }
++}
++
++async function runBackup() {
++  if (!isConfigured()) {
++    console.warn('Sauvegarde auto non configurée (variables R2_*/BACKUP_ENCRYPTION_KEY manquantes) — ignorée');
++    return;
++  }
++  try {
++    db.run('PRAGMA wal_checkpoint(TRUNCATE)');
++    const encrypted = encrypt(fs.readFileSync(DB_PATH));
++
++    const key = `${BACKUP_PREFIX}/${new Date().toISOString().slice(0, 10)}.db.enc`;
++    const client = getClient();
++    await client.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key, Body: encrypted }));
++    console.log(`✅ Sauvegarde automatique envoyée : ${key}`);
++
++    await pruneOldBackups(client);
++  } catch (e) {
++    console.error('Échec de la sauvegarde automatique :', e.message);
++  }
++}
++
++function scheduleDailyBackup() {
++  if (!isConfigured()) return;
++  const now = new Date();
++  const next = new Date(now);
++  next.setHours(3, 0, 0, 0);
++  if (next <= now) next.setDate(next.getDate() + 1);
++
++  setTimeout(() => {
++    runBackup();
++    setInterval(runBackup, 24 * 60 * 60 * 1000);
++  }, next - now);
++}
++
++module.exports = { runBackup, scheduleDailyBackup, isConfigured };
+diff --git a/package-lock.json b/package-lock.json
+index b0eca01..224daaa 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -38,6 +38,7 @@
+     "admin-server": {
+       "version": "1.0.0",
+       "dependencies": {
++        "@aws-sdk/client-s3": "^3.1114.0",
+         "cors": "^2.8.5",
+         "express": "^4.18.3",
+         "node-sqlite3-wasm": "^0.8.58",
+@@ -82,6 +83,314 @@
+         "url": "https://github.com/sponsors/sindresorhus"
+       }
+     },
++    "node_modules/@aws-sdk/checksums": {
++      "version": "3.1000.28",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/checksums/-/checksums-3.1000.28.tgz",
++      "integrity": "sha512-VCpnmyHQ1IH49ni3LXnQj7DPr7rmcJmzYeiCkYdCcfgNtkvOj38cdcL9lapBWoItZWFACJPFJlymqC7/gem3Gw==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/client-s3": {
++      "version": "3.1114.0",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/client-s3/-/client-s3-3.1114.0.tgz",
++      "integrity": "sha512-ZeAgOtB+CXFaWXph98U7a/XrBlVx1lQ2rCJRWLxLmAaQ9k5lht6DWfwnEcVjdzduK/ySao1tCjq0fBAScGqjAg==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/checksums": "^3.1000.28",
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/credential-provider-node": "^3.972.80",
++        "@aws-sdk/middleware-sdk-s3": "^3.972.74",
++        "@aws-sdk/signature-v4-multi-region": "^3.996.45",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/fetch-http-handler": "^5.6.13",
++        "@smithy/node-http-handler": "^4.9.13",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/core": {
++      "version": "3.977.8",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/core/-/core-3.977.8.tgz",
++      "integrity": "sha512-7+Kcrkvrk9lM/m7jRhHpT4jCdvzGHsuaSRbF8TdzzkY1mRzp/Ogwf9c7H29k4gGhey0BBWhCWr16+t0J61gwmg==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/types": "^3.974.4",
++        "@aws-sdk/xml-builder": "^3.972.39",
++        "@aws/lambda-invoke-store": "^0.3.0",
++        "@smithy/core": "^3.31.1",
++        "@smithy/signature-v4": "^5.6.12",
++        "@smithy/types": "^4.16.1",
++        "bowser": "^2.11.0",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-env": {
++      "version": "3.972.69",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-env/-/credential-provider-env-3.972.69.tgz",
++      "integrity": "sha512-AreCFzcB4kH2HF9031Ot0jSJr3KXvRg6e8uDeub20JEVdZU3Bv0sTq1plc7VsT3KiqutlzH7l0j50UcCWHUioA==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-http": {
++      "version": "3.972.71",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-http/-/credential-provider-http-3.972.71.tgz",
++      "integrity": "sha512-A8ObcqVmDMnk4F9NozZ7JwmUu9Q4xyBJkmyq1C5U+wNM9ht9J7+EuuyabsLWXZnOoTqFaJuYBYTKf5CTipkEjA==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/fetch-http-handler": "^5.6.13",
++        "@smithy/node-http-handler": "^4.9.13",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-ini": {
++      "version": "3.973.14",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-ini/-/credential-provider-ini-3.973.14.tgz",
++      "integrity": "sha512-7c+Wti2LsERNWMfm7ySz3/6RPopFW3Nmn7s63Xpcq6R/tRuY5hpvkHA2xVgi5ukJbvok9l0IDtVEvqTtg+X7dw==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/credential-provider-env": "^3.972.69",
++        "@aws-sdk/credential-provider-http": "^3.972.71",
++        "@aws-sdk/credential-provider-login": "^3.972.76",
++        "@aws-sdk/credential-provider-process": "^3.972.69",
++        "@aws-sdk/credential-provider-sso": "^3.973.13",
++        "@aws-sdk/credential-provider-web-identity": "^3.972.75",
++        "@aws-sdk/nested-clients": "^3.997.43",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/credential-provider-imds": "^4.4.16",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-login": {
++      "version": "3.972.76",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-login/-/credential-provider-login-3.972.76.tgz",
++      "integrity": "sha512-LVixwOnEJfrrfKHeZjBA8pIMTZjNDq8ak8VpcoWUuCJDrSnBNU8POJksULMgvN089P0MXtQYH2Zs627/MK1K0g==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/nested-clients": "^3.997.43",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-node": {
++      "version": "3.972.80",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-node/-/credential-provider-node-3.972.80.tgz",
++      "integrity": "sha512-bE2qh8ww4iClO1jHsBXdOE8FUgzDbdxbyorNjSCoPSkQd51k3jODItuPZfuwcLHZqDXsH+bI4AMHhqtuyR7mSg==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/credential-provider-env": "^3.972.69",
++        "@aws-sdk/credential-provider-http": "^3.972.71",
++        "@aws-sdk/credential-provider-ini": "^3.973.14",
++        "@aws-sdk/credential-provider-process": "^3.972.69",
++        "@aws-sdk/credential-provider-sso": "^3.973.13",
++        "@aws-sdk/credential-provider-web-identity": "^3.972.75",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/credential-provider-imds": "^4.4.16",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-process": {
++      "version": "3.972.69",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-process/-/credential-provider-process-3.972.69.tgz",
++      "integrity": "sha512-9kpTNdZTrcqXTfhxM7fgl9Z68ek3Fu5oe3Yf+A/pJGibEqpgZxz2tSY7SinmyCIU2PJ+ygY4FPoBBnLpocMtrQ==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-sso": {
++      "version": "3.973.13",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-sso/-/credential-provider-sso-3.973.13.tgz",
++      "integrity": "sha512-Oc81qauMPzUoTnAS2YKpNwY6sY/LUyQTEeaf6yP197WMxkEBQfcKLR1MFpD7+pNTubXnfkH6gwpji+Gc7iyD2Q==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/nested-clients": "^3.997.43",
++        "@aws-sdk/token-providers": "3.1111.0",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/credential-provider-web-identity": {
++      "version": "3.972.75",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-web-identity/-/credential-provider-web-identity-3.972.75.tgz",
++      "integrity": "sha512-YPN6uoGDgjjjeVFZrcOeCJqmB6zpXoeeNgIjqe+DexJaWqdjVfCCe+VAZwli9Z2h8KhFW8oxkO39emQ1tyz/Mw==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/nested-clients": "^3.997.43",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/middleware-sdk-s3": {
++      "version": "3.972.74",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.972.74.tgz",
++      "integrity": "sha512-2lzoV2z2QO5KJZYGOCnIZ1WVQgzMECvwuzr1xb034a++8QW4U4eGrmC2u4yg1xvNv4TLL/Uv5DLyuAiw0b9z7Q==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/signature-v4-multi-region": "^3.996.45",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/nested-clients": {
++      "version": "3.997.43",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/nested-clients/-/nested-clients-3.997.43.tgz",
++      "integrity": "sha512-bit+VpqWNyi3wHxFoTsTliNXimCSL2r2OeDTm7ZrG+YsTZ2D7ofDJ6r/t9PVBn80i6/v0X2h9Tgw6QP2MAKfPw==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/signature-v4-multi-region": "^3.996.45",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/fetch-http-handler": "^5.6.13",
++        "@smithy/node-http-handler": "^4.9.13",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/signature-v4-multi-region": {
++      "version": "3.996.45",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.996.45.tgz",
++      "integrity": "sha512-bBuyztukzXq6plzFGHAWiQt0QXo+HL8b8lX5cFTzkez/74PtS1c0qPFCIVuHkyoT+miH2qOjAcm1/yoro2ESPA==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/signature-v4": "^5.6.12",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/token-providers": {
++      "version": "3.1111.0",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/token-providers/-/token-providers-3.1111.0.tgz",
++      "integrity": "sha512-JfljgoVtl+s3Qy21n9a7Z48uCQaOXcN74KJ3TEQfPoB293GrXFSt6HSQJF1sTZ8c/5QedEvd3NjJQMO4u9qa5A==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@aws-sdk/core": "^3.977.8",
++        "@aws-sdk/nested-clients": "^3.997.43",
++        "@aws-sdk/types": "^3.974.4",
++        "@smithy/core": "^3.31.1",
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/types": {
++      "version": "3.974.4",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/types/-/types-3.974.4.tgz",
++      "integrity": "sha512-dSFDNG00MEz0/xl5gxL62giLd1iYyJsTxZ1I1DOj6lC+bbgLB4TRsYClJg3b62dhXT1uATzsTNXPnC+33EJV3A==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws-sdk/xml-builder": {
++      "version": "3.972.39",
++      "resolved": "https://registry.npmjs.org/@aws-sdk/xml-builder/-/xml-builder-3.972.39.tgz",
++      "integrity": "sha512-FTti8DS5MMWXNUWiRwXAJeYS+0GHHiMy0+7XOhcwk63ILHmfS2UFy2z/HNpZCSOJJ3P3dnWY6hfYNW3DF0nXUA==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@smithy/types": "^4.16.1",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/@aws/lambda-invoke-store": {
++      "version": "0.3.0",
++      "resolved": "https://registry.npmjs.org/@aws/lambda-invoke-store/-/lambda-invoke-store-0.3.0.tgz",
++      "integrity": "sha512-sl4Bm6yiMNYrZKkqqDFWN0UfnWhlS8ivKxrYl+6t0gCLrqr8y3B2IqZZbFRkfaVVp7C/baApyh71P+LeE1A2sQ==",
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=18.0.0"
++      }
++    },
+     "node_modules/@babel/runtime": {
+       "version": "7.29.7",
+       "resolved": "https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.7.tgz",
+@@ -1531,6 +1840,87 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/@smithy/core": {
++      "version": "3.33.2",
++      "resolved": "https://registry.npmjs.org/@smithy/core/-/core-3.33.2.tgz",
++      "integrity": "sha512-CUGXpnPkVdjUCbix+83sWLW9VFgQOm44MDOx/ihITJMAnOZKvL8YYIc7DR9pP/tZ8CIRvMiON/TucvygqbHO3w==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@smithy/types": "^4.17.2",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      }
++    },
++    "node_modules/@smithy/credential-provider-imds": {
++      "version": "4.5.2",
++      "resolved": "https://registry.npmjs.org/@smithy/credential-provider-imds/-/credential-provider-imds-4.5.2.tgz",
++      "integrity": "sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@smithy/core": "^3.33.2",
++        "@smithy/types": "^4.17.2",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      }
++    },
++    "node_modules/@smithy/fetch-http-handler": {
++      "version": "5.7.2",
++      "resolved": "https://registry.npmjs.org/@smithy/fetch-http-handler/-/fetch-http-handler-5.7.2.tgz",
++      "integrity": "sha512-nZyWTmSpJEXl6VtWVMBJve/7x12DZu6sIX1z1a+ZMaHlQQRs9Zpu6NbTe/gmxYXVRpkjxyDYpZ5gx2IM6f/Wkw==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@smithy/core": "^3.33.2",
++        "@smithy/types": "^4.17.2",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      }
++    },
++    "node_modules/@smithy/node-http-handler": {
++      "version": "4.11.2",
++      "resolved": "https://registry.npmjs.org/@smithy/node-http-handler/-/node-http-handler-4.11.2.tgz",
++      "integrity": "sha512-avwAh9HM3h2lcfjvP3zYIZGf+XVgLQ91wOJ2qoFbNpW1UZeZb33aGlhTZvtkANHfcGhJroRY64525OjfgOg30g==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@smithy/core": "^3.33.2",
++        "@smithy/types": "^4.17.2",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      }
++    },
++    "node_modules/@smithy/signature-v4": {
++      "version": "5.7.2",
++      "resolved": "https://registry.npmjs.org/@smithy/signature-v4/-/signature-v4-5.7.2.tgz",
++      "integrity": "sha512-P7Ki6px6OOrxVtx8K7nLmyx4SlXUW/uTKDdMG44UHefmPGSRMBKe2v+TM59WdLcpUIrBrnuCsIqiM2MbsZjmhw==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@smithy/core": "^3.33.2",
++        "@smithy/types": "^4.17.2",
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      }
++    },
++    "node_modules/@smithy/types": {
++      "version": "4.17.2",
++      "resolved": "https://registry.npmjs.org/@smithy/types/-/types-4.17.2.tgz",
++      "integrity": "sha512-FOKpVZob9MPTn2znRzGrnsMHv7BOsKVw3XiP/cOyYLDVZ9qKp4nifIiSCuUU/fIj5Vu0UOAxCFr+qRAtG0NUkA==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "tslib": "^2.6.2"
++      },
++      "engines": {
++        "node": ">=18.0.0"
++      }
++    },
+     "node_modules/@tybys/wasm-util": {
+       "version": "0.10.3",
+       "resolved": "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.3.tgz",
+@@ -1815,6 +2205,12 @@
+         "npm": "1.2.8000 || >= 1.4.16"
+       }
+     },
++    "node_modules/bowser": {
++      "version": "2.14.1",
++      "resolved": "https://registry.npmjs.org/bowser/-/bowser-2.14.1.tgz",
++      "integrity": "sha512-tzPjzCxygAKWFOJP011oxFHs57HzIhOEracIgAePE4pqB3LikALKnSzUyU4MGs9/iCEUuHlAJTjTc5M+u7YEGg==",
++      "license": "MIT"
++    },
+     "node_modules/brace-expansion": {
+       "version": "5.0.6",
+       "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.6.tgz",
+@@ -4816,7 +5212,6 @@
+       "version": "2.8.1",
+       "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
+       "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
+-      "devOptional": true,
+       "license": "0BSD"
+     },
+     "node_modules/type-is": {
+@@ -5067,6 +5462,7 @@
+       "name": "fitnessmov-server",
+       "version": "1.0.0",
+       "dependencies": {
++        "@aws-sdk/client-s3": "^3.1114.0",
+         "cors": "^2.8.5",
+         "express": "^4.18.3",
+         "multer": "^1.4.5-lts.1",
+diff --git a/server/package.json b/server/package.json
+index d7d4984..a241f12 100644
+--- a/server/package.json
++++ b/server/package.json
+@@ -10,6 +10,7 @@
+     "seed:personnel": "node src/db/seedPersonnel.js"
+   },
+   "dependencies": {
++    "@aws-sdk/client-s3": "^3.1114.0",
+     "cors": "^2.8.5",
+     "express": "^4.18.3",
+     "multer": "^1.4.5-lts.1",
+diff --git a/server/src/db/restoreBackup.js b/server/src/db/restoreBackup.js
+new file mode 100644
+index 0000000..425ad88
+--- /dev/null
++++ b/server/src/db/restoreBackup.js
+@@ -0,0 +1,38 @@
++// Déchiffre une sauvegarde automatique téléchargée depuis le bucket R2.
++// Usage : BACKUP_ENCRYPTION_KEY=... node src/db/restoreBackup.js <fichier.db.enc> <sortie.db>
++//
++// Le fichier obtenu peut ensuite remplacer le fichier pointé par DB_PATH sur
++// le volume Railway (arrêter le service, remplacer le fichier, redémarrer).
++
++const fs = require('fs');
++const crypto = require('crypto');
++
++const [, , inputPath, outputPath] = process.argv;
++
++if (!inputPath || !outputPath) {
++  console.error('Usage : BACKUP_ENCRYPTION_KEY=... node src/db/restoreBackup.js <fichier.db.enc> <sortie.db>');
++  process.exit(1);
++}
++if (!process.env.BACKUP_ENCRYPTION_KEY) {
++  console.error('Variable BACKUP_ENCRYPTION_KEY manquante — c\'est la même valeur que sur le service Railway concerné.');
++  process.exit(1);
++}
++
++// Format : [12 octets IV][16 octets tag d'authentification][ciphertext] — cf. lib/backup.js
++const data = fs.readFileSync(inputPath);
++const iv = data.subarray(0, 12);
++const authTag = data.subarray(12, 28);
++const ciphertext = data.subarray(28);
++
++const key = crypto.createHash('sha256').update(process.env.BACKUP_ENCRYPTION_KEY).digest();
++const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
++decipher.setAuthTag(authTag);
++
++try {
++  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
++  fs.writeFileSync(outputPath, decrypted);
++  console.log(`✅ Base restaurée : ${outputPath}`);
++} catch (e) {
++  console.error('Échec du déchiffrement — clé incorrecte ou fichier corrompu :', e.message);
++  process.exit(1);
++}
+diff --git a/server/src/index.js b/server/src/index.js
+index 5b0cfc5..9af7f16 100644
+--- a/server/src/index.js
++++ b/server/src/index.js
+@@ -49,6 +49,7 @@ const coachDocumentsRouter = require('./routes/coachDocuments');
+ const ticketsRouter = require('./routes/tickets');
+ const changelogRouter = require('./routes/changelog');
+ const preferencesRouter = require('./routes/preferences');
++const { scheduleDailyBackup } = require('./lib/backup');
+ 
+ const app  = express();
+ const PORT = process.env.PORT || 3001;
+@@ -125,6 +126,7 @@ app.use((err, req, res, next) => {
+ function startServer(retry = 0) {
+   const server = app.listen(PORT, () => {
+     console.log(`🚀 Flyder — http://localhost:${PORT}`);
++    scheduleDailyBackup();
+   });
+   server.on('error', (err) => {
+     if (err.code === 'EADDRINUSE' && retry < 3) {
+diff --git a/server/src/lib/backup.js b/server/src/lib/backup.js
+new file mode 100644
+index 0000000..674065f
+--- /dev/null
++++ b/server/src/lib/backup.js
+@@ -0,0 +1,100 @@
++const fs = require('fs');
++const path = require('path');
++const crypto = require('crypto');
++const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } = require('@aws-sdk/client-s3');
++const db = require('../db/database');
++
++// Sauvegarde automatique quotidienne, chiffrée, vers un stockage objet externe
++// à Railway (Cloudflare R2 — compatible S3) — le but est de survivre à un
++// problème *sur* Railway (volume perdu, mauvaise manip), donc hors de Railway.
++// Silencieuse si non configurée, comme le mailer de tickets : une salle qui
++// n'a pas encore ces variables d'env continue de fonctionner normalement.
++
++const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/fitnessmov.db');
++const RETENTION_JOURS = 30;
++
++function isConfigured() {
++  return !!(
++    process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID &&
++    process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET &&
++    process.env.BACKUP_ENCRYPTION_KEY
++  );
++}
++
++function getClient() {
++  return new S3Client({
++    region: 'auto',
++    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
++    credentials: {
++      accessKeyId: process.env.R2_ACCESS_KEY_ID,
++      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
++    },
++  });
++}
++
++// AES-256-GCM : la base contient des fiches de paie et des arrêts maladie,
++// le chiffrement du bucket seul ne suffit pas — la clé ne doit exister que
++// dans les variables d'env Railway, jamais dans le bucket lui-même.
++// Format du fichier : [12 octets IV][16 octets tag d'authentification][ciphertext]
++function encrypt(buffer) {
++  const key = crypto.createHash('sha256').update(process.env.BACKUP_ENCRYPTION_KEY).digest();
++  const iv = crypto.randomBytes(12);
++  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
++  const ciphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
++  return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]);
++}
++
++function backupPrefix() {
++  return (process.env.SALLE_NOM || 'salle').replace(/[^a-zA-Z0-9_-]/g, '_');
++}
++
++async function pruneOldBackups(client, prefix) {
++  const list = await client.send(new ListObjectsV2Command({ Bucket: process.env.R2_BUCKET, Prefix: `${prefix}/` }));
++  const cutoff = Date.now() - RETENTION_JOURS * 24 * 60 * 60 * 1000;
++  for (const obj of list.Contents || []) {
++    if (obj.LastModified && obj.LastModified.getTime() < cutoff) {
++      await client.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET, Key: obj.Key }));
++    }
++  }
++}
++
++async function runBackup() {
++  if (!isConfigured()) {
++    console.warn('Sauvegarde auto non configurée (variables R2_*/BACKUP_ENCRYPTION_KEY manquantes) — ignorée');
++    return;
++  }
++  try {
++    // Le journal WAL peut contenir des écritures récentes pas encore dans le
++    // fichier principal ; on force leur écriture avant de le lire.
++    db.run('PRAGMA wal_checkpoint(TRUNCATE)');
++    const encrypted = encrypt(fs.readFileSync(DB_PATH));
++
++    const prefix = backupPrefix();
++    const key = `${prefix}/${new Date().toISOString().slice(0, 10)}.db.enc`;
++    const client = getClient();
++    await client.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key, Body: encrypted }));
++    console.log(`✅ Sauvegarde automatique envoyée : ${key}`);
++
++    await pruneOldBackups(client, prefix);
++  } catch (e) {
++    console.error('Échec de la sauvegarde automatique :', e.message);
++  }
++}
++
++// Programme le premier passage à 3h du matin (heure du conteneur), puis une
++// fois par jour ensuite. Un redémarrage du service recalcule simplement le
++// prochain horaire, sans double-exécution possible.
++function scheduleDailyBackup() {
++  if (!isConfigured()) return;
++  const now = new Date();
++  const next = new Date(now);
++  next.setHours(3, 0, 0, 0);
++  if (next <= now) next.setDate(next.getDate() + 1);
++
++  setTimeout(() => {
++    runBackup();
++    setInterval(runBackup, 24 * 60 * 60 * 1000);
++  }, next - now);
++}
++
++module.exports = { runBackup, scheduleDailyBackup, isConfigured };
+-- 
+2.43.0
+
