@@ -98,7 +98,7 @@ db.run(`
   )
 `);
 
-// ─── Nouveautés (annonces diffusées à toutes les salles) ───────────────────────
+// ─── Nouveautés (annonces diffusées à toutes les salles, ou ciblées) ───────────
 db.run(`
   CREATE TABLE IF NOT EXISTS changelog_entries (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,6 +106,17 @@ db.run(`
     corps       TEXT NOT NULL,
     importante  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Ciblage d'une annonce : aucune ligne pour un entry_id donné = diffusée à
+// toutes les salles (comportement historique, donc rien à migrer pour les
+// annonces existantes) ; une ou plusieurs lignes = uniquement ces salles-là.
+db.run(`
+  CREATE TABLE IF NOT EXISTS changelog_entry_clients (
+    entry_id  INTEGER NOT NULL REFERENCES changelog_entries(id) ON DELETE CASCADE,
+    client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    PRIMARY KEY (entry_id, client_id)
   )
 `);
 

@@ -3,22 +3,34 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
 import AdminLayout from '../components/AdminLayout';
 
-const EMPTY_FORM = { titre: '', corps: '', importante: false };
+const EMPTY_FORM = { titre: '', corps: '', importante: false, clientIds: [] };
 
-function EntryModal({ entry, onSave, onClose }) {
+function EntryModal({ entry, clients, onSave, onClose }) {
   const isNew = !entry?.id;
-  const [form, setForm] = useState(() => entry ? { ...EMPTY_FORM, ...entry, importante: !!entry.importante } : EMPTY_FORM);
+  const [form, setForm] = useState(() => entry ? { ...EMPTY_FORM, ...entry, importante: !!entry.importante, clientIds: entry.clientIds || [] } : EMPTY_FORM);
+  const [cible, setCible] = useState(() => (entry?.clientIds?.length ? 'certaines' : 'toutes'));
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
+  function toggleClient(id) {
+    setForm(f => ({
+      ...f,
+      clientIds: f.clientIds.includes(id) ? f.clientIds.filter(c => c !== id) : [...f.clientIds, id],
+    }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (cible === 'certaines' && form.clientIds.length === 0) {
+      setError('Sélectionne au moins une salle, ou choisis "Toutes les salles".');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      await onSave(form);
+      await onSave({ ...form, clientIds: cible === 'certaines' ? form.clientIds : [] });
       onClose();
     } catch (err) {
       setError(err.message);
@@ -47,8 +59,34 @@ function EntryModal({ entry, onSave, onClose }) {
           </div>
           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
             <input type="checkbox" checked={form.importante} onChange={e => set('importante', e.target.checked)} />
-            Importante — affichée en pop-up une fois pour chaque salarié, sur toutes les salles
+            Importante — affichée en pop-up une fois pour chaque salarié, sur les salles ciblées
           </label>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Diffuser à</label>
+            <div className="flex gap-4 text-sm text-gray-700">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="cible" checked={cible === 'toutes'} onChange={() => setCible('toutes')} />
+                Toutes les salles
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="cible" checked={cible === 'certaines'} onChange={() => setCible('certaines')} />
+                Certaines salles
+              </label>
+            </div>
+            {cible === 'certaines' && (
+              <div className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-40 overflow-y-auto">
+                {clients.map(c => (
+                  <label key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 cursor-pointer hover:bg-gray-50">
+                    <input type="checkbox" checked={form.clientIds.includes(c.id)} onChange={() => toggleClient(c.id)} />
+                    {c.nom}
+                  </label>
+                ))}
+                {form.clientIds.length === 0 && (
+                  <p className="text-xs text-red-500 px-3 py-1.5">Sélectionne au moins une salle.</p>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50">Annuler</button>
@@ -70,12 +108,22 @@ function fmtDate(iso) {
 
 export default function Nouveautes() {
   const [entries, setEntries] = useState(null);
+  const [clients, setClients] = useState([]);
   const [modal, setModal] = useState(null);
 
   function load() {
     api.getChangelog().then(setEntries).catch(() => {});
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.getClients().then(setClients).catch(() => {});
+  }, []);
+
+  function cibleLabel(entry) {
+    if (!entry.clientIds?.length) return 'Toutes les salles';
+    const noms = entry.clientIds.map(id => clients.find(c => c.id === id)?.nom).filter(Boolean);
+    return noms.length ? noms.join(', ') : `${entry.clientIds.length} salle(s)`;
+  }
 
   async function handleSave(form) {
     if (modal?.id) await api.updateChangelogEntry(modal.id, form);
@@ -95,7 +143,7 @@ export default function Nouveautes() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold text-gray-800">Nouveautés</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Annonces diffusées à toutes les salles.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Annonces diffusées à toutes les salles, ou ciblées.</p>
         </div>
         <button onClick={() => setModal({})}
           className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium"
@@ -120,7 +168,9 @@ export default function Nouveautes() {
                       <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Importante</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">{fmtDate(entry.created_at)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {fmtDate(entry.created_at)} · <span className={entry.clientIds?.length ? 'text-sky-600' : ''}>{cibleLabel(entry)}</span>
+                  </p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button onClick={() => setModal(entry)} title="Modifier"
@@ -140,7 +190,7 @@ export default function Nouveautes() {
       )}
 
       {modal !== null && (
-        <EntryModal entry={modal?.id ? modal : null} onSave={handleSave} onClose={() => setModal(null)} />
+        <EntryModal entry={modal?.id ? modal : null} clients={clients} onSave={handleSave} onClose={() => setModal(null)} />
       )}
     </div>
     </AdminLayout>
