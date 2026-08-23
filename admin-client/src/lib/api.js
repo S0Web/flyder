@@ -39,6 +39,7 @@ export const api = {
   regenerateClientApiKey: (id) => req(`/clients/${id}/regenerate-key`, { method: 'POST' }),
   createCheckoutLink: (id) => req(`/clients/${id}/checkout`, { method: 'POST' }),
   createPortalLink:   (id) => req(`/clients/${id}/portal`, { method: 'POST' }),
+  resetClientStripe:  (id) => req(`/clients/${id}/reset-stripe`, { method: 'POST' }),
 
   getTickets:    (params = {}) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();

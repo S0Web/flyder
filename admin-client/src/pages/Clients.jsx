@@ -98,10 +98,11 @@ function ApiKeySection({ client, onKeyGenerated }) {
 // (génère un lien de Checkout à transmettre — ne s'ouvre pas tout seul, un
 // manager doit pouvoir le relire/copier avant de l'envoyer).
 function BillingSection({ client }) {
-  const [loading, setLoading] = useState(null); // 'checkout' | 'portal' | null
+  const [loading, setLoading] = useState(null); // 'checkout' | 'portal' | 'reset' | null
   const [link, setLink] = useState(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
+  const [reset, setReset] = useState(false);
 
   async function handleCheckout() {
     setLoading('checkout');
@@ -136,16 +137,36 @@ function BillingSection({ client }) {
     });
   }
 
+  async function handleReset() {
+    if (!window.confirm("Détacher le Customer/Subscription Stripe de ce client ? Rien n'est supprimé côté Stripe, juste le lien avec sa fiche.")) return;
+    setLoading('reset');
+    setError(null);
+    try {
+      await api.resetClientStripe(client.id);
+      setReset(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
     <div className="pt-2 border-t border-gray-100">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Facturation</p>
-      {client.stripe_customer_id ? (
+      {client.stripe_customer_id && !reset ? (
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-gray-500">Abonnement Stripe lié.</p>
-          <button type="button" onClick={handlePortal} disabled={loading === 'portal'}
-            className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1 flex-shrink-0">
-            {loading === 'portal' ? '…' : <>Portail client <ExternalLink className="h-3 w-3" /></>}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button type="button" onClick={handleReset} disabled={loading === 'reset'}
+              className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-400 hover:bg-gray-50 hover:text-red-500 disabled:opacity-50">
+              {loading === 'reset' ? '…' : 'Réinitialiser'}
+            </button>
+            <button type="button" onClick={handlePortal} disabled={loading === 'portal'}
+              className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1">
+              {loading === 'portal' ? '…' : <>Portail client <ExternalLink className="h-3 w-3" /></>}
+            </button>
+          </div>
         </div>
       ) : link ? (
         <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 space-y-2">

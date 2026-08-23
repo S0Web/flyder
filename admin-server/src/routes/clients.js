@@ -125,6 +125,20 @@ router.post('/:id/portal', async (req, res) => {
   }
 });
 
+// POST /api/clients/:id/reset-stripe — efface le Customer/Subscription Stripe
+// lié à ce client (sans rien supprimer côté Stripe). Utile après un test, ou
+// si un client veut repartir de zéro sur un nouvel abonnement.
+router.post('/:id/reset-stripe', (req, res) => {
+  const client = db.get('SELECT id FROM clients WHERE id = ?', [req.params.id]);
+  if (!client) return res.status(404).json({ error: 'Client introuvable' });
+
+  db.run(
+    `UPDATE clients SET stripe_customer_id = NULL, stripe_subscription_id = NULL, updated_at = datetime('now') WHERE id = ?`,
+    [req.params.id]
+  );
+  res.json(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]));
+});
+
 // DELETE /api/clients/:id
 router.delete('/:id', (req, res) => {
   const client = db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
