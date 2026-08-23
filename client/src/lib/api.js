@@ -14,11 +14,14 @@ async function req(path, options = {}) {
     ...options,
   });
   if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
     if (res.status === 401 && path !== '/auth/select') {
       localStorage.removeItem('fm_token');
       if (window.location.pathname !== '/login') window.location.assign('/login');
     }
-    const err = await res.json().catch(() => ({ error: res.statusText }));
+    if (res.status === 402 && err.error === 'abonnement_bloque' && window.location.pathname !== '/abonnement-bloque') {
+      window.location.assign('/abonnement-bloque');
+    }
     throw new Error(err.error || res.statusText);
   }
   return res.json();

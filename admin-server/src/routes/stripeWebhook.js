@@ -38,7 +38,7 @@ router.post('/', (req, res) => {
         const session = event.data.object;
         if (session.client_reference_id) {
           db.run(
-            `UPDATE clients SET stripe_customer_id = ?, stripe_subscription_id = ?, statut = 'actif', updated_at = datetime('now') WHERE id = ?`,
+            `UPDATE clients SET stripe_customer_id = ?, stripe_subscription_id = ?, statut = 'actif', stripe_inactif_depuis = NULL, updated_at = datetime('now') WHERE id = ?`,
             [session.customer, session.subscription, session.client_reference_id]
           );
         }
@@ -49,9 +49,15 @@ router.post('/', (req, res) => {
         const sub = event.data.object;
         const statut = mapStripeStatus(sub.status);
         if (statut) {
+          // stripe_inactif_depuis marque le début d'une période d'impayé continue :
+          // remis à NULL dès que le client redevient actif, posé une seule fois
+          // (COALESCE) tant qu'il reste en défaut, pour ne pas relancer le délai de
+          // grâce à chaque événement Stripe reçu sur le même incident.
           db.run(
-            `UPDATE clients SET statut = ?, stripe_subscription_id = ?, updated_at = datetime('now') WHERE stripe_customer_id = ?`,
-            [statut, sub.id, sub.customer]
+            `UPDATE clients SET statut = ?, stripe_subscription_id = ?,
+             stripe_inactif_depuis = CASE WHEN ? = 'actif' THEN NULL ELSE COALESCE(stripe_inactif_depuis, datetime('now')) END,
+             updated_at = datetime('now') WHERE stripe_customer_id = ?`,
+            [statut, sub.id, statut, sub.customer]
           );
         }
         break;
@@ -59,7 +65,7 @@ router.post('/', (req, res) => {
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
         db.run(
-          `UPDATE clients SET statut = 'resilie', updated_at = datetime('now') WHERE stripe_customer_id = ?`,
+          `UPDATE clients SET statut = 'resilie', stripe_inactif_depuis = COALESCE(stripe_inactif_depuis, datetime('now')), updated_at = datetime('now') WHERE stripe_customer_id = ?`,
           [sub.customer]
         );
         break;

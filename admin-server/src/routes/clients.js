@@ -90,7 +90,14 @@ router.post('/:id/checkout', async (req, res) => {
       ...(client.stripe_customer_id
         ? { customer: client.stripe_customer_id }
         : { customer_email: client.contact_email || undefined }),
-      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      line_items: [
+        { price: process.env.STRIPE_PRICE_ID, quantity: 1 },
+        // Frais de mise en service : facturés une seule fois, à la création de
+        // la session — optionnel tant que STRIPE_SETUP_FEE_PRICE_ID n'est pas
+        // configuré, pour ne pas casser le paiement si ce produit n'existe pas
+        // encore côté Stripe.
+        ...(process.env.STRIPE_SETUP_FEE_PRICE_ID ? [{ price: process.env.STRIPE_SETUP_FEE_PRICE_ID, quantity: 1 }] : []),
+      ],
       allow_promotion_codes: true,
       payment_method_collection: 'if_required',
       success_url: `${baseUrl}/?checkout=success`,
@@ -125,15 +132,15 @@ router.post('/:id/portal', async (req, res) => {
   }
 });
 
-// POST /api/clients/:id/reset-stripe — efface le Customer/Subscription Stripe
-// lié à ce client (sans rien supprimer côté Stripe). Utile après un test, ou
-// si un client veut repartir de zéro sur un nouvel abonnement.
+// POST /api/clients/:id/reset-stripe — détache le Customer/Subscription Stripe
+// de ce client (rien n'est supprimé côté Stripe). Utile après un test, ou si un
+// client veut repartir de zéro sur un nouvel abonnement.
 router.post('/:id/reset-stripe', (req, res) => {
   const client = db.get('SELECT id FROM clients WHERE id = ?', [req.params.id]);
   if (!client) return res.status(404).json({ error: 'Client introuvable' });
 
   db.run(
-    `UPDATE clients SET stripe_customer_id = NULL, stripe_subscription_id = NULL, updated_at = datetime('now') WHERE id = ?`,
+    `UPDATE clients SET stripe_customer_id = NULL, stripe_subscription_id = NULL, stripe_inactif_depuis = NULL, updated_at = datetime('now') WHERE id = ?`,
     [req.params.id]
   );
   res.json(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]));

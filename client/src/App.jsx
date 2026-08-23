@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import FicheEmploye from './pages/FicheEmploye';
 import Nouveautes from './pages/Nouveautes';
 import Support from './pages/Support';
+import AbonnementBloque from './pages/AbonnementBloque';
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
@@ -55,6 +56,7 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<ProfilePickerRoute />} />
+              <Route path="/abonnement-bloque" element={<AbonnementBloque />} />
               <Route path="/*"     element={<ProtectedRoutes />} />
             </Routes>
           </BrowserRouter>

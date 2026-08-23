@@ -50,6 +50,8 @@ const ticketsRouter = require('./routes/tickets');
 const changelogRouter = require('./routes/changelog');
 const preferencesRouter = require('./routes/preferences');
 const { scheduleDailyBackup } = require('./lib/backup');
+const { scheduleStatusPolling } = require('./lib/subscriptionStatus');
+const { requireSubscriptionActive } = require('./middleware/subscriptionGate');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -73,6 +75,16 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Blocage global une fois le délai de grâce écoulé (voir subscriptionGate.js) —
+// posé ici, avant tous les montages de routes, pour couvrir même celles qui
+// gèrent leur authentification elles-mêmes plus bas (formation, documents...).
+// /health, /config et /auth restent toujours accessibles : la configuration
+// publique et la connexion elle-même ne doivent jamais être bloquées.
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/health') || req.path.startsWith('/config') || req.path.startsWith('/auth')) return next();
+  requireSubscriptionActive(req, res, next);
+});
 
 // Routes publiques
 app.use('/api/health', healthRouter);
@@ -127,6 +139,7 @@ function startServer(retry = 0) {
   const server = app.listen(PORT, () => {
     console.log(`🚀 Flyder — http://localhost:${PORT}`);
     scheduleDailyBackup();
+    scheduleStatusPolling();
   });
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE' && retry < 3) {

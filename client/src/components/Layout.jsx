@@ -99,7 +99,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, tick
 
 export default function Layout({ children }) {
   const { user, switchProfile } = useAuth();
-  const { salleNom } = useConfig();
+  const { salleNom, abonnementAvertissement, abonnementJoursRestants } = useConfig();
   const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
   const { count: changelogNonLus } = useChangelogUnread(!!user);
   useIdleLogout(!!user);
@@ -147,7 +147,12 @@ export default function Layout({ children }) {
             Lecture seule depuis cet accès — connecte-toi depuis la salle ou avec un compte manager pour modifier.
           </div>
         )}
-        <main className={`flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 ${!restricted ? 'mt-14 lg:mt-0' : ''}`}>
+        {abonnementAvertissement && (
+          <div className={`bg-red-50 border-b border-red-200 text-red-800 text-xs sm:text-sm text-center py-1.5 px-4 ${!restricted ? 'mt-14 lg:mt-0' : ''}`}>
+            Abonnement Flyder impayé — l'application sera inaccessible dans {abonnementJoursRestants} jour{abonnementJoursRestants > 1 ? 's' : ''} si la situation n'est pas régularisée.
+          </div>
+        )}
+        <main className={`flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 ${!restricted && !abonnementAvertissement ? 'mt-14 lg:mt-0' : ''}`}>
           <div key={location.pathname} className="motion-safe:animate-pageIn">
             {children}
           </div>

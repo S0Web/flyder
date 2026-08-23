@@ -12,6 +12,7 @@ const ticketsRouter    = require('./routes/tickets');
 const gymTicketsRouter = require('./routes/gymTickets');
 const changelogRouter    = require('./routes/changelog');
 const gymChangelogRouter = require('./routes/gymChangelog');
+const gymStatusRouter    = require('./routes/gymStatus');
 const stripeWebhookRouter = require('./routes/stripeWebhook');
 const { scheduleDailyBackup } = require('./lib/backup');
 
@@ -38,6 +39,7 @@ app.use('/api/tickets', requireAuth, ticketsRouter);
 app.use('/api/gym/tickets', requireClientApiKey, gymTicketsRouter);
 app.use('/api/changelog', requireAuth, changelogRouter);
 app.use('/api/gym/changelog', requireClientApiKey, gymChangelogRouter);
+app.use('/api/gym/status', requireClientApiKey, gymStatusRouter);
 
 const clientDist = path.join(__dirname, '../public');
 app.use(express.static(clientDist));

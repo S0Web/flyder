@@ -69,6 +69,10 @@ tryAlter('ALTER TABLE clients ADD COLUMN api_key_hash TEXT');
 // juste facturé à 0€ jusqu'à expiration du coupon).
 tryAlter('ALTER TABLE clients ADD COLUMN stripe_customer_id TEXT');
 tryAlter('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
+// Date depuis laquelle le client est en défaut de paiement (suspendu/résilié) en
+// continu — sert de point de départ au délai de grâce avant blocage de l'app.
+// NULL tant qu'il est à jour ; remis à NULL dès qu'il redevient actif.
+tryAlter('ALTER TABLE clients ADD COLUMN stripe_inactif_depuis TEXT');
 
 // ─── Tickets de support (un inbox unique pour toutes les salles) ───────────────
 db.run(`
