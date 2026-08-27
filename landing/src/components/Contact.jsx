@@ -25,16 +25,24 @@ export default function Contact() {
   async function envoyer(e) {
     e.preventDefault();
     setStatut('envoi');
+    // Sans délai limite, une requête qui ne reçoit jamais de réponse (backend
+    // qui bloque, proxy muet) laisse le bouton bloqué sur "Envoi en cours"
+    // indéfiniment — on abandonne et on affiche une erreur après 15s.
+    const controller = new AbortController();
+    const delai = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch(LEADS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nom, email, objet, message, site }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error('Échec envoi');
       setStatut('ok');
     } catch {
       setStatut('erreur');
+    } finally {
+      clearTimeout(delai);
     }
   }
 

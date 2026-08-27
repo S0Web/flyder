@@ -14,6 +14,12 @@ function getTransporter() {
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+      // Sans ça, une connexion SMTP sortante bloquée par l'hébergeur (port
+      // filtré, paquets silencieusement ignorés) fait attendre l'appelant
+      // indéfiniment au lieu d'échouer proprement.
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
   return transporter;
