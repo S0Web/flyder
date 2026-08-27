@@ -36,7 +36,7 @@ function prettyDetails(details) {
 export default function Settings() {
   const navigate = useNavigate();
   const { user: me } = useAuth();
-  const { salleNom, corbeilHistoriqueImporte, refetch: refetchConfig } = useConfig();
+  const { salleNom } = useConfig();
   const toast = useToast();
   const isManager = me?.role === 'manager';
   const [tab, setTab]     = useState('profil');
@@ -239,40 +239,6 @@ export default function Settings() {
             </tbody>
           </table>
           </div>
-
-          {/* Import ponctuel de l'historique Ballancourt — visible uniquement sur cette instance */}
-          {salleNom === 'Ballancourt-sur-Essonne' && (
-            <div className="mt-6 text-right">
-              <button onClick={handleSeedBallancourt} disabled={seedingBallancourt}
-                className="text-xs text-gray-400 hover:text-gray-600 hover:underline disabled:opacity-50">
-                {seedingBallancourt ? 'Import…' : "⬇ Importer l'historique Ballancourt (cours, coachs, séances, planning personnel)"}
-              </button>
-              {seedBallancourtResult && (
-                <div className={`text-xs mt-1 ${seedBallancourtResult.ok ? 'text-green-600' : 'text-red-500'}`}>
-                  {seedBallancourtResult.ok ? '' : 'Erreur : '}{seedBallancourtResult.message}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Import ponctuel de l'historique Corbeil (juin 2024 - août 2025) — visible
-              uniquement sur cette instance ; le bouton disparaît une fois l'import
-              effectué, mais le résultat reste affiché le temps de la session */}
-          {salleNom === 'Corbeil-Essonnes' && (!corbeilHistoriqueImporte || seedCorbeilResult) && (
-            <div className="mt-6 text-right">
-              {!corbeilHistoriqueImporte && (
-                <button onClick={handleSeedCorbeil} disabled={seedingCorbeil}
-                  className="text-xs text-gray-400 hover:text-gray-600 hover:underline disabled:opacity-50">
-                  {seedingCorbeil ? 'Import…' : "⬇ Importer l'historique des cours (juin 2024 - août 2025)"}
-                </button>
-              )}
-              {seedCorbeilResult && (
-                <div className={`text-xs mt-1 ${seedCorbeilResult.ok ? 'text-green-600' : 'text-red-500'}`}>
-                  {seedCorbeilResult.ok ? '' : 'Erreur : '}{seedCorbeilResult.message}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Données de démo — visible uniquement sur l'instance "Demo-Portfolio" dédiée,
               jamais sur une vraie salle. Permet de régénérer un jeu de données 100%
