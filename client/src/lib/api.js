@@ -268,4 +268,19 @@ export const api = {
     a.remove();
     URL.revokeObjectURL(url);
   },
+  importDatabase: async (file) => {
+    const token = getToken();
+    const body = new FormData();
+    body.append('fichier', file);
+    const res = await fetch(`${BASE}/admin/backup/import`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    return res.json();
+  },
 };

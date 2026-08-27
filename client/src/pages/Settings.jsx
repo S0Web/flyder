@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Download } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
@@ -46,8 +46,6 @@ export default function Settings() {
   const [auditFilters, setAuditFilters] = useState({ action: '', user_id: '', from: '', to: '', order: 'desc' });
   const [modal, setModal] = useState(null);
   const [importModal, setImportModal] = useState(false);
-  const [backing, setBacking] = useState(false);
-  const [backupError, setBackupError] = useState(null);
   const [seedingDemo, setSeedingDemo] = useState(false);
   const [seedDemoResult, setSeedDemoResult] = useState(null);
 
@@ -114,20 +112,6 @@ export default function Settings() {
       toast.success('Profil supprimé');
     } catch (e) {
       toast.error('Échec : ' + e.message);
-    }
-  }
-
-  async function handleBackup() {
-    setBacking(true);
-    setBackupError(null);
-    try {
-      await api.downloadBackup();
-      toast.success('Sauvegarde téléchargée');
-    } catch (e) {
-      setBackupError(e.message);
-      toast.error('Échec de la sauvegarde : ' + e.message);
-    } finally {
-      setBacking(false);
     }
   }
 
@@ -256,15 +240,6 @@ export default function Settings() {
               )}
             </div>
           )}
-
-          {/* Sauvegarde */}
-          <div className="mt-6 text-right">
-            <button onClick={handleBackup} disabled={backing}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 hover:underline disabled:opacity-50">
-              <Download className="h-3.5 w-3.5" /> {backing ? 'Préparation…' : 'Télécharger une sauvegarde de la base'}
-            </button>
-            {backupError && <div className="text-xs text-red-500 mt-1">Erreur : {backupError}</div>}
-          </div>
         </div>
       )}
 

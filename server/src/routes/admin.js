@@ -1,5 +1,9 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const multer = require('multer');
+const { Database } = require('node-sqlite3-wasm');
 const router = express.Router();
 const { requireManager } = require('../middleware/auth');
 const { run: importPersonnelHistorique } = require('../db/seedPersonnel');
@@ -84,6 +88,49 @@ router.get('/backup', requireManager, (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+const uploadDb = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: 200 * 1024 * 1024 },
+});
+
+// POST /api/admin/backup/import — remplace la base live par le fichier envoyé.
+// Opération destructive : une sauvegarde de sécurité automatique du fichier
+// actuel est prise juste avant le remplacement (en plus de celle que le manager
+// est invité à télécharger lui-même côté client). Le fichier étant ouvert en
+// permanence par ce process, on ne peut pas le remplacer "à chaud" proprement —
+// on force donc un redémarrage juste après : le prochain démarrage relira la
+// nouvelle base depuis zéro.
+router.post('/backup/import', requireManager, uploadDb.single('fichier'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu' });
+  const uploadedPath = req.file.path;
+
+  try {
+    const testDb = new Database(uploadedPath);
+    const check = testDb.get("SELECT name FROM sqlite_master WHERE type='table' AND name='app_users'");
+    testDb.close();
+    if (!check) {
+      fs.unlinkSync(uploadedPath);
+      return res.status(400).json({ error: "Ce fichier ne ressemble pas à une base Flyder valide (table \"app_users\" introuvable)." });
+    }
+  } catch (e) {
+    try { fs.unlinkSync(uploadedPath); } catch { /* déjà nettoyé */ }
+    return res.status(400).json({ error: `Fichier invalide : ${e.message}` });
+  }
+
+  try {
+    db.run('PRAGMA wal_checkpoint(TRUNCATE)');
+    fs.copyFileSync(DB_PATH, `${DB_PATH}.avant-import-${Date.now()}`);
+    fs.copyFileSync(uploadedPath, DB_PATH);
+    fs.unlinkSync(uploadedPath);
+  } catch (e) {
+    return res.status(500).json({ error: `Échec du remplacement : ${e.message}` });
+  }
+
+  res.json({ ok: true, message: 'Import réussi, redémarrage du service en cours…' });
+  console.log('⚙️  Base remplacée via import manuel — redémarrage volontaire du process.');
+  setTimeout(() => process.exit(1), 300);
 });
 
 module.exports = router;
