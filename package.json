@@ -6,13 +6,15 @@
     "server",
     "client",
     "admin-server",
-    "admin-client"
+    "admin-client",
+    "landing"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
     "dev:server": "npm run dev --workspace=server",
     "dev:client": "npm run dev --workspace=client",
     "dev:admin": "concurrently \"npm run dev --workspace=admin-server\" \"npm run dev --workspace=admin-client\"",
+    "dev:landing": "npm run dev --workspace=landing",
     "install:all": "npm install"
   },
   "devDependencies": {

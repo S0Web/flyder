@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-cream text-gray-900 font-sans antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+}
