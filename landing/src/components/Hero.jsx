@@ -34,10 +34,16 @@ function ProductCarousel() {
           <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
           <span className="ml-3 text-xs text-gray-400 font-medium">{SLIDES[index].label}</span>
         </div>
-        <div className="relative">
+        {/* Toutes les images restent superposées en position absolue en
+            permanence — seule l'opacité change, pour un vrai fondu enchaîné.
+            Alterner "block"/"absolute" comme avant changeait la mise en page
+            d'une frappe à l'autre, ce qui rendait la transition instantanée
+            malgré la classe transition-opacity. */}
+        <div className="relative w-full" style={{ aspectRatio: '1440 / 820' }}>
           {SLIDES.map((slide, i) => (
             <img key={slide.src} src={slide.src} alt={slide.label}
-              className={i === index ? 'w-full h-auto block' : 'w-full h-auto absolute inset-0 opacity-0 pointer-events-none'} />
+              className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-700 ease-in-out"
+              style={{ opacity: i === index ? 1 : 0 }} />
           ))}
         </div>
       </div>

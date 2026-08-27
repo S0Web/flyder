@@ -14,6 +14,7 @@ const changelogRouter    = require('./routes/changelog');
 const gymChangelogRouter = require('./routes/gymChangelog');
 const gymStatusRouter    = require('./routes/gymStatus');
 const stripeWebhookRouter = require('./routes/stripeWebhook');
+const leadsRouter = require('./routes/leads');
 const { scheduleDailyBackup } = require('./lib/backup');
 
 const app  = express();
@@ -40,6 +41,9 @@ app.use('/api/gym/tickets', requireClientApiKey, gymTicketsRouter);
 app.use('/api/changelog', requireAuth, changelogRouter);
 app.use('/api/gym/changelog', requireClientApiKey, gymChangelogRouter);
 app.use('/api/gym/status', requireClientApiKey, gymStatusRouter);
+// Public (pas de requireAuth) : appelée depuis le formulaire de contact de
+// flyder.fr, un site statique séparé sans notion d'utilisateur connecté.
+app.use('/api/leads', leadsRouter);
 
 const clientDist = path.join(__dirname, '../public');
 app.use(express.static(clientDist));

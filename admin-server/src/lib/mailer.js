@@ -38,4 +38,21 @@ async function envoyerNotificationTicket({ clientNom, auteurNom, message }) {
   }
 }
 
-module.exports = { envoyerNotificationTicket, isConfigured };
+// Contrairement à envoyerNotificationTicket, celle-ci propage l'erreur : ici
+// l'envoi EST l'action demandée (le formulaire de contact de la landing page),
+// donc l'appelant doit savoir si ça a échoué pour prévenir le visiteur plutôt
+// que de lui faire croire que sa demande est bien partie.
+async function envoyerLead({ nom, email, objet, message }) {
+  if (!isConfigured()) {
+    throw new Error('Mailer non configuré (GMAIL_USER/GMAIL_APP_PASSWORD manquants)');
+  }
+  await getTransporter().sendMail({
+    from: `Flyder <${process.env.GMAIL_USER}>`,
+    to: process.env.GMAIL_USER,
+    replyTo: email,
+    subject: `[Flyder — Contact] ${objet}`,
+    text: `Nouvelle demande depuis la landing page flyder.fr\n\nNom : ${nom}\nEmail : ${email}\n\n${message}`,
+  });
+}
+
+module.exports = { envoyerNotificationTicket, envoyerLead, isConfigured };
