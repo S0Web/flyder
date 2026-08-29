@@ -1,31 +1,56 @@
-import { ArrowRight, Calendar, Users, Receipt, BarChart3, LifeBuoy } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { ArrowRight, Calendar, BarChart3, Users } from 'lucide-react';
 import posterScreenshot from '../assets/screenshot-analyse.png';
 import tourMp4 from '../assets/tour-flyder.mp4';
 import tourWebm from '../assets/tour-flyder.webm';
 
-const NAV_ITEMS = [
-  { icon: Calendar, label: 'Planning', active: true },
-  { icon: Users, label: 'Coachs' },
-  { icon: Receipt, label: 'Facturation' },
-  { icon: BarChart3, label: 'Analyse' },
-  { icon: LifeBuoy, label: 'Support' },
+// Bornes (en secondes, dans la vidéo déjà rognée) de chaque section du tour
+// enregistré — mesurées image par image sur l'enregistrement source, pas
+// des estimations. Sert à faire avancer la jauge de la barre flottante en
+// vrai temps réel sur la lecture de la vidéo plutôt qu'à l'aveugle.
+const SEGMENTS = [
+  { icon: Calendar, label: 'Planning', start: 0, end: 3.4 },
+  { icon: BarChart3, label: 'Analyse', start: 3.4, end: 8.1 },
+  { icon: Users, label: 'Coachs', start: 8.1, end: 10.28 },
 ];
 
-// Barre flottante purement décorative (aucune des icônes n'est cliquable) —
-// reprend l'esprit "chrome d'appli" des captures produit façon Railway,
-// posée par-dessus la vidéo plutôt que dans le flux normal de la page.
-function FloatingNavBar() {
+// Barre flottante purement décorative (rien n'est cliquable) — reprend
+// l'esprit "chrome d'appli" façon Railway, avec une jauge par section qui se
+// remplit en suivant la lecture réelle de la vidéo (comme des stories).
+function FloatingNavBar({ videoRef }) {
+  const fillRefs = useRef([]);
+  const textRefs = useRef([]);
+
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const video = videoRef.current;
+      if (video) {
+        const t = video.currentTime;
+        SEGMENTS.forEach((seg, i) => {
+          const frac = t >= seg.end ? 1 : t < seg.start ? 0 : (t - seg.start) / (seg.end - seg.start);
+          if (fillRefs.current[i]) fillRefs.current[i].style.width = `${frac * 100}%`;
+          if (textRefs.current[i]) textRefs.current[i].style.color = frac > 0 ? '#fff' : 'rgba(255,255,255,0.5)';
+        });
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [videoRef]);
+
   return (
     <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
       <div className="flex items-center gap-1 rounded-full bg-brand-ink/85 backdrop-blur-sm px-1.5 py-1.5 shadow-xl shadow-black/20 border border-white/10">
-        {NAV_ITEMS.map(({ icon: Icon, label, active }) => (
-          <div key={label}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              active ? 'text-white' : 'text-white/50'
-            }`}
-            style={active ? { backgroundColor: '#3D5AFE' } : undefined}>
-            <Icon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{label}</span>
+        {SEGMENTS.map(({ icon: Icon, label }, i) => (
+          <div key={label} className="relative overflow-hidden rounded-full">
+            <div ref={(el) => { fillRefs.current[i] = el; }}
+              className="absolute inset-y-0 left-0 rounded-full" style={{ width: '0%', backgroundColor: '#3D5AFE' }} />
+            <div ref={(el) => { textRefs.current[i] = el; }}
+              className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <Icon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{label}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -34,6 +59,7 @@ function FloatingNavBar() {
 }
 
 function ProductTour() {
+  const videoRef = useRef(null);
   return (
     <div className="relative max-w-5xl mx-auto">
       <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-brand-ink/20 border border-black/10 bg-white">
@@ -45,13 +71,14 @@ function ProductTour() {
         </div>
         <div className="relative w-full" style={{ aspectRatio: '1440 / 820' }}>
           <video
+            ref={videoRef}
             className="absolute inset-0 w-full h-full object-cover object-top"
             poster={posterScreenshot}
             autoPlay loop muted playsInline preload="auto">
             <source src={tourWebm} type="video/webm" />
             <source src={tourMp4} type="video/mp4" />
           </video>
-          <FloatingNavBar />
+          <FloatingNavBar videoRef={videoRef} />
         </div>
       </div>
     </div>
