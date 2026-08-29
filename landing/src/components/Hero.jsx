@@ -1,17 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { ArrowRight, Calendar, BarChart3, Users } from 'lucide-react';
-import posterScreenshot from '../assets/screenshot-analyse.png';
+import posterScreenshot from '../assets/poster-tour.jpg';
 import tourMp4 from '../assets/tour-flyder.mp4';
 import tourWebm from '../assets/tour-flyder.webm';
 
-// Bornes (en secondes, dans la vidéo déjà rognée) de chaque section du tour
-// enregistré — mesurées image par image sur l'enregistrement source, pas
-// des estimations. Sert à faire avancer la jauge de la barre flottante en
-// vrai temps réel sur la lecture de la vidéo plutôt qu'à l'aveugle.
+// Bornes (en secondes) de chaque section du tour — vidéo composée de 3
+// captures d'écran réelles (pas des enregistrements synthétiques) découpées
+// et mises bout à bout : Planning 0-7s, Analyse 7-14s, Coachs 14-20s.
 const SEGMENTS = [
-  { icon: Calendar, label: 'Planning', start: 0, end: 3.4 },
-  { icon: BarChart3, label: 'Analyse', start: 3.4, end: 8.1 },
-  { icon: Users, label: 'Coachs', start: 8.1, end: 10.28 },
+  { icon: Calendar, label: 'Planning', start: 0, end: 7 },
+  { icon: BarChart3, label: 'Analyse', start: 7, end: 14 },
+  { icon: Users, label: 'Coachs', start: 14, end: 20 },
 ];
 
 // Barre flottante purement décorative (rien n'est cliquable) — reprend
@@ -69,7 +68,7 @@ function ProductTour() {
           <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
           <span className="ml-3 text-xs text-gray-400 font-medium">Flyder en conditions réelles</span>
         </div>
-        <div className="relative w-full" style={{ aspectRatio: '1440 / 820' }}>
+        <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
           <video
             ref={videoRef}
             className="absolute inset-0 w-full h-full object-cover object-top"
