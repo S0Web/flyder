@@ -1,7 +1,37 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar, Users, Receipt, BarChart3, LifeBuoy } from 'lucide-react';
 import posterScreenshot from '../assets/screenshot-analyse.png';
 import tourMp4 from '../assets/tour-flyder.mp4';
 import tourWebm from '../assets/tour-flyder.webm';
+
+const NAV_ITEMS = [
+  { icon: Calendar, label: 'Planning', active: true },
+  { icon: Users, label: 'Coachs' },
+  { icon: Receipt, label: 'Facturation' },
+  { icon: BarChart3, label: 'Analyse' },
+  { icon: LifeBuoy, label: 'Support' },
+];
+
+// Barre flottante purement décorative (aucune des icônes n'est cliquable) —
+// reprend l'esprit "chrome d'appli" des captures produit façon Railway,
+// posée par-dessus la vidéo plutôt que dans le flux normal de la page.
+function FloatingNavBar() {
+  return (
+    <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
+      <div className="flex items-center gap-1 rounded-full bg-brand-ink/85 backdrop-blur-sm px-1.5 py-1.5 shadow-xl shadow-black/20 border border-white/10">
+        {NAV_ITEMS.map(({ icon: Icon, label, active }) => (
+          <div key={label}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              active ? 'text-white' : 'text-white/50'
+            }`}
+            style={active ? { backgroundColor: '#3D5AFE' } : undefined}>
+            <Icon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ProductTour() {
   return (
@@ -21,6 +51,7 @@ function ProductTour() {
             <source src={tourWebm} type="video/webm" />
             <source src={tourMp4} type="video/mp4" />
           </video>
+          <FloatingNavBar />
         </div>
       </div>
     </div>
