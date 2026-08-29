@@ -1,30 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import screenshotAnalyse from '../assets/screenshot-analyse.png';
-import screenshotPlanning from '../assets/screenshot-planning.png';
-import screenshotRecap from '../assets/screenshot-recap.png';
+import { ArrowRight } from 'lucide-react';
+import posterScreenshot from '../assets/screenshot-analyse.png';
+import tourMp4 from '../assets/tour-flyder.mp4';
+import tourWebm from '../assets/tour-flyder.webm';
 
-const DELAI_MS = 4000;
-const SLIDES = [
-  { src: screenshotAnalyse, label: 'Analyse & statistiques' },
-  { src: screenshotPlanning, label: 'Planning des cours' },
-  { src: screenshotRecap, label: 'Récapitulatif des coachs' },
-];
-
-function ProductCarousel() {
-  const [index, setIndex] = useState(0);
-
-  const next = useCallback(() => setIndex(i => (i + 1) % SLIDES.length), []);
-  const prev = useCallback(() => setIndex(i => (i - 1 + SLIDES.length) % SLIDES.length), []);
-
-  // Le minuteur repart de zéro à chaque changement (auto ou manuel) : cliquer
-  // une flèche redonne les 4 secondes complètes, plutôt que d'enchaîner tout
-  // de suite sur le défilement automatique déjà en cours.
-  useEffect(() => {
-    const id = setInterval(next, DELAI_MS);
-    return () => clearInterval(id);
-  }, [index, next]);
-
+function ProductTour() {
   return (
     <div className="relative max-w-5xl mx-auto">
       <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-brand-ink/20 border border-black/10 bg-white">
@@ -32,37 +11,17 @@ function ProductCarousel() {
           <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-          <span className="ml-3 text-xs text-gray-400 font-medium">{SLIDES[index].label}</span>
+          <span className="ml-3 text-xs text-gray-400 font-medium">Flyder en conditions réelles</span>
         </div>
-        {/* Toutes les images restent superposées en position absolue en
-            permanence — seule l'opacité change, pour un vrai fondu enchaîné.
-            Alterner "block"/"absolute" comme avant changeait la mise en page
-            d'une frappe à l'autre, ce qui rendait la transition instantanée
-            malgré la classe transition-opacity. */}
         <div className="relative w-full" style={{ aspectRatio: '1440 / 820' }}>
-          {SLIDES.map((slide, i) => (
-            <img key={slide.src} src={slide.src} alt={slide.label}
-              className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-700 ease-in-out"
-              style={{ opacity: i === index ? 1 : 0 }} />
-          ))}
+          <video
+            className="absolute inset-0 w-full h-full object-cover object-top"
+            poster={posterScreenshot}
+            autoPlay loop muted playsInline preload="auto">
+            <source src={tourWebm} type="video/webm" />
+            <source src={tourMp4} type="video/mp4" />
+          </video>
         </div>
-      </div>
-
-      <button onClick={prev} aria-label="Image précédente"
-        className="absolute left-2 sm:-left-5 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-lg border border-black/5 flex items-center justify-center text-brand-ink hover:bg-gray-50 transition-colors">
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button onClick={next} aria-label="Image suivante"
-        className="absolute right-2 sm:-right-5 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-lg border border-black/5 flex items-center justify-center text-brand-ink hover:bg-gray-50 transition-colors">
-        <ChevronRight className="h-5 w-5" />
-      </button>
-
-      <div className="flex items-center justify-center gap-2 mt-5">
-        {SLIDES.map((slide, i) => (
-          <button key={slide.src} onClick={() => setIndex(i)} aria-label={`Voir ${slide.label}`}
-            className="h-2 rounded-full transition-all"
-            style={{ width: i === index ? '1.5rem' : '0.5rem', backgroundColor: i === index ? '#3D5AFE' : 'rgba(18,22,43,0.15)' }} />
-        ))}
       </div>
     </div>
   );
@@ -107,7 +66,7 @@ export default function Hero() {
         </div>
 
         <div className="mt-16 sm:mt-20 motion-safe:animate-fadeInUp" style={{ animationDelay: '260ms' }}>
-          <ProductCarousel />
+          <ProductTour />
         </div>
       </div>
     </section>
