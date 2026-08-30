@@ -39,6 +39,10 @@ export default function Contact() {
       });
       if (!res.ok) throw new Error('Échec envoi');
       setStatut('ok');
+      // "generate_lead" est le nom d'événement recommandé par GA4 pour ce
+      // type de conversion — permet à GTM/GA4 de le traiter comme un
+      // événement standard sans configuration supplémentaire côté mapping.
+      window.dataLayer?.push({ event: 'generate_lead' });
     } catch {
       setStatut('erreur');
     } finally {
