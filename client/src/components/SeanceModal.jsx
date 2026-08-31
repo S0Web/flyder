@@ -17,7 +17,7 @@ function toTimeInput(h) {
   return h;
 }
 
-export default function SeanceModal({ seance, coaches, coursTypes, appUsers = [], onSave, onClose, onCoursCreated }) {
+export default function SeanceModal({ seance, coaches, coursTypes, appUsers = [], onSave, onClose, onCoursCreated, aquaActive = true }) {
   const [form, setForm] = useState({
     statut:           seance?.statut           || 'programme',
     nb_presents:      seance?.nb_presents       ?? '',
@@ -97,6 +97,7 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
               coursTypes={coursTypes}
               onChange={v => set('cours_type_id', v)}
               onCreated={onCoursCreated}
+              aquaActive={aquaActive}
             />
           </div>
 

@@ -4,6 +4,7 @@ import {
   Sparkles, TrendingUp, Clock, Dumbbell, Users, ShieldAlert,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { usePreferences } from '../lib/usePreferences';
 import {
   getAcademicYear, periodeLabel, previousPeriodRange, fmtDateFr, ANNEES_DISPONIBLES,
 } from '../lib/periodes';
@@ -69,6 +70,9 @@ function Segmented({ value, onChange, options, size = 'sm' }) {
 }
 
 export default function Analyse() {
+  const { prefs } = usePreferences();
+  const aquaActive = prefs ? prefs.aqua_active !== '0' : true;
+
   const [periodeMode, setPeriodeMode]     = useState('scolaire');
   const [anneeScolaire, setAnneeScolaire] = useState(() => getAcademicYear().year);
   const [plageDebut, setPlageDebut]       = useState(() => getAcademicYear().debut);
@@ -298,16 +302,19 @@ export default function Analyse() {
             </div>
           )}
 
-          <span className="w-px h-6 bg-gray-200 mx-1 hidden sm:block" />
-
-          <Segmented
-            value={categorie} onChange={setCategorie} size="md"
-            options={[
-              { value: '',        label: 'Tous les cours' },
-              { value: 'aqua',    label: 'Aqua' },
-              { value: 'fitness', label: 'Fitness' },
-            ]}
-          />
+          {aquaActive && (
+            <>
+              <span className="w-px h-6 bg-gray-200 mx-1 hidden sm:block" />
+              <Segmented
+                value={categorie} onChange={setCategorie} size="md"
+                options={[
+                  { value: '',        label: 'Tous les cours' },
+                  { value: 'aqua',    label: 'Aqua' },
+                  { value: 'fitness', label: 'Fitness' },
+                ]}
+              />
+            </>
+          )}
 
           <div className="flex-1" />
 
@@ -366,7 +373,7 @@ export default function Analyse() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <ChartCard
-            className="xl:col-span-2"
+            className={aquaActive ? 'xl:col-span-2' : 'xl:col-span-3'}
             title="Comment la fréquentation évolue-t-elle&nbsp;?"
             hint="Choisis la mesure à suivre. Une courbe qui monte régulièrement = activité en croissance ; des creux marqués correspondent souvent aux vacances scolaires."
             actions={<Segmented value={metrique} onChange={setMetrique}
@@ -384,27 +391,29 @@ export default function Analyse() {
             />
           </ChartCard>
 
-          <ChartCard
-            title="Aqua ou Fitness&nbsp;: qui tire l'activité&nbsp;?"
-            hint="Participants par mois dans chaque univers. Un écart qui se creuse indique où se déplace la demande."
-            legend={<>
-              <LegendItem color={VIZ.aqua} label="Aqua" />
-              <LegendItem color={VIZ.fitness} label="Fitness" />
-            </>}
-            table={{
-              head: ['Mois', 'Aqua', 'Fitness'],
-              rows: serieCategorie.map(r => [r.label, fmtInt(r.aqua), fmtInt(r.fitness)]),
-            }}
-          >
-            <LineChart
-              data={serieCategorie}
-              series={[
-                { key: 'aqua', label: 'Aqua', color: VIZ.aqua },
-                { key: 'fitness', label: 'Fitness', color: VIZ.fitness },
-              ]}
-              height={250}
-            />
-          </ChartCard>
+          {aquaActive && (
+            <ChartCard
+              title="Aqua ou Fitness&nbsp;: qui tire l'activité&nbsp;?"
+              hint="Participants par mois dans chaque univers. Un écart qui se creuse indique où se déplace la demande."
+              legend={<>
+                <LegendItem color={VIZ.aqua} label="Aqua" />
+                <LegendItem color={VIZ.fitness} label="Fitness" />
+              </>}
+              table={{
+                head: ['Mois', 'Aqua', 'Fitness'],
+                rows: serieCategorie.map(r => [r.label, fmtInt(r.aqua), fmtInt(r.fitness)]),
+              }}
+            >
+              <LineChart
+                data={serieCategorie}
+                series={[
+                  { key: 'aqua', label: 'Aqua', color: VIZ.aqua },
+                  { key: 'fitness', label: 'Fitness', color: VIZ.fitness },
+                ]}
+                height={250}
+              />
+            </ChartCard>
+          )}
         </div>
 
         {/* ══ 3. Fréquentation ════════════════════════════════════ */}
@@ -464,6 +473,7 @@ export default function Analyse() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
           <ChartCard
+            className={aquaActive ? undefined : 'lg:col-span-2'}
             title="Les séances sont-elles bien remplies&nbsp;?"
             hint="Répartition des séances par nombre de participants. Une moyenne de 10 peut cacher « toujours 10 » comme « moitié vides, moitié pleines » — c'est ce graphique qui tranche."
             table={{
@@ -474,30 +484,32 @@ export default function Analyse() {
             <ColumnChart data={distribution} color={VIZ.aqua} height={200} />
           </ChartCard>
 
-          <ChartCard
-            title="Aqua / Fitness — la part de chacun"
-            hint="Répartition des participants sur la période."
-            table={{
-              head: ['Univers', 'Participants', 'Séances', 'Effectif moyen'],
-              rows: categories.map(c => [CAT_LABEL[c.categorie], fmtInt(c.participants), fmtInt(c.effectues), fmtDec(c.effectif_moyen)]),
-            }}
-          >
-            <div className="pt-2">
-              <SplitBar segments={segments} />
-              <div className="grid grid-cols-2 gap-3 mt-5">
-                {categories.map(c => (
-                  <div key={c.categorie} className="rounded-lg border border-gray-100 p-3">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: CAT_COLOR[c.categorie] }} />
-                      {CAT_LABEL[c.categorie]}
+          {aquaActive && (
+            <ChartCard
+              title="Aqua / Fitness — la part de chacun"
+              hint="Répartition des participants sur la période."
+              table={{
+                head: ['Univers', 'Participants', 'Séances', 'Effectif moyen'],
+                rows: categories.map(c => [CAT_LABEL[c.categorie], fmtInt(c.participants), fmtInt(c.effectues), fmtDec(c.effectif_moyen)]),
+              }}
+            >
+              <div className="pt-2">
+                <SplitBar segments={segments} />
+                <div className="grid grid-cols-2 gap-3 mt-5">
+                  {categories.map(c => (
+                    <div key={c.categorie} className="rounded-lg border border-gray-100 p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                        <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: CAT_COLOR[c.categorie] }} />
+                        {CAT_LABEL[c.categorie]}
+                      </div>
+                      <div className="text-lg font-extrabold text-brand-ink mt-1">{fmtDec(c.effectif_moyen)}</div>
+                      <div className="text-[11px] text-gray-500">pers./séance · {fmtInt(c.effectues)} séances</div>
                     </div>
-                    <div className="text-lg font-extrabold text-brand-ink mt-1">{fmtDec(c.effectif_moyen)}</div>
-                    <div className="text-[11px] text-gray-500">pers./séance · {fmtInt(c.effectues)} séances</div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </ChartCard>
+            </ChartCard>
+          )}
         </div>
 
         {/* ══ 4. Cours ════════════════════════════════════════════ */}
@@ -508,8 +520,10 @@ export default function Analyse() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard
             title="Les cours qui rassemblent le plus"
-            hint="Total de participants sur la période. La couleur indique l'univers : bleu pour l'aqua, corail pour le fitness."
-            legend={<>
+            hint={aquaActive
+              ? "Total de participants sur la période. La couleur indique l'univers : bleu pour l'aqua, corail pour le fitness."
+              : 'Total de participants sur la période.'}
+            legend={aquaActive && <>
               <LegendItem color={VIZ.aqua} label="Aqua" shape="square" />
               <LegendItem color={VIZ.fitness} label="Fitness" shape="square" />
             </>}
@@ -525,7 +539,7 @@ export default function Analyse() {
           <ChartCard
             title="Quels cours programmer davantage&nbsp;?"
             hint="Chaque point est un cours (3 séances minimum). En haut à gauche : peu programmés mais toujours pleins — les meilleurs candidats à un créneau de plus. En bas à droite : souvent programmés mais peu remplis."
-            legend={<>
+            legend={aquaActive && <>
               <LegendItem color={VIZ.aqua} label="Aqua" shape="square" />
               <LegendItem color={VIZ.fitness} label="Fitness" shape="square" />
             </>}
@@ -558,7 +572,7 @@ export default function Analyse() {
 
           <ChartCard
             title="Qui remplit le mieux ses séances&nbsp;?"
-            hint="Effectif moyen par séance. À lire avec le nombre de séances : une moyenne élevée sur 3 séances ne vaut pas la même chose que sur 100. Le type de cours pèse aussi — un aquabike ne se remplit pas comme un pilates."
+            hint={`Effectif moyen par séance. À lire avec le nombre de séances : une moyenne élevée sur 3 séances ne vaut pas la même chose que sur 100. Le type de cours pèse aussi — un ${aquaActive ? 'aquabike' : 'crossfit'} ne se remplit pas comme un pilates.`}
             table={{
               head: ['Coach', 'Effectif moyen', 'Séances'],
               rows: [...coachs].filter(c => c.effectues >= 5 && c.effectif_moyen != null)

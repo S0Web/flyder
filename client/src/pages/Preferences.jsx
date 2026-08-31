@@ -174,13 +174,21 @@ export default function Preferences() {
 
       <div>
         <SectionTitle>Planning</SectionTitle>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
           <Field label="Acquisition des congés payés" hint="Nombre de jours acquis par mois complet de contrat (2,5 = légal standard).">
             <div className="flex items-center gap-2">
               <input type="number" step="0.1" min="0" className={`${INPUT_CLASS} max-w-[100px]`}
                 value={form.conges_taux_mensuel} onChange={e => set('conges_taux_mensuel', e.target.value)} />
               <span className="text-sm text-gray-500">jour(s) / mois</span>
             </div>
+          </Field>
+          <Field label="Cours Aqua"
+            hint="Décoche si la salle n'a pas de piscine : le choix Aqua/Fitness disparaît complètement (planning, analyse, fiches coachs), pas juste désactivé.">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={form.aqua_active === '1'}
+                onChange={e => set('aqua_active', e.target.checked ? '1' : '0')} className="rounded accent-sky-500" />
+              Activer les cours Aqua
+            </label>
           </Field>
         </div>
       </div>

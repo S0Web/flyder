@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
+import { usePreferences } from '../lib/usePreferences';
 import { DISCIPLINE_CONFIG, colorForUser, STATUT_CONFIG, CATEGORIE_CONFIG } from '../lib/utils';
 import CoachDocumentsSection from '../components/CoachDocumentsSection';
 
@@ -22,8 +23,8 @@ const MOIS_COURTS = {
 // Initiale affichée dans les puces discipline discrètes (mêmes couleurs que l'annuaire)
 const DISCIPLINE_LETTERS = { aqua: 'A', fitness: 'F', boxe: 'B', crosstraining: 'C', poledance: 'P' };
 
-function DisciplineBadges({ coach }) {
-  const actives = Object.keys(DISCIPLINE_LETTERS).filter(k => coach[k]);
+function DisciplineBadges({ coach, aquaActive = true }) {
+  const actives = Object.keys(DISCIPLINE_LETTERS).filter(k => (aquaActive || k !== 'aqua') && coach[k]);
   if (actives.length === 0) return null;
   return (
     <span className="flex items-center gap-0.5 flex-shrink-0">
@@ -173,7 +174,7 @@ function exportSeancesPdf({ coach, seances, periodeLabel, salleNom, salleAdresse
 
 // ── Modale coach ───────────────────────────────────────────────────────────────
 
-function CoachModal({ coach, onSave, onToggle, onDelete, onClose, isManager }) {
+function CoachModal({ coach, onSave, onToggle, onDelete, onClose, isManager, aquaActive = true }) {
   const isNew = !coach?.id;
   const [form, setForm] = useState({
     nom:           coach?.nom           || '',
@@ -268,7 +269,7 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose, isManager }) {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Discipline(s)</label>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {Object.entries(DISCIPLINE_CONFIG).map(([key, cfg]) => (
+              {Object.entries(DISCIPLINE_CONFIG).filter(([key]) => aquaActive || key !== 'aqua').map(([key, cfg]) => (
                 <label key={key} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
                   <input type="checkbox" checked={form[key]} onChange={e => set(key, e.target.checked)} className={`rounded ${cfg.accent}`} />
                   {cfg.label}
@@ -509,6 +510,8 @@ function CoachSeancesModal({ coach, periodeLabel, debut, fin, inclureEffectue, i
 export default function Coaches() {
   const { user: me } = useAuth();
   const isManager = me?.role === 'manager';
+  const { prefs } = usePreferences();
+  const aquaActive = prefs ? prefs.aqua_active !== '0' : true;
   const [recap, setRecap]       = useState(null);
   const [modal, setModal]       = useState(null);
   const [statsModal, setStatsModal] = useState(null);
@@ -643,7 +646,7 @@ export default function Coaches() {
                       <button onClick={() => setStatsModal(coach)} title={`${coach.prenom} ${coach.nom}`}
                         className="hover:underline text-left flex items-center gap-1 w-full" style={{ color: '#12162B' }}>
                         <span className="truncate">{coach.prenom} {coach.nom}</span>
-                        <DisciplineBadges coach={coach} />
+                        <DisciplineBadges coach={coach} aquaActive={aquaActive} />
                       </button>
                     </td>
                     {months.map(m => {
@@ -741,6 +744,7 @@ export default function Coaches() {
           onDelete={handleDelete}
           onClose={() => setModal(null)}
           isManager={isManager}
+          aquaActive={aquaActive}
         />
       )}
     </div>

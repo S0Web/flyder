@@ -57,7 +57,7 @@ const ROWS = [
 
 // ── Vue grille ─────────────────────────────────────────────────────────────────
 
-function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd, alerteSansCoachJours }) {
+function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd, alerteSansCoachJours, rows }) {
   return (
     <div className="overflow-x-auto -mx-4 md:mx-0">
       <table className="w-full border-collapse table-fixed min-w-[860px] mx-4 md:mx-0">
@@ -92,7 +92,7 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
         </thead>
 
         <tbody>
-          {ROWS.map(row => {
+          {rows.map(row => {
             const cat = CATEGORIE_CONFIG[row.categorie] || CATEGORIE_CONFIG.fitness;
             return (
             <tr key={row.id}>
@@ -263,6 +263,11 @@ export default function Planning() {
   const [filtreCours, setFiltreCours] = useState(() => new Set());
   const { prefs } = usePreferences();
   const alerteSansCoachJours = prefs ? parseInt(prefs.alerte_sans_coach_jours, 10) : Infinity;
+  // Tant que les préférences ne sont pas chargées, on part du principe qu'aqua
+  // est actif (comportement historique) pour éviter un flash "sans aqua" au
+  // chargement chez les salles qui l'ont bien.
+  const aquaActive = prefs ? prefs.aqua_active !== '0' : true;
+  const rows = useMemo(() => aquaActive ? ROWS : ROWS.filter(r => r.categorie !== 'aqua'), [aquaActive]);
 
   const semaine = getSemaine(lundi);
 
@@ -423,7 +428,7 @@ export default function Planning() {
             )}
           </div>
           <div className="max-h-56 overflow-y-auto px-3 pb-2 space-y-0.5">
-            {[['aqua', 'Aqua'], ['fitness', 'Fitness']].map(([cat, label]) => {
+            {(aquaActive ? [['aqua', 'Aqua'], ['fitness', 'Fitness']] : [['fitness', 'Fitness']]).map(([cat, label]) => {
               const items = coursTypesParCategorie[cat] || [];
               if (items.length === 0) return null;
               const tousCoches = items.every(ct => filtreCours.has(ct.id));
@@ -533,6 +538,7 @@ export default function Planning() {
             onDelete={handleDelete}
             onAdd={(iso) => setModal(`new:${iso}`)}
             alerteSansCoachJours={alerteSansCoachJours}
+            rows={rows}
           />
         )}
 
@@ -562,6 +568,7 @@ export default function Planning() {
           onSave={handleSave}
           onClose={() => setModal(null)}
           onCoursCreated={(ct) => setCoursTypes(prev => [...prev, ct])}
+          aquaActive={aquaActive}
         />
       )}
     </div>

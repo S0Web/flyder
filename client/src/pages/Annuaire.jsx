@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useToast } from '../context/ToastContext';
 import { useDismiss } from '../lib/useDismiss';
+import { usePreferences } from '../lib/usePreferences';
 import { DISCIPLINE_CONFIG } from '../lib/utils';
 
 // Catégories affichées (filtres + sections). Les coachs viennent de la table
@@ -117,7 +118,7 @@ function ContactModal({ contact, onSave, onDelete, onClose }) {
   );
 }
 
-function CoachQuickEditModal({ coach, onSave, onClose }) {
+function CoachQuickEditModal({ coach, onSave, onClose, aquaActive = true }) {
   const [form, setForm] = useState({
     telephone: coach.telephone || '',
     categoriesExtra: (coach.categories || []).filter(c => c !== 'coach'),
@@ -183,7 +184,7 @@ function CoachQuickEditModal({ coach, onSave, onClose }) {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Discipline(s)</label>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {Object.entries(DISCIPLINE_CONFIG).map(([key, cfg]) => (
+              {Object.entries(DISCIPLINE_CONFIG).filter(([key]) => aquaActive || key !== 'aqua').map(([key, cfg]) => (
                 <label key={key} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
                   <input type="checkbox" checked={form[key]} onChange={e => set(key, e.target.checked)} className={`rounded ${cfg.accent}`} />
                   {cfg.label}
@@ -223,6 +224,8 @@ function CoachQuickEditModal({ coach, onSave, onClose }) {
 
 export default function Annuaire() {
   const toast = useToast();
+  const { prefs } = usePreferences();
+  const aquaActive = prefs ? prefs.aqua_active !== '0' : true;
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -336,7 +339,7 @@ export default function Annuaire() {
                       )}
                       {c.categorie === 'coach' && (
                         <span className="flex gap-1 flex-wrap">
-                          {Object.entries(DISCIPLINE_CONFIG).map(([key, cfg]) => (
+                          {Object.entries(DISCIPLINE_CONFIG).filter(([key]) => aquaActive || key !== 'aqua').map(([key, cfg]) => (
                             !!c[key] && <span key={key} className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
                           ))}
                         </span>
@@ -369,6 +372,7 @@ export default function Annuaire() {
         coach={modal}
         onSave={handleSave}
         onClose={() => setModal(null)}
+        aquaActive={aquaActive}
       />
     ) : (
       <ContactModal

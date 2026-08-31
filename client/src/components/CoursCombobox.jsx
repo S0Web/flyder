@@ -9,7 +9,7 @@ function norm(s) {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 
-export default function CoursCombobox({ value, coursTypes, onChange, onCreated }) {
+export default function CoursCombobox({ value, coursTypes, onChange, onCreated, aquaActive = true }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
@@ -17,7 +17,14 @@ export default function CoursCombobox({ value, coursTypes, onChange, onCreated }
   const ref = useRef(null);
   const inputRef = useRef(null);
 
-  const selected = coursTypes.find(ct => ct.id === Number(value));
+  // Filtre défensif : si aqua est désactivé mais que des cours_types 'aqua'
+  // existent encore en base (créés avant la désactivation), on ne les propose
+  // plus du tout — pas juste un choix en moins, une vraie disparition.
+  const visibleCoursTypes = useMemo(
+    () => aquaActive ? coursTypes : coursTypes.filter(ct => ct.categorie !== 'aqua'),
+    [coursTypes, aquaActive]
+  );
+  const selected = visibleCoursTypes.find(ct => ct.id === Number(value));
 
   useEffect(() => {
     if (!open) return;
@@ -32,14 +39,14 @@ export default function CoursCombobox({ value, coursTypes, onChange, onCreated }
 
   const filtered = useMemo(() => {
     const q = norm(search);
-    const list = q ? coursTypes.filter(ct => norm(ct.nom).includes(q)) : coursTypes;
+    const list = q ? visibleCoursTypes.filter(ct => norm(ct.nom).includes(q)) : visibleCoursTypes;
     return list.reduce((acc, ct) => {
       (acc[ct.categorie] ||= []).push(ct);
       return acc;
     }, {});
-  }, [coursTypes, search]);
+  }, [visibleCoursTypes, search]);
 
-  const exactMatch = coursTypes.some(ct => norm(ct.nom) === norm(search));
+  const exactMatch = visibleCoursTypes.some(ct => norm(ct.nom) === norm(search));
 
   function pick(ct) {
     onChange(String(ct.id));
@@ -111,14 +118,24 @@ export default function CoursCombobox({ value, coursTypes, onChange, onCreated }
           {search.trim() && !exactMatch && (
             <div className="border-t border-gray-200 p-2 space-y-1">
               {error && <p className="text-xs text-red-600 px-1">{error}</p>}
-              <button type="button" disabled={creating} onClick={() => handleCreate('aqua')}
-                className="w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-sm text-sky-600 hover:bg-sky-50 rounded disabled:opacity-50">
-                <Plus className="h-3.5 w-3.5 flex-shrink-0" /> Ajouter « {search.trim()} » en Aqua
-              </button>
-              <button type="button" disabled={creating} onClick={() => handleCreate('fitness')}
-                className="w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-sm text-amber-600 hover:bg-amber-50 rounded disabled:opacity-50">
-                <Plus className="h-3.5 w-3.5 flex-shrink-0" /> Ajouter « {search.trim()} » en Fitness
-              </button>
+              {aquaActive ? (
+                <>
+                  <button type="button" disabled={creating} onClick={() => handleCreate('aqua')}
+                    className="w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-sm text-sky-600 hover:bg-sky-50 rounded disabled:opacity-50">
+                    <Plus className="h-3.5 w-3.5 flex-shrink-0" /> Ajouter « {search.trim()} » en Aqua
+                  </button>
+                  <button type="button" disabled={creating} onClick={() => handleCreate('fitness')}
+                    className="w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-sm text-amber-600 hover:bg-amber-50 rounded disabled:opacity-50">
+                    <Plus className="h-3.5 w-3.5 flex-shrink-0" /> Ajouter « {search.trim()} » en Fitness
+                  </button>
+                </>
+              ) : (
+                // Aqua désactivé : une seule catégorie possible, pas besoin de la demander.
+                <button type="button" disabled={creating} onClick={() => handleCreate('fitness')}
+                  className="w-full flex items-center gap-1.5 text-left px-2 py-1.5 text-sm text-amber-600 hover:bg-amber-50 rounded disabled:opacity-50">
+                  <Plus className="h-3.5 w-3.5 flex-shrink-0" /> Ajouter « {search.trim()} »
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -9,6 +9,7 @@ const DEFAULTS = {
   deconnexion_delai_min: () => '0', // '0' = jamais, 'jour' = fin de journée, sinon des minutes
   conges_taux_mensuel: () => '2.5',
   alerte_sans_coach_jours: () => '3',
+  aqua_active: () => '1', // '1' = affiché partout (défaut), '0' = masqué (salles sans piscine)
 };
 
 const EDITABLE_KEYS = Object.keys(DEFAULTS);
