@@ -11,6 +11,9 @@ require('./db/database');
 const { seedDefaults } = require('./db/seedDefaults');
 seedDefaults(); // remplit le catalogue de cours si la base est vierge (nouvelle salle)
 
+const { seedAdminAccount } = require('./db/seedAdminAccount');
+seedAdminAccount(); // crée le premier profil manager (avec code) si la base est vierge
+
 const { seedAnnuaire } = require('./db/seedAnnuaire');
 seedAnnuaire(); // pré-remplit l'annuaire sur Corbeil-Essonnes si la table est vide
 
@@ -61,6 +64,14 @@ const PORT = process.env.PORT || 3001;
 // interne du proxy, rendant la liste blanche d'IP inopérante.
 app.set('trust proxy', true);
 
+// Le front (client/) est servi par ce même serveur en production (voir
+// express.static ci-dessous) : aucun appel cross-origin n'est nécessaire.
+// Cette liste ne sert qu'à un usage ponctuel hors du proxy Vite habituel
+// (client/vite.config.js proxifie déjà /api en dev, ce qui rend ces requêtes
+// same-origin côté navigateur et contourne donc CORS) — un navigateur
+// cross-origin non listé ne peut pas lire la réponse ; les appels non-
+// navigateur (curl, monitoring, serveur à serveur) ne sont eux jamais
+// concernés par CORS et continuent de fonctionner normalement.
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -68,7 +79,7 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: (origin, cb) => cb(null, true),
+  origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -131,8 +142,11 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 app.use((err, req, res, next) => {
+  // Le détail complet reste dans les logs serveur uniquement — jamais renvoyé
+  // au client, qui pourrait exposer des chemins internes, requêtes SQL ou
+  // autres détails d'implémentation à quiconque provoque une erreur 500.
   console.error(err.stack);
-  res.status(500).json({ error: 'Erreur serveur', message: err.message });
+  res.status(500).json({ error: 'Erreur serveur, réessaie dans un instant.' });
 });
 
 function startServer(retry = 0) {

@@ -231,7 +231,12 @@ export default function ProfilePicker() {
 
   async function handleForgotCode() {
     if (!confirm(`Réinitialiser le code de ${codeModal.prenom} ? Il faudra en recréer un.`)) return;
-    await api.forgetCode(codeModal.id);
+    try {
+      await api.forgetCode(codeModal.id);
+    } catch (err) {
+      toast.error(err.message);
+      return;
+    }
     setCreateCodeModal({ profile: codeModal, forced: true });
     setCodeModal(null);
   }

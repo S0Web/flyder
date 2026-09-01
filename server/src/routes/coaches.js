@@ -1,6 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
+const { isPrivileged } = require('../middleware/ipAccess');
+
+// Coordonnées et données financières du coach : visibles seulement des comptes
+// privilégiés (manager, ou IP de la salle — même périmètre que l'écriture via
+// requireWriteAccess). Sans ce filtre, n'importe quel utilisateur authentifié
+// (ex. un coach ou un pointeur) verrait le SIRET, l'adresse et le tarif horaire
+// de tous les autres coachs simplement en visitant /coaches.
+const CHAMPS_SENSIBLES = ['email', 'telephone', 'siret', 'adresse', 'tarif_horaire'];
+function redact(coach, req) {
+  if (isPrivileged(req)) return coach;
+  const c = { ...coach };
+  for (const f of CHAMPS_SENSIBLES) delete c[f];
+  return c;
+}
 
 // GET /api/coaches/recap?debut=YYYY-MM-DD&fin=YYYY-MM-DD&effectue=1&paye=1
 // effectue/paye (défaut : tous deux inclus) contrôlent quels statuts comptent comme
@@ -40,7 +54,7 @@ router.get('/recap', (req, res) => {
     map[s.coach_id].total = Math.round((map[s.coach_id].total + h) * 100) / 100;
   }
 
-  const result = Object.values(map).sort((a, b) => b.total - a.total);
+  const result = Object.values(map).sort((a, b) => b.total - a.total).map(c => redact(c, req));
   res.json({ coaches: result });
 });
 
@@ -120,14 +134,14 @@ router.get('/', (req, res) => {
   const rows = tous
     ? db.all('SELECT * FROM coaches WHERE supprime = 0 ORDER BY nom, prenom')
     : db.all('SELECT * FROM coaches WHERE actif = 1 AND supprime = 0 ORDER BY nom, prenom');
-  res.json(rows);
+  res.json(rows.map(c => redact(c, req)));
 });
 
 // GET /api/coaches/:id
 router.get('/:id', (req, res) => {
   const coach = db.get('SELECT * FROM coaches WHERE id = ?', [req.params.id]);
   if (!coach) return res.status(404).json({ error: 'Coach introuvable' });
-  res.json(coach);
+  res.json(redact(coach, req));
 });
 
 // Convertit un tarif horaire saisi (chaîne ou nombre, facultatif) en REAL ou null.

@@ -8,7 +8,28 @@ const { envoyerLead } = require('../lib/mailer');
 
 const MAX_LONGUEUR = 5000;
 
+// Limitation de débit par IP : sans ça, un bot qui ne remplit pas le honeypot
+// (ou le remplit correctement) peut spammer la boîte mail de notification à
+// volonté. En mémoire seulement, comme le compteur anti-bruteforce du PIN des
+// salles (routes/auth.js côté serveur salle) — un redémarrage remet à zéro,
+// compromis acceptable pour un formulaire de contact à faible volume.
+const LIMITE_REQUETES = 5;
+const FENETRE_MS = 10 * 60 * 1000; // 10 minutes
+const requetesParIp = new Map(); // ip -> [timestamps des requêtes dans la fenêtre]
+
+function depasseLimite(ip) {
+  const maintenant = Date.now();
+  const historique = (requetesParIp.get(ip) || []).filter(t => maintenant - t < FENETRE_MS);
+  historique.push(maintenant);
+  requetesParIp.set(ip, historique);
+  return historique.length > LIMITE_REQUETES;
+}
+
 router.post('/', async (req, res) => {
+  if (depasseLimite(req.ip)) {
+    return res.status(429).json({ error: 'Trop de demandes envoyées, réessaie dans quelques minutes.' });
+  }
+
   const { nom, email, objet, message, site } = req.body || {};
 
   // Honeypot : un champ caché côté formulaire, invisible pour un humain,

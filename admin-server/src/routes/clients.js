@@ -7,16 +7,21 @@ const stripeLib = require('../lib/stripe');
 
 const STATUTS_VALIDES = ['essai', 'actif', 'suspendu', 'resilie'];
 
+// api_key_hash n'a jamais besoin d'atteindre le navigateur du back-office (la
+// clé en clair n'est de toute façon montrée qu'une fois, à la génération —
+// voir POST /:id/regenerate-key) — on l'omet de toutes les réponses.
+function sansApiKeyHash({ api_key_hash, ...c }) { return c; }
+
 // GET /api/clients — liste, plus récents en premier
 router.get('/', (req, res) => {
-  res.json(db.all('SELECT * FROM clients ORDER BY created_at DESC'));
+  res.json(db.all('SELECT * FROM clients ORDER BY created_at DESC').map(sansApiKeyHash));
 });
 
 // GET /api/clients/:id
 router.get('/:id', (req, res) => {
   const client = db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
   if (!client) return res.status(404).json({ error: 'Client introuvable' });
-  res.json(client);
+  res.json(sansApiKeyHash(client));
 });
 
 function validate(body) {
@@ -37,7 +42,7 @@ router.post('/', (req, res) => {
     [nom.trim(), sous_domaine || null, salle_nom_env || null, statut || 'essai', plan || null,
      contact_nom || null, contact_email || null, contact_telephone || null, date_debut || null, notes || null]
   );
-  res.status(201).json(db.get('SELECT * FROM clients WHERE id = ?', [result.lastInsertRowid]));
+  res.status(201).json(sansApiKeyHash(db.get('SELECT * FROM clients WHERE id = ?', [result.lastInsertRowid])));
 });
 
 // PUT /api/clients/:id
@@ -55,7 +60,7 @@ router.put('/:id', (req, res) => {
      contact_nom || null, contact_email || null, contact_telephone || null, date_debut || null, notes || null,
      req.params.id]
   );
-  res.json(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]));
+  res.json(sansApiKeyHash(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id])));
 });
 
 // POST /api/clients/:id/regenerate-key — (re)génère la clé de service utilisée
@@ -143,7 +148,7 @@ router.post('/:id/reset-stripe', (req, res) => {
     `UPDATE clients SET stripe_customer_id = NULL, stripe_subscription_id = NULL, stripe_inactif_depuis = NULL, updated_at = datetime('now') WHERE id = ?`,
     [req.params.id]
   );
-  res.json(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]));
+  res.json(sansApiKeyHash(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id])));
 });
 
 // DELETE /api/clients/:id

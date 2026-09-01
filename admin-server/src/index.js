@@ -22,8 +22,22 @@ const PORT = process.env.PORT || 3002;
 
 app.set('trust proxy', true);
 
+// admin-client est servi par ce même serveur en production : same-origin, pas
+// besoin de CORS pour lui. Le seul appel cross-origin légitime est celui du
+// formulaire de contact de la landing page (flyder.fr) vers /api/leads — d'où
+// flyder.fr dans la liste. Un navigateur cross-origin non listé ne peut pas
+// lire la réponse ; les appels non-navigateur (webhook Stripe, curl, serveurs
+// de salle) ne sont eux jamais concernés par CORS et continuent de fonctionner.
+const allowedOrigins = [
+  'https://flyder.fr',
+  'https://www.flyder.fr',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3002',
+];
+
 app.use(cors({
-  origin: (origin, cb) => cb(null, true),
+  origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -52,8 +66,11 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 app.use((err, req, res, next) => {
+  // Le détail complet reste dans les logs serveur uniquement — jamais renvoyé
+  // au client, qui pourrait exposer des chemins internes, requêtes SQL ou
+  // autres détails d'implémentation à quiconque provoque une erreur 500.
   console.error(err.stack);
-  res.status(500).json({ error: 'Erreur serveur', message: err.message });
+  res.status(500).json({ error: 'Erreur serveur, réessaie dans un instant.' });
 });
 
 app.listen(PORT, () => {
