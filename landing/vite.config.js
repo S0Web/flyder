@@ -3,11 +3,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  // Pas de dossier "public/" séparé pour des fichiers statiques bruts (pas de
-  // favicon/robots.txt pour l'instant) — outDir IS le dossier servi par
-  // server.js, donc on désactive la copie automatique de Vite pour éviter
-  // toute ambiguïté entre dossier source et dossier de build.
-  publicDir: false,
+  // static/ contient les pages HTML brutes (mentions légales, confidentialité)
+  // qui n'ont pas besoin de React — Vite les recopie telles quelles dans
+  // outDir au build, où server.js les sert directement via express.static.
+  publicDir: 'static',
   build: {
     outDir: 'public',
   },

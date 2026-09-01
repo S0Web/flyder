@@ -12,8 +12,12 @@ export default function Footer() {
             <a href="#contact" className="hover:text-white transition-colors">Contact</a>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-white/10 text-xs text-brand-cream/30 text-center sm:text-left">
-          © {new Date().getFullYear()} Flyder. Tous droits réservés.
+        <div className="mt-8 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-brand-cream/30 text-center sm:text-left">
+          <span>© {new Date().getFullYear()} Flyder. Tous droits réservés.</span>
+          <div className="flex items-center gap-4">
+            <a href="/mentions-legales.html" className="hover:text-brand-cream/60 transition-colors">Mentions légales</a>
+            <a href="/politique-confidentialite.html" className="hover:text-brand-cream/60 transition-colors">Confidentialité</a>
+          </div>
         </div>
       </div>
     </footer>
