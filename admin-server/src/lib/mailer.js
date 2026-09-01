@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 // Notification par email quand une salle écrit sur un ticket — pas de service
 // tiers, on envoie depuis le Gmail perso du propriétaire vers lui-même via un
@@ -8,23 +9,42 @@ function isConfigured() {
   return !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
 }
 
+const HOST_TTL = 5 * 60 * 1000;
 let transporter = null;
-function getTransporter() {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-      // Sans ça, une connexion SMTP sortante bloquée par l'hébergeur (port
-      // filtré, paquets silencieusement ignorés) fait attendre l'appelant
-      // indéfiniment au lieu d'échouer proprement.
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-      // Railway ne route pas correctement l'IPv6 sortant vers Gmail (constaté
-      // en prod : ENETUNREACH sur une adresse IPv6 de smtp.gmail.com) alors
-      // que l'IPv4 fonctionne — on force IPv4 pour éviter cette impasse réseau.
-      family: 4,
-    });
+let transporterHost = null;
+let transporterExpires = 0;
+
+// nodemailer résout smtp.gmail.com lui-même en interne, mais pioche ensuite
+// une adresse AU HASARD parmi les IPv4 ET IPv6 obtenues (voir son
+// lib/shared/index.js#resolveHostname) sans jamais consulter l'option
+// `family` du transport — la passer ne change donc rien. Railway ne route
+// pas l'IPv6 sortant vers Gmail (ENETUNREACH constaté en prod), donc on
+// résout nous-mêmes l'adresse en IPv4 et on la fournit comme `host` : voyant
+// un host déjà résolu (littéral), nodemailer saute entièrement sa propre
+// résolution DNS aléatoire.
+async function getTransporter() {
+  const now = Date.now();
+  if (!transporter || now >= transporterExpires) {
+    const [host] = await dns.promises.resolve4('smtp.gmail.com');
+    if (host !== transporterHost) {
+      transporterHost = host;
+      transporter = nodemailer.createTransport({
+        host,
+        port: 465,
+        secure: true,
+        // host est une IP littérale : servername restaure le nom attendu
+        // par le certificat TLS de Gmail pour la vérification SNI.
+        tls: { servername: 'smtp.gmail.com' },
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+        // Sans ça, une connexion SMTP sortante bloquée par l'hébergeur (port
+        // filtré, paquets silencieusement ignorés) fait attendre l'appelant
+        // indéfiniment au lieu d'échouer proprement.
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+      });
+    }
+    transporterExpires = now + HOST_TTL;
   }
   return transporter;
 }
@@ -37,7 +57,8 @@ async function envoyerNotificationTicket({ clientNom, auteurNom, message }) {
     return;
   }
   try {
-    await getTransporter().sendMail({
+    const t = await getTransporter();
+    await t.sendMail({
       from: `Flyder <${process.env.GMAIL_USER}>`,
       to: process.env.GMAIL_USER,
       subject: `[Flyder] Nouveau message — ${clientNom}`,
@@ -56,7 +77,8 @@ async function envoyerLead({ nom, email, objet, message }) {
   if (!isConfigured()) {
     throw new Error('Mailer non configuré (GMAIL_USER/GMAIL_APP_PASSWORD manquants)');
   }
-  await getTransporter().sendMail({
+  const t = await getTransporter();
+  await t.sendMail({
     from: `Flyder <${process.env.GMAIL_USER}>`,
     to: process.env.GMAIL_USER,
     replyTo: email,
