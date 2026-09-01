@@ -20,6 +20,10 @@ function getTransporter() {
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
+      // Railway ne route pas correctement l'IPv6 sortant vers Gmail (constaté
+      // en prod : ENETUNREACH sur une adresse IPv6 de smtp.gmail.com) alors
+      // que l'IPv4 fonctionne — on force IPv4 pour éviter cette impasse réseau.
+      family: 4,
     });
   }
   return transporter;
