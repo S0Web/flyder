@@ -30,8 +30,13 @@ async function getTransporter() {
       transporterHost = host;
       transporter = nodemailer.createTransport({
         host,
-        port: 465,
-        secure: true,
+        // Le port 465 (TLS implicite) semble filtré en sortie par
+        // l'hébergeur (connexion qui n'aboutit jamais, ni erreur ni
+        // réponse) alors que 587 (STARTTLS), le port de soumission SMTP
+        // standard, passe presque partout où 465 est bloqué.
+        port: 587,
+        secure: false,
+        requireTLS: true,
         // host est une IP littérale : servername restaure le nom attendu
         // par le certificat TLS de Gmail pour la vérification SNI.
         tls: { servername: 'smtp.gmail.com' },
