@@ -22,6 +22,7 @@ const FicheEmploye        = lazy(() => import('./pages/FicheEmploye'));
 const Nouveautes          = lazy(() => import('./pages/Nouveautes'));
 const Support             = lazy(() => import('./pages/Support'));
 const AbonnementBloque    = lazy(() => import('./pages/AbonnementBloque'));
+const DevLogin            = lazy(() => import('./pages/DevLogin'));
 
 function PageFallback() {
   return (
@@ -73,6 +74,8 @@ export default function App() {
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/login" element={<ProfilePickerRoute />} />
+                {/* Non référencée : accès support Flyder, voir DevLogin.jsx */}
+                <Route path="/login/dev" element={<DevLogin />} />
                 <Route path="/abonnement-bloque" element={<AbonnementBloque />} />
                 <Route path="/*"     element={<ProtectedRoutes />} />
               </Routes>

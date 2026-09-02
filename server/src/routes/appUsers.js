@@ -8,7 +8,7 @@ const { getPreference } = require('../lib/preferences');
 
 // GET /api/app-users — liste (manager seulement) — hors profils supprimés
 router.get('/', requireManager, (req, res) => {
-  const users = db.all('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, created_at FROM app_users WHERE supprime = 0 ORDER BY prenom, nom');
+  const users = db.all('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, created_at FROM app_users WHERE supprime = 0 AND masque = 0 ORDER BY prenom, nom');
   res.json(users);
 });
 

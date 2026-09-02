@@ -128,7 +128,7 @@ router.post('/import/analyser', requireManager, (req, res) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu' });
     try {
-      const employes = db.all("SELECT id, prenom, nom FROM app_users WHERE actif = 1 AND supprime = 0");
+      const employes = db.all("SELECT id, prenom, nom FROM app_users WHERE actif = 1 AND supprime = 0 AND masque = 0");
       const buffer = fs.readFileSync(req.file.path);
       const analyse = await analyserFichesDePaie(buffer, employes);
       res.json({ tempId: path.basename(req.file.path), ...analyse });

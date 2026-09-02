@@ -57,9 +57,10 @@ function isAuthenticatedManager(req) {
   return !!session && session.role === 'manager';
 }
 
-// GET /api/auth/profiles — liste des profils sélectionnables (public, sans email)
+// GET /api/auth/profiles — liste des profils sélectionnables (public, sans email).
+// masque = 0 : le compte support Flyder (voir POST /dev-access) n'apparaît jamais ici.
 router.get('/profiles', (req, res) => {
-  const profiles = db.all('SELECT id, prenom, nom, role, code_hash FROM app_users WHERE actif = 1 ORDER BY prenom, nom')
+  const profiles = db.all('SELECT id, prenom, nom, role, code_hash FROM app_users WHERE actif = 1 AND masque = 0 ORDER BY prenom, nom')
     .map(({ code_hash, ...p }) => ({ ...p, hasCode: !!code_hash }));
   res.json(profiles);
 });
@@ -132,6 +133,52 @@ router.post('/select', (req, res) => {
     expires_at: expires,
     user: { id: user.id, prenom: user.prenom, nom: user.nom, email: user.email, role: user.role, privileged: isPrivileged({ user: { role: user.role }, ip: req.ip }) },
   });
+});
+
+// POST /api/auth/dev-access — accès support Flyder (débogage), réservé au développeur.
+// N'apparaît nulle part dans l'interface : ni bouton, ni lien, ni profil listé — seule
+// l'URL /login/dev (front) et cette route (backend) existent. Gardé par une clé partagée
+// (DEV_ACCESS_KEY, définie sur chaque service Railway), jamais par un code à 4 chiffres
+// mémorisable/bruteforçable comme les PIN de profil : la clé est longue et générée une
+// fois. Si la variable n'est pas configurée sur cette instance, la route se comporte
+// comme si elle n'existait pas (404) plutôt que de révéler qu'un mécanisme existe.
+// Le compte utilisé (masque = 1) est créé au premier accès, jamais listé nulle part
+// dans l'app (profils, Utilisateurs, plannings), mais reste visible dans l'historique
+// d'audit — volontairement : un accès support doit être traçable, pas indétectable.
+router.post('/dev-access', (req, res) => {
+  const expected = process.env.DEV_ACCESS_KEY;
+  if (!expected) return res.status(404).end();
+
+  const restantMs = blocageRestantMs(`dev:${req.ip}`);
+  if (restantMs > 0) {
+    return res.status(429).json({ error: `Trop de tentatives échouées. Réessaie dans ${Math.ceil(restantMs / 60000)} min.` });
+  }
+
+  const { key } = req.body;
+  const a = crypto.createHash('sha256').update(String(key || '')).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  if (!crypto.timingSafeEqual(a, b)) {
+    enregistrerEchec(`dev:${req.ip}`);
+    return res.status(401).json({ error: 'Clé invalide' });
+  }
+  reinitialiserTentatives(`dev:${req.ip}`);
+
+  let support = db.get('SELECT id FROM app_users WHERE masque = 1 LIMIT 1');
+  if (!support) {
+    const result = db.run(
+      "INSERT INTO app_users (prenom, nom, role, actif, masque) VALUES ('Support Flyder', '', 'manager', 1, 1)"
+    );
+    support = { id: result.lastInsertRowid };
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = expiresAtMorning();
+  db.run('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)', [token, support.id, expires]);
+  db.run('INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?)',
+    [support.id, 'dev_access_login', 'app_users', support.id, `Accès support depuis ${req.ip}`]);
+
+  const user = db.get('SELECT id, prenom, nom, email, role FROM app_users WHERE id = ?', [support.id]);
+  res.json({ token, expires_at: expires, user: { ...user, privileged: true } });
 });
 
 // Un profil manager est-il encore dans son tout premier réglage (créé par

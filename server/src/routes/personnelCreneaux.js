@@ -61,7 +61,7 @@ router.get('/cp-summary', (req, res) => {
 
   if (req.user.role === 'manager') {
     const rows = db.all(
-      `SELECT id, prenom, nom, date_debut_contrat, cp_ajuste FROM app_users WHERE actif = 1 ORDER BY prenom`
+      `SELECT id, prenom, nom, date_debut_contrat, cp_ajuste FROM app_users WHERE actif = 1 AND masque = 0 ORDER BY prenom`
     );
     return res.json(withDetails(rows));
   }
@@ -84,7 +84,7 @@ router.get('/recap', (req, res) => {
 
   const isManager = req.user.role === 'manager';
   const employes = isManager
-    ? db.all('SELECT id, prenom, nom, actif FROM app_users ORDER BY prenom, nom')
+    ? db.all('SELECT id, prenom, nom, actif FROM app_users WHERE masque = 0 ORDER BY prenom, nom')
     : db.all('SELECT id, prenom, nom, actif FROM app_users WHERE id = ?', [req.user.id]);
 
   const rows = db.all(

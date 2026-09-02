@@ -499,6 +499,12 @@ if (process.env.SALLE_NOM === 'Corbeil-Essonnes') {
 // ─── Code confidentiel par profil (facultatif) ───
 tryAlter('ALTER TABLE app_users ADD COLUMN code_hash TEXT');
 
+// ─── Profil masqué : compte support Flyder (accès développeur pour le débogage),
+// exclu de tous les écrans destinés au personnel de la salle (sélecteur de profil,
+// liste Utilisateurs, plannings) — voir POST /api/auth/dev-access. Reste visible
+// dans l'historique d'audit, volontairement : pas anonyme, juste hors de vue.
+tryAlter('ALTER TABLE app_users ADD COLUMN masque INTEGER NOT NULL DEFAULT 0');
+
 // ─── Cumul de congés payés : date à partir de laquelle 2,5 jours/mois s'acquièrent ───
 tryAlter('ALTER TABLE app_users ADD COLUMN date_debut_contrat TEXT');
 
