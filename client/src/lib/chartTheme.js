@@ -37,5 +37,25 @@ export const moisCourt = (iso) => {
   return m ? `${MOIS_COURTS[m - 1]} ${iso.slice(2, 4)}` : iso;
 };
 
+// `semaine` est le lundi de la semaine (ex. "2026-08-03"), renvoyé par
+// l'agrégation hebdomadaire du backend. Étiquette courte "3 aoû" pour l'axe du
+// graphique, et libellé complet "3 – 9 août 2026" pour l'info-bulle / le tableau.
+const MOIS_LONGS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+export const semaineCourt = (iso) => {
+  if (!iso) return iso;
+  const d = Number(iso.slice(8, 10));
+  const m = Number(iso.slice(5, 7));
+  return `${d} ${MOIS_COURTS[m - 1]}`;
+};
+export const semaineLabelFull = (iso) => {
+  if (!iso) return iso;
+  const [y, m, d] = iso.split('-').map(Number);
+  const lundi = new Date(y, m - 1, d);
+  const dimanche = new Date(y, m - 1, d + 6);
+  const memesMois = lundi.getMonth() === dimanche.getMonth();
+  const debut = memesMois ? `${lundi.getDate()}` : `${lundi.getDate()} ${MOIS_LONGS[lundi.getMonth()]}`;
+  return `${debut} – ${dimanche.getDate()} ${MOIS_LONGS[dimanche.getMonth()]} ${dimanche.getFullYear()}`;
+};
+
 export const JOURS_COURTS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 export const JOURS_LONGS  = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];

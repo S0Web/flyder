@@ -6,15 +6,21 @@ import {
 import { api } from '../lib/api';
 import { usePreferences } from '../lib/usePreferences';
 import {
-  getAcademicYear, periodeLabel, previousPeriodRange, fmtDateFr, ANNEES_DISPONIBLES,
+  getAcademicYear, periodeLabel, previousPeriodRange, sameRangeLastYear, fmtDateFr, ANNEES_DISPONIBLES,
 } from '../lib/periodes';
 import {
   ChartCard, LegendItem, LineChart, ColumnChart, HBarChart,
   Heatmap, RampLegend, ScatterChart, SplitBar, StatTile,
 } from '../components/Charts';
 import {
-  VIZ, CAT_COLOR, CAT_LABEL, fmtInt, fmtDec, fmtPct, moisCourt, JOURS_COURTS, JOURS_LONGS,
+  VIZ, CAT_COLOR, CAT_LABEL, fmtInt, fmtDec, fmtPct, moisCourt, semaineCourt, semaineLabelFull,
+  JOURS_COURTS, JOURS_LONGS,
 } from '../lib/chartTheme';
+
+const MOIS_NOMS = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+];
 
 // ── Sections de la page ────────────────────────────────────────────────────────
 const SECTIONS = [
@@ -78,6 +84,18 @@ export default function Analyse() {
   const [plageDebut, setPlageDebut]       = useState(() => getAcademicYear().debut);
   const [plageFin, setPlageFin]           = useState(() => getAcademicYear().fin);
   const [categorie, setCategorie]         = useState('');
+  const [compareMode, setCompareMode]     = useState('precedente'); // 'precedente' | 'an_dernier'
+
+  // Raccourci "mois précis" du mode Plage : ces deux sélecteurs n'ont pas leur
+  // propre source de vérité, ils ne font qu'écrire dans plageDebut/plageFin.
+  const [moisPrecisAnnee, setMoisPrecisAnnee] = useState(() => new Date().getFullYear());
+  const [moisPrecisMois, setMoisPrecisMois]   = useState('');
+  const appliquerMoisPrecis = (annee, mois) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    const dernierJour = new Date(annee, mois, 0).getDate();
+    setPlageDebut(`${annee}-${pad(mois)}-01`);
+    setPlageFin(`${annee}-${pad(mois)}-${pad(dernierJour)}`);
+  };
 
   const [data, setData]   = useState(null);
   const [prev, setPrev]   = useState(null);
@@ -87,7 +105,8 @@ export default function Analyse() {
   const [error, setError] = useState(null);
   const reqIdRef = useRef(0);
 
-  const [metrique, setMetrique]   = useState('participants');
+  const [metrique, setMetrique]     = useState('participants');
+  const [granularite, setGranularite] = useState('mois'); // 'mois' | 'semaine'
   const [heatMode, setHeatMode]   = useState('effectif_moyen');
   const [activeSection, setActiveSection] = useState('essentiel');
 
@@ -98,12 +117,21 @@ export default function Analyse() {
     return categorie ? { ...base, categorie } : base;
   }, [periodeMode, anneeScolaire, plageDebut, plageFin, categorie]);
 
+  // Période de comparaison : soit la période immédiatement précédente (par
+  // défaut), soit exactement la même période un an plus tôt — au choix via
+  // compareMode. Sans objet pour "tout l'historique", qui n'a rien avant lui.
+  const prevRange = useMemo(() => {
+    if (params.periode === 'tout') return null;
+    return compareMode === 'an_dernier'
+      ? sameRangeLastYear(params.debut, params.fin)
+      : previousPeriodRange(params.debut, params.fin);
+  }, [params, compareMode]);
+
   const load = useCallback(async () => {
     const myId = ++reqIdRef.current;
     setRefreshing(true);
     setError(null);
     try {
-      const prevRange = params.periode === 'tout' ? null : previousPeriodRange(params.debut, params.fin);
       const [cur, pr] = await Promise.all([
         api.getAnalytics(params),
         prevRange ? api.getAnalytics({ ...prevRange, ...(categorie ? { categorie } : {}) }) : Promise.resolve(null),
@@ -117,7 +145,7 @@ export default function Analyse() {
     } finally {
       if (myId === reqIdRef.current) { setRefreshing(false); setLoading(false); }
     }
-  }, [params, categorie]);
+  }, [params, prevRange, categorie]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -128,6 +156,13 @@ export default function Analyse() {
   const anneesAvecDonnees = useMemo(() => {
     if (!bornes?.min || !bornes?.max) return ANNEES_DISPONIBLES;
     return ANNEES_DISPONIBLES.filter(y => `${y}-09-01` <= bornes.max && `${y + 1}-08-31` >= bornes.min);
+  }, [bornes]);
+
+  // Même logique que ci-dessus, mais en années civiles : sert au raccourci
+  // "mois précis" du mode Plage.
+  const anneesCalendairesAvecDonnees = useMemo(() => {
+    if (!bornes?.min || !bornes?.max) return ANNEES_DISPONIBLES;
+    return ANNEES_DISPONIBLES.filter(y => `${y}-01-01` <= bornes.max && `${y}-12-31` >= bornes.min);
   }, [bornes]);
 
   // Surlignage de la section courante dans la barre de navigation.
@@ -151,7 +186,8 @@ export default function Analyse() {
   const kPrev = prev?.kpi;
   // Mémorisés : `data?.x || []` crée un tableau neuf à chaque rendu, ce qui
   // invaliderait tous les useMemo qui en dépendent (et les recalculerait pour rien).
-  const mensuel = useMemo(() => data?.mensuel || [], [data]);
+  const mensuel     = useMemo(() => data?.mensuel     || [], [data]);
+  const hebdomadaire = useMemo(() => data?.hebdomadaire || [], [data]);
   const cours   = useMemo(() => data?.cours   || [], [data]);
   const coachs  = useMemo(() => data?.coachs  || [], [data]);
 
@@ -172,10 +208,16 @@ export default function Analyse() {
     return ((c - p) / p) * 100;
   };
 
-  const serieMensuelle = useMemo(() => {
+  const serieEvolution = useMemo(() => {
     const def = METRIQUES.find(m => m.key === metrique);
-    return mensuel.map(m => ({ label: moisCourt(m.mois), mois: m.mois, value: def.get(m) ?? 0 }));
-  }, [mensuel, metrique]);
+    if (granularite === 'semaine') {
+      return hebdomadaire.map(m => ({ label: semaineCourt(m.semaine), full: semaineLabelFull(m.semaine), value: def.get(m) ?? 0 }));
+    }
+    return mensuel.map(m => {
+      const [y, mm] = m.mois.split('-').map(Number);
+      return { label: moisCourt(m.mois), full: `${MOIS_NOMS[mm - 1]} ${y}`, value: def.get(m) ?? 0 };
+    });
+  }, [mensuel, hebdomadaire, granularite, metrique]);
 
   const serieCategorie = useMemo(() => {
     const byMois = new Map();
@@ -255,7 +297,6 @@ export default function Analyse() {
 
   const sparkOf = (get) => mensuel.slice(-12).map(get);
   const metriqueDef = METRIQUES.find(m => m.key === metrique);
-  const prevRange = params.periode === 'tout' ? null : previousPeriodRange(params.debut, params.fin);
 
   if (loading) {
     return <div className="text-center py-20 text-gray-400 text-sm">Chargement des analyses…</div>;
@@ -266,11 +307,20 @@ export default function Analyse() {
       {/* ── En-tête + filtres ───────────────────────────────────── */}
       <div className="mb-4">
         <h1 className="text-xl font-bold text-brand-ink">Analyse</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {periodeLabel(periodeMode, anneeScolaire, plageDebut, plageFin)}
-          {categorie && ` · ${CAT_LABEL[categorie]}`}
-          {prevRange && <span className="text-gray-400"> — comparé à {fmtDateFr(prevRange.debut)} → {fmtDateFr(prevRange.fin)}</span>}
-        </p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+          <p className="text-sm text-gray-500">
+            {periodeLabel(periodeMode, anneeScolaire, plageDebut, plageFin)}
+            {categorie && ` · ${CAT_LABEL[categorie]}`}
+            {prevRange && <span className="text-gray-400"> — comparé à {fmtDateFr(prevRange.debut)} → {fmtDateFr(prevRange.fin)}</span>}
+          </p>
+          {prevRange && (
+            <Segmented value={compareMode} onChange={setCompareMode}
+              options={[
+                { value: 'precedente', label: 'vs période précédente' },
+                { value: 'an_dernier', label: "vs l'an dernier" },
+              ]} />
+          )}
+        </div>
       </div>
 
       <div className="sticky top-14 lg:top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 bg-brand-cream/95 backdrop-blur border-b border-gray-200 mb-5">
@@ -291,13 +341,35 @@ export default function Analyse() {
           )}
           {periodeMode === 'plage' && (
             <div className="inline-flex items-center gap-1.5">
+              {/* Raccourci : choisir un mois précis remplit les deux dates ci-contre
+                  d'un coup, qui restent modifiables ensuite pour une plage libre. */}
+              <select value={moisPrecisMois}
+                onChange={e => {
+                  const m = e.target.value ? Number(e.target.value) : '';
+                  setMoisPrecisMois(m);
+                  if (m) appliquerMoisPrecis(moisPrecisAnnee, m);
+                }}
+                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-sky-300">
+                <option value="">Mois précis…</option>
+                {MOIS_NOMS.map((nom, i) => <option key={i + 1} value={i + 1}>{nom}</option>)}
+              </select>
+              <select value={moisPrecisAnnee}
+                onChange={e => {
+                  const y = Number(e.target.value);
+                  setMoisPrecisAnnee(y);
+                  if (moisPrecisMois) appliquerMoisPrecis(y, moisPrecisMois);
+                }}
+                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-sky-300">
+                {anneesCalendairesAvecDonnees.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <span className="w-px h-6 bg-gray-200 mx-0.5" />
               {/* min/max bornés aux données réelles : au-delà, la plage ne peut être que vide. */}
               <input type="date" value={plageDebut} min={bornes?.min} max={bornes?.max}
-                onChange={e => setPlageDebut(e.target.value)}
+                onChange={e => { setMoisPrecisMois(''); setPlageDebut(e.target.value); }}
                 className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-sky-300" />
               <span className="text-gray-400 text-sm">→</span>
               <input type="date" value={plageFin} min={bornes?.min} max={bornes?.max}
-                onChange={e => setPlageFin(e.target.value)}
+                onChange={e => { setMoisPrecisMois(''); setPlageFin(e.target.value); }}
                 className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-sky-300" />
             </div>
           )}
@@ -375,16 +447,20 @@ export default function Analyse() {
           <ChartCard
             className={aquaActive ? 'xl:col-span-2' : 'xl:col-span-3'}
             title="Comment la fréquentation évolue-t-elle&nbsp;?"
-            hint="Choisis la mesure à suivre. Une courbe qui monte régulièrement = activité en croissance ; des creux marqués correspondent souvent aux vacances scolaires."
-            actions={<Segmented value={metrique} onChange={setMetrique}
-              options={METRIQUES.map(m => ({ value: m.key, label: m.label }))} />}
+            hint="Choisis la mesure à suivre, et Semaine plutôt que Mois pour repérer une évolution à l'intérieur d'une période courte (ex. tout un mois). Une courbe qui monte régulièrement = activité en croissance ; des creux marqués correspondent souvent aux vacances scolaires."
+            actions={<div className="flex items-center gap-1.5">
+              <Segmented value={metrique} onChange={setMetrique}
+                options={METRIQUES.map(m => ({ value: m.key, label: m.label }))} />
+              <Segmented value={granularite} onChange={setGranularite}
+                options={[{ value: 'mois', label: 'Mois' }, { value: 'semaine', label: 'Semaine' }]} />
+            </div>}
             table={{
-              head: ['Mois', metriqueDef.label],
-              rows: serieMensuelle.map(r => [r.label, metriqueDef.fmt(r.value)]),
+              head: [granularite === 'semaine' ? 'Semaine' : 'Mois', metriqueDef.label],
+              rows: serieEvolution.map(r => [r.full, metriqueDef.fmt(r.value)]),
             }}
           >
             <LineChart
-              data={serieMensuelle}
+              data={serieEvolution}
               series={[{ key: 'value', label: metriqueDef.label, color: VIZ.aqua }]}
               yFmt={metriqueDef.fmt}
               height={250}

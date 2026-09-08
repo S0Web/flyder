@@ -53,6 +53,21 @@ export function previousPeriodRange(debut, fin) {
   return { debut: iso(prevDebut), fin: iso(prevFin) };
 }
 
+// Comparaison "même période, il y a un an" : décalage strict de 12 mois sur
+// chaque borne (contrairement à previousPeriodRange, qui recule d'une durée
+// équivalente et donc compare un mois à celui juste avant, pas au même mois
+// l'année précédente). Le 29 février se replie sur le 28 en année non bissextile.
+export function sameRangeLastYear(debut, fin) {
+  if (!debut || !fin) return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  const shift = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const lastDay = new Date(y - 1, m, 0).getDate();
+    return `${y - 1}-${pad(m)}-${pad(Math.min(d, lastDay))}`;
+  };
+  return { debut: shift(debut), fin: shift(fin) };
+}
+
 // Barre de filtres commune (période + catégorie). Un seul jeu de filtres au-dessus
 // de tous les graphiques : jamais de filtre par carte, sinon deux cartes côte à
 // côte peuvent afficher deux tranches différentes sans que ça se voie.

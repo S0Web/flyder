@@ -75,6 +75,23 @@ router.get('/', (req, res) => {
     GROUP BY mois ORDER BY mois
   `, params);
 
+  // ── Série hebdomadaire (semaines calendaires lundi → dimanche) ──
+  // strftime('%w', date) donne 0=dimanche..6=samedi ; (jour+6)%7 convertit en
+  // "jours depuis le lundi" pour retomber sur le lundi de la semaine.
+  const SEMAINE_SQL = "date(s.date, '-' || ((CAST(strftime('%w', s.date) AS INTEGER) + 6) % 7) || ' days')";
+  const hebdomadaire = db.all(`
+    SELECT
+      ${SEMAINE_SQL}                                                   AS semaine,
+      COUNT(*)                                                        AS programmes,
+      SUM(CASE WHEN ${REALISE}          THEN 1 ELSE 0 END)            AS effectues,
+      SUM(CASE WHEN s.statut = 'annule' THEN 1 ELSE 0 END)            AS annules,
+      SUM(CASE WHEN ${REALISE} THEN COALESCE(s.nb_presents,0) ELSE 0 END) AS participants,
+      SUM(CASE WHEN ${REALISE} THEN s.duree_minutes ELSE 0 END)       AS minutes,
+      AVG(CASE WHEN ${REALISE} AND s.nb_presents IS NOT NULL THEN s.nb_presents END) AS effectif_moyen
+    ${FROM} ${WHERE}
+    GROUP BY semaine ORDER BY semaine
+  `, params);
+
   // ── Série mensuelle éclatée aqua / fitness ─────────────────────
   const mensuelCategorie = db.all(`
     SELECT
@@ -183,7 +200,7 @@ router.get('/', (req, res) => {
   `, params);
 
   res.json({
-    kpi, mensuel, mensuelCategorie, parJour, parHeure, heatmap,
+    kpi, mensuel, hebdomadaire, mensuelCategorie, parJour, parHeure, heatmap,
     categories, cours, coachs, distribution, bornes,
     debut, fin, categorie,
   });
