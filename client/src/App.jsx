@@ -17,6 +17,7 @@ const Analyse             = lazy(() => import('./pages/Analyse'));
 const Annuaire            = lazy(() => import('./pages/Annuaire'));
 const Formation           = lazy(() => import('./pages/Formation'));
 const FormationCategorie  = lazy(() => import('./pages/FormationCategorie'));
+const Documentation       = lazy(() => import('./pages/Documentation'));
 const Settings            = lazy(() => import('./pages/Settings'));
 const FicheEmploye        = lazy(() => import('./pages/FicheEmploye'));
 const Nouveautes          = lazy(() => import('./pages/Nouveautes'));
@@ -54,6 +55,8 @@ function ProtectedRoutes() {
           <Route path="/formation"                        element={<Formation />} />
           <Route path="/formation/:categorieId"           element={<FormationCategorie />} />
           <Route path="/formation/:categorieId/:articleId" element={<FormationCategorie />} />
+          <Route path="/documentation"            element={<Documentation />} />
+          <Route path="/documentation/:articleId" element={<Documentation />} />
           <Route path="/support"            element={<Support />} />
           <Route path="/nouveautes"         element={<Nouveautes />} />
           <Route path="/parametres"         element={<Settings />} />

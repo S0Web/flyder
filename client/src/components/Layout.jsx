@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Settings as GearIcon, Menu as MenuIcon, X as XIcon, Megaphone, LifeBuoy,
-  CalendarDays, CalendarRange, ClipboardList, BarChart3, BookUser, GraduationCap,
+  CalendarDays, CalendarRange, ClipboardList, BarChart3, BookUser, GraduationCap, HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
@@ -20,6 +20,7 @@ const ALL_LINKS = [
   { to: '/planning-personnel', label: 'Planning personnel',  icon: CalendarRange },
   { to: '/annuaire',           label: 'Annuaire',            icon: BookUser },
   { to: '/formation',          label: 'Formation',           icon: GraduationCap },
+  { to: '/documentation',      label: 'Documentation',       icon: HelpCircle },
 ];
 
 // Fitnessmov (et toute autre salle) est un client Flyder, pas le propriétaire du
