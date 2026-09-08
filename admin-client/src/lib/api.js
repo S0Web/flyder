@@ -37,7 +37,7 @@ export const api = {
   updateClient:  (id, data) => req(`/clients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteClient:  (id) => req(`/clients/${id}`, { method: 'DELETE' }),
   regenerateClientApiKey: (id) => req(`/clients/${id}/regenerate-key`, { method: 'POST' }),
-  createCheckoutLink: (id) => req(`/clients/${id}/checkout`, { method: 'POST' }),
+  createCheckoutLink: (id, opts) => req(`/clients/${id}/checkout`, { method: 'POST', body: JSON.stringify(opts || {}) }),
   createPortalLink:   (id) => req(`/clients/${id}/portal`, { method: 'POST' }),
   resetClientStripe:  (id) => req(`/clients/${id}/reset-stripe`, { method: 'POST' }),
 

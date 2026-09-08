@@ -83,6 +83,14 @@ router.post('/:id/checkout', async (req, res) => {
   if (!stripeLib.isConfigured()) return res.status(503).json({ error: 'Stripe non configuré (STRIPE_SECRET_KEY manquant)' });
   if (!process.env.STRIPE_PRICE_ID) return res.status(503).json({ error: 'STRIPE_PRICE_ID non configuré' });
 
+  // Tarif de lancement : décidé au cas par cas pendant la négociation (pas une
+  // promo publique), donc appliqué directement à la session plutôt que par un
+  // code que le client devrait connaître et taper lui-même.
+  const tarifLancement = !!(req.body && req.body.tarifLancement);
+  if (tarifLancement && !process.env.STRIPE_LAUNCH_COUPON_ID) {
+    return res.status(503).json({ error: 'STRIPE_LAUNCH_COUPON_ID non configuré' });
+  }
+
   const client = db.get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
   if (!client) return res.status(404).json({ error: 'Client introuvable' });
 
@@ -103,7 +111,12 @@ router.post('/:id/checkout', async (req, res) => {
         // encore côté Stripe.
         ...(process.env.STRIPE_SETUP_FEE_PRICE_ID ? [{ price: process.env.STRIPE_SETUP_FEE_PRICE_ID, quantity: 1 }] : []),
       ],
-      allow_promotion_codes: true,
+      // Stripe refuse discounts et allow_promotion_codes en même temps sur
+      // une session — un tarif de lancement pré-appliqué exclut donc le champ
+      // de code promo public.
+      ...(tarifLancement
+        ? { discounts: [{ coupon: process.env.STRIPE_LAUNCH_COUPON_ID }] }
+        : { allow_promotion_codes: true }),
       payment_method_collection: 'if_required',
       success_url: `${baseUrl}/?checkout=success`,
       cancel_url: `${baseUrl}/?checkout=cancel`,

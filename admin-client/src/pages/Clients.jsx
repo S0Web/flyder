@@ -103,12 +103,15 @@ function BillingSection({ client }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
   const [reset, setReset] = useState(false);
+  // Décidé au cas par cas en négociation (89€ par défaut, 39€ si besoin de
+  // faire plier le client) — jamais un code promo public.
+  const [tarifLancement, setTarifLancement] = useState(false);
 
   async function handleCheckout() {
     setLoading('checkout');
     setError(null);
     try {
-      const { url } = await api.createCheckoutLink(client.id);
+      const { url } = await api.createCheckoutLink(client.id, { tarifLancement });
       setLink(url);
     } catch (err) {
       setError(err.message);
@@ -182,12 +185,18 @@ function BillingSection({ client }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-gray-500">Aucun abonnement pour l'instant.</p>
-          <button type="button" onClick={handleCheckout} disabled={loading === 'checkout'}
-            className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex-shrink-0">
-            {loading === 'checkout' ? '…' : 'Créer un lien de paiement'}
-          </button>
+        <div className="space-y-2">
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+            <input type="checkbox" checked={tarifLancement} onChange={e => setTarifLancement(e.target.checked)} className="rounded accent-sky-500" />
+            Tarif de lancement (39€/mois la 1ère année, au lieu de 89€)
+          </label>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-gray-500">Aucun abonnement pour l'instant.</p>
+            <button type="button" onClick={handleCheckout} disabled={loading === 'checkout'}
+              className="text-xs px-3 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex-shrink-0">
+              {loading === 'checkout' ? '…' : 'Créer un lien de paiement'}
+            </button>
+          </div>
         </div>
       )}
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
