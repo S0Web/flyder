@@ -111,6 +111,7 @@ export const api = {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
     return req(`/coaches/${id}/seances-detail${qs ? `?${qs}` : ''}`);
   },
+  getTalentsCoach: (id) => req(`/coaches/talents/${id}`),
   createCoach:     (data) => req('/coaches', { method: 'POST', body: JSON.stringify(data) }),
   updateCoach:     (id, data) => req(`/coaches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   patchCoach:      (id, data) => req(`/coaches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),

@@ -522,6 +522,10 @@ tryAlter('ALTER TABLE coaches ADD COLUMN adresse TEXT');
 // ─── Nouveautés : dernière annonce (id, relayé depuis admin-server) vue par chaque profil ───
 tryAlter('ALTER TABLE app_users ADD COLUMN dernier_changelog_vu_id INTEGER NOT NULL DEFAULT 0');
 tryAlter('ALTER TABLE coaches ADD COLUMN tarif_horaire REAL');
+// Lien facultatif vers un profil Flyder Talents (annuaire externe salles ↔ coachs
+// indépendants) : distingue les coachs saisis à la main de ceux importés depuis
+// Talents. NULL pour tous les coachs existants, jamais rempli automatiquement.
+tryAlter('ALTER TABLE coaches ADD COLUMN talents_coach_id INTEGER');
 
 // ─── Préférences par salle : clé/valeur, extensible sans migration à chaque ajout ───
 db.run(`

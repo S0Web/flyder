@@ -12,6 +12,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:server"],
       "port": 3001
+    },
+    {
+      "name": "talents-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace=talents-client"],
+      "port": 5174
+    },
+    {
+      "name": "talents-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace=talents-server"],
+      "port": 3003
     }
   ]
 }

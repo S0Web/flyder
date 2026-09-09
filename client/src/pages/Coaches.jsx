@@ -189,11 +189,40 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose, isManager, aqu
     siret:         coach?.siret         || '',
     adresse:       coach?.adresse       || '',
     tarif_horaire: coach?.tarif_horaire ?? '',
+    talents_coach_id: coach?.talents_coach_id ?? null,
   });
   const [error, setSaving2] = useState(null);
   const [saving, setSaving]  = useState(false);
+  // Import depuis Flyder Talents (uniquement à la création) : la salle colle la
+  // "Réf. Talents" obtenue après avoir contacté le coach, on pré-remplit la fiche.
+  const [talentsRef, setTalentsRef] = useState('');
+  const [talentsBusy, setTalentsBusy] = useState(false);
+  const [talentsInfo, setTalentsInfo] = useState(null);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  async function importerDepuisTalents() {
+    const id = Number(String(talentsRef).replace('#', '').trim());
+    if (!id) return;
+    setTalentsBusy(true);
+    setSaving2(null);
+    try {
+      const t = await api.getTalentsCoach(id);
+      setForm(f => ({
+        ...f,
+        prenom: t.prenom || f.prenom,
+        nom: t.nom || f.nom,
+        tarif_horaire: t.tarif_horaire ?? f.tarif_horaire,
+        aqua: !!t.aqua, fitness: !!t.fitness, boxe: !!t.boxe, crosstraining: !!t.crosstraining, poledance: !!t.poledance,
+        talents_coach_id: t.talents_coach_id,
+      }));
+      setTalentsInfo(t);
+    } catch (err) {
+      setSaving2(err.message);
+    } finally {
+      setTalentsBusy(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -219,8 +248,14 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose, isManager, aqu
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="px-6 pt-5 pb-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
-          <h2 className="text-lg font-bold text-gray-800">
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             {isNew ? 'Nouveau coach' : `${coach.prenom} ${coach.nom}`}
+            {form.talents_coach_id && (
+              <span title={`Importé depuis Flyder Talents (réf. #${form.talents_coach_id})`}
+                className="text-[10px] font-bold uppercase tracking-wide text-white px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF5A36' }}>
+                Talents
+              </span>
+            )}
           </h2>
           {!isNew && (
             <div className="flex items-center gap-1">
@@ -244,6 +279,33 @@ function CoachModal({ coach, onSave, onToggle, onDelete, onClose, isManager, aqu
         <div className="px-6 py-4 space-y-3">
         <form id="coach-form" onSubmit={handleSubmit} className="space-y-3">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">{error}</div>}
+          {isNew && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">
+                Importer depuis Flyder Talents <span className="font-normal text-gray-400">(facultatif)</span>
+              </p>
+              {talentsInfo ? (
+                <div className="flex items-center gap-2.5 text-sm text-gray-700">
+                  {talentsInfo.photo_url && <img src={talentsInfo.photo_url} alt="" className="h-8 w-8 rounded-full object-cover" />}
+                  <span>
+                    <span className="font-semibold">{talentsInfo.prenom} {talentsInfo.nom}</span>
+                    {talentsInfo.ville && <span className="text-gray-400"> · {talentsInfo.ville}</span>}
+                    <span className="block text-xs text-gray-400">Fiche pré-remplie — ajoute email et téléphone obtenus via Talents.</span>
+                  </span>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input value={talentsRef} onChange={e => setTalentsRef(e.target.value)} placeholder="Réf. Talents, ex. #12"
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); importerDepuisTalents(); } }}
+                    className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                  <button type="button" onClick={importerDepuisTalents} disabled={talentsBusy || !talentsRef.trim()}
+                    className="text-sm font-medium px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-white disabled:opacity-50">
+                    {talentsBusy ? '…' : 'Récupérer'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Prénom *</label>
@@ -647,6 +709,9 @@ export default function Coaches() {
                         className="hover:underline text-left flex items-center gap-1 w-full" style={{ color: '#12162B' }}>
                         <span className="truncate">{coach.prenom} {coach.nom}</span>
                         <DisciplineBadges coach={coach} aquaActive={aquaActive} />
+                        {coach.talents_coach_id && (
+                          <span title="Importé depuis Flyder Talents" className="h-3.5 w-3.5 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-white" style={{ backgroundColor: '#FF5A36' }}>T</span>
+                        )}
                       </button>
                     </td>
                     {months.map(m => {

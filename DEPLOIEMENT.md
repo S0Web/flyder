@@ -39,6 +39,7 @@ couche de sécurité.
    | `DB_PATH`      | `/data/fitnessmov.db`         | Base **isolée**, stockée sur le Volume            |
    | `SALLE_NOM`    | `Ballancourt-sur-Essonne`     | Nom affiché (en-tête, écran d'accueil, onglet)    |
    | `SALLE_ADRESSE`| `12 rue Exemple, 91xxx …` *(optionnel)* | Adresse affichée sur les exports PDF du récapitulatif d'heures |
+   | `TALENTS_API_URL` | URL publique du service `talents-server` *(optionnel)* | Permet « Importer depuis Flyder Talents » dans Coachs > Nouveau coach. Sans elle, l'import vise `http://localhost:3003` (dev) |
    | `TZ`           | `Europe/Paris` *(optionnel)*  | Déjà la valeur par défaut dans le code            |
 
 5. **Déploie.** Au premier démarrage :

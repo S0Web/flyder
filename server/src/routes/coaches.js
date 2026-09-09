@@ -34,7 +34,7 @@ router.get('/recap', (req, res) => {
   if (inclureEffectue) statuts.push('effectue');
   if (inclurePaye) statuts.push('paye');
 
-  const coaches = db.all('SELECT id, prenom, nom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, actif, siret, adresse, tarif_horaire FROM coaches WHERE supprime = 0 ORDER BY prenom, nom');
+  const coaches = db.all('SELECT id, prenom, nom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, actif, siret, adresse, tarif_horaire, talents_coach_id FROM coaches WHERE supprime = 0 ORDER BY prenom, nom');
   const seances = statuts.length === 0 ? [] : db.all(
     `SELECT coach_id, SUBSTR(date,1,7) as mois, SUM(duree_minutes) as mins
      FROM seances
@@ -137,6 +137,43 @@ router.get('/', (req, res) => {
   res.json(rows.map(c => redact(c, req)));
 });
 
+// GET /api/coaches/talents/:id — pré-remplissage d'une fiche coach depuis un
+// profil public Flyder Talents (annuaire externe). Talents ne renvoie jamais de
+// coordonnées : email/téléphone restent à saisir par la salle, qui les a déjà
+// obtenus en cliquant "Contacter" côté Talents. Déclarée avant '/:id'.
+const TALENTS_API_URL = process.env.TALENTS_API_URL || 'http://localhost:3003';
+// Disciplines Talents (vocabulaire public plus large) → cases de la fiche locale.
+const TALENTS_VERS_LOCAL = {
+  fitness: 'fitness', musculation: 'fitness', cardio: 'fitness',
+  boxe: 'boxe', crosstraining: 'crosstraining', aqua: 'aqua', poledance: 'poledance',
+};
+router.get('/talents/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Référence Talents invalide' });
+  let r;
+  try {
+    r = await fetch(`${TALENTS_API_URL}/api/search/coaches/${id}`);
+  } catch (_) {
+    return res.status(502).json({ error: 'Flyder Talents est injoignable pour le moment' });
+  }
+  if (r.status === 404) return res.status(404).json({ error: `Aucun profil Talents #${id}` });
+  if (!r.ok) return res.status(502).json({ error: 'Flyder Talents a répondu une erreur' });
+  const t = await r.json();
+
+  const flags = { aqua: 0, fitness: 0, boxe: 0, crosstraining: 0, poledance: 0 };
+  for (const d of (t.disciplines || '').split(',')) {
+    const local = TALENTS_VERS_LOCAL[d.trim()];
+    if (local) flags[local] = 1;
+  }
+  res.json({
+    talents_coach_id: t.id,
+    prenom: t.prenom, nom: t.nom,
+    tarif_horaire: t.tarif_horaire,
+    ville: t.ville, bio: t.bio, photo_url: t.photo_url ? `${TALENTS_API_URL}${t.photo_url}` : null,
+    ...flags,
+  });
+});
+
 // GET /api/coaches/:id
 router.get('/:id', (req, res) => {
   const coach = db.get('SELECT * FROM coaches WHERE id = ?', [req.params.id]);
@@ -151,18 +188,24 @@ function parseTarifHoraire(v) {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+// Référence Talents facultative : entier positif ou null, jamais une chaîne vide.
+function parseTalentsId(v) {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 // POST /api/coaches
 router.post('/', (req, res) => {
-  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire } = req.body;
+  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire, talents_coach_id } = req.body;
   if (!prenom || !prenom.trim()) {
     return res.status(400).json({ error: 'prenom est obligatoire' });
   }
   try {
     const result = db.run(
-      'INSERT INTO coaches (nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO coaches (nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire, talents_coach_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [(nom || '').trim(), prenom.trim(), email?.trim() || null, telephone?.trim() || null,
        aqua ? 1 : 0, fitness ? 1 : 0, boxe ? 1 : 0, crosstraining ? 1 : 0, poledance ? 1 : 0,
-       siret?.trim() || null, adresse?.trim() || null, parseTarifHoraire(tarif_horaire)]
+       siret?.trim() || null, adresse?.trim() || null, parseTarifHoraire(tarif_horaire), parseTalentsId(talents_coach_id)]
     );
     const created = db.get('SELECT * FROM coaches WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(created);
@@ -176,19 +219,21 @@ router.post('/', (req, res) => {
 
 // PUT /api/coaches/:id — mise à jour complète
 router.put('/:id', (req, res) => {
-  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire } = req.body;
+  const { nom, prenom, email, telephone, aqua, fitness, boxe, crosstraining, poledance, siret, adresse, tarif_horaire, talents_coach_id } = req.body;
   if (!prenom || !prenom.trim()) {
     return res.status(400).json({ error: 'prenom est obligatoire' });
   }
-  const existing = db.get('SELECT id FROM coaches WHERE id = ?', [req.params.id]);
+  const existing = db.get('SELECT id, talents_coach_id FROM coaches WHERE id = ?', [req.params.id]);
   if (!existing) return res.status(404).json({ error: 'Coach introuvable' });
 
   try {
     db.run(
-      'UPDATE coaches SET nom = ?, prenom = ?, email = ?, telephone = ?, aqua = ?, fitness = ?, boxe = ?, crosstraining = ?, poledance = ?, siret = ?, adresse = ?, tarif_horaire = ? WHERE id = ?',
+      'UPDATE coaches SET nom = ?, prenom = ?, email = ?, telephone = ?, aqua = ?, fitness = ?, boxe = ?, crosstraining = ?, poledance = ?, siret = ?, adresse = ?, tarif_horaire = ?, talents_coach_id = ? WHERE id = ?',
       [(nom || '').trim(), prenom.trim(), email?.trim() || null, telephone?.trim() || null,
        aqua ? 1 : 0, fitness ? 1 : 0, boxe ? 1 : 0, crosstraining ? 1 : 0, poledance ? 1 : 0,
-       siret?.trim() || null, adresse?.trim() || null, parseTarifHoraire(tarif_horaire), req.params.id]
+       siret?.trim() || null, adresse?.trim() || null, parseTarifHoraire(tarif_horaire),
+       talents_coach_id === undefined ? existing.talents_coach_id : parseTalentsId(talents_coach_id),
+       req.params.id]
     );
     res.json(db.get('SELECT * FROM coaches WHERE id = ?', [req.params.id]));
   } catch (err) {

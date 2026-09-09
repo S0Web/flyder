@@ -3,6 +3,7 @@ server/data/
 server/uploads/*
 !server/uploads/.gitkeep
 admin-server/data/
+talents-server/data/
 dist/
 .env
 *.log

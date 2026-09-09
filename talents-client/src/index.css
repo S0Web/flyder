@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    @apply bg-brand-cream text-brand-ink font-sans;
+  }
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+  ::selection { background: rgba(61, 90, 254, 0.18); }
+}
+
+@layer components {
+  /* Champ de formulaire "posé" : fond crème au repos, blanc + anneau bleu au focus. */
+  .field {
+    @apply w-full bg-brand-cream border border-transparent rounded-xl px-4 py-3 text-sm text-brand-ink placeholder:text-brand-slate/70
+           focus:outline-none focus:bg-white focus:border-sky-200 focus:ring-4 focus:ring-sky-500/10 transition;
+  }
+  /* Micro-label de section (COMPÉTENCES, RAYON…) — signature Wapply. */
+  .microlabel {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-slate;
+  }
+  /* Bouton principal en pilule encre → bleu au survol. */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand-ink text-white text-sm font-semibold px-6 py-3
+           active:scale-[0.98] transition disabled:opacity-50;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: #3D5AFE;
+    box-shadow: 0 12px 32px -10px rgba(61, 90, 254, 0.55);
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-white text-brand-ink text-sm font-semibold px-5 py-2.5
+           border border-black/10 hover:border-brand-ink/30 hover:bg-white active:scale-[0.98] transition;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium border transition select-none;
+  }
+  .chip-off { @apply bg-white border-black/10 text-brand-ink/70 hover:border-brand-ink/30; }
+  .chip-on  { @apply bg-brand-ink border-brand-ink text-white; }
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/60;
+  }
+  .skeleton {
+    @apply rounded-xl;
+    background: linear-gradient(90deg, #ECEBE6 25%, #F6F5F1 50%, #ECEBE6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+}
