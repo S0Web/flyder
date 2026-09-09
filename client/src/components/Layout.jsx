@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   Settings as GearIcon, Menu as MenuIcon, X as XIcon, Megaphone, LifeBuoy,
   CalendarDays, CalendarRange, ClipboardList, BarChart3, BookUser, GraduationCap, HelpCircle,
+  Users, ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
@@ -21,6 +22,9 @@ const ALL_LINKS = [
   { to: '/annuaire',           label: 'Annuaire',            icon: BookUser },
   { to: '/formation',          label: 'Formation',           icon: GraduationCap },
   { to: '/documentation',      label: 'Documentation',       icon: HelpCircle },
+  // Produit à part (comptes indépendants, pas de connexion unique pour l'instant) —
+  // ouvre dans un nouvel onglet plutôt qu'une navigation interne.
+  { to: 'https://talents.flyder.fr', label: 'Flyder Talents', icon: Users, external: true },
 ];
 
 // Fitnessmov (et toute autre salle) est un client Flyder, pas le propriétaire du
@@ -43,7 +47,29 @@ function Bubble({ user, size = 'h-7 w-7' }) {
   );
 }
 
-function NavItem({ to, label, icon: Icon, end, onClick, badge, highlight }) {
+function NavItem({ to, label, icon: Icon, end, onClick, badge, highlight, external }) {
+  const content = (
+    <>
+      <span className="relative flex-shrink-0">
+        <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
+        {badge && (
+          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-brand-ink animate-pop" aria-label="Nouveauté" />
+        )}
+      </span>
+      <span className="flex-1">{label}</span>
+      {external && <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 opacity-60" />}
+    </>
+  );
+
+  if (external) {
+    return (
+      <a href={to} target="_blank" rel="noopener noreferrer" onClick={onClick}
+        className="relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-brand-cream/70 hover:bg-white/10 hover:text-white">
+        {content}
+      </a>
+    );
+  }
+
   return (
     <NavLink
       to={to}
@@ -57,13 +83,7 @@ function NavItem({ to, label, icon: Icon, end, onClick, badge, highlight }) {
         }`
       }
     >
-      <span className="relative flex-shrink-0">
-        <Icon className="h-4.5 w-4.5" strokeWidth={1.8} />
-        {badge && (
-          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-brand-ink animate-pop" aria-label="Nouveauté" />
-        )}
-      </span>
-      {label}
+      {content}
     </NavLink>
   );
 }
