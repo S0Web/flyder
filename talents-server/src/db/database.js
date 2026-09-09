@@ -102,4 +102,14 @@ db.run(`
 db.run(`CREATE INDEX IF NOT EXISTS idx_contact_lookup ON contact_events (initiateur_type, initiateur_id, cible_type, cible_id)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_contact_date ON contact_events (created_at)`);
 
+// Pause de visibilité, réversible par le titulaire du compte — n'affecte que
+// l'apparition dans les recherches publiques, jamais la connexion ni l'édition
+// du profil (un compte inactif doit pouvoir se réactiver lui-même).
+tryAlter('ALTER TABLE gyms ADD COLUMN actif INTEGER NOT NULL DEFAULT 1');
+tryAlter('ALTER TABLE coaches ADD COLUMN actif INTEGER NOT NULL DEFAULT 1');
+
+// Signale un coach ouvert aux remplacements de dernière minute, en plus (ou à
+// la place) d'une recherche de créneaux fixes — filtrable côté recherche salle.
+tryAlter('ALTER TABLE coaches ADD COLUMN disponible_remplacements INTEGER NOT NULL DEFAULT 0');
+
 module.exports = db;

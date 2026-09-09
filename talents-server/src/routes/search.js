@@ -44,11 +44,11 @@ function appliquerDistance(rows, lat, lng, rayonKm) {
   return out;
 }
 
-// GET /api/search/coaches?discipline=fitness,boxe&tarif_min=&tarif_max=&lat=&lng=&rayon_km=
+// GET /api/search/coaches?discipline=fitness,boxe&tarif_min=&tarif_max=&remplacements=1&lat=&lng=&rayon_km=
 router.get('/coaches', (req, res) => {
   let rows = db.all(
-    `SELECT id, nom, prenom, adresse, lat, lng, disciplines, tarif_horaire, bio, photo_url
-     FROM coaches WHERE profil_complet = 1`
+    `SELECT id, nom, prenom, adresse, lat, lng, disciplines, tarif_horaire, bio, photo_url, disponible_remplacements
+     FROM coaches WHERE profil_complet = 1 AND actif = 1`
   );
 
   const disciplines = parseDisciplines(req.query.discipline);
@@ -63,6 +63,9 @@ router.get('/coaches', (req, res) => {
     const max = Number(req.query.tarif_max);
     rows = rows.filter((c) => c.tarif_horaire == null || c.tarif_horaire <= max);
   }
+  if (req.query.remplacements === '1') {
+    rows = rows.filter((c) => !!c.disponible_remplacements);
+  }
 
   res.json(marquerDejaContactes(appliquerDistance(rows, req.query.lat, req.query.lng, req.query.rayon_km), req, 'coach'));
 });
@@ -72,8 +75,8 @@ router.get('/coaches', (req, res) => {
 // pré-remplir une fiche coach locale à partir d'une "Réf. Talents".
 router.get('/coaches/:id', (req, res) => {
   const coach = db.get(
-    `SELECT id, nom, prenom, adresse, disciplines, tarif_horaire, bio, photo_url
-     FROM coaches WHERE id = ? AND profil_complet = 1`,
+    `SELECT id, nom, prenom, adresse, disciplines, tarif_horaire, bio, photo_url, disponible_remplacements
+     FROM coaches WHERE id = ? AND profil_complet = 1 AND actif = 1`,
     [Number(req.params.id)]
   );
   if (!coach) return res.status(404).json({ error: 'Profil Talents introuvable' });
@@ -86,7 +89,7 @@ router.get('/coaches/:id', (req, res) => {
 router.get('/gyms', (req, res) => {
   let rows = db.all(
     `SELECT id, nom, adresse, lat, lng, disciplines_recherchees, description, photo_url
-     FROM gyms WHERE profil_complet = 1`
+     FROM gyms WHERE profil_complet = 1 AND actif = 1`
   );
 
   const disciplines = parseDisciplines(req.query.discipline);

@@ -23,7 +23,8 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
   const [filtresOuverts, setFiltresOuverts] = useState(false);
   const nbFiltres = filters.disciplines.length
     + (filters.tarif_min || filters.tarif_max ? 1 : 0)
-    + (filters.rayon_km !== FILTER_DEFAULTS.rayon_km ? 1 : 0);
+    + (filters.rayon_km !== FILTER_DEFAULTS.rayon_km ? 1 : 0)
+    + (filters.remplacements ? 1 : 0);
 
   const chercher = useCallback(() => {
     setLoading(true); setError(null);
@@ -32,7 +33,11 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
       lat: origine?.lat, lng: origine?.lng,
       rayon_km: origine ? filters.rayon_km : '',
     };
-    if (type === 'coach') { params.tarif_min = filters.tarif_min; params.tarif_max = filters.tarif_max; }
+    if (type === 'coach') {
+      params.tarif_min = filters.tarif_min;
+      params.tarif_max = filters.tarif_max;
+      params.remplacements = filters.remplacements ? '1' : '';
+    }
     (type === 'coach' ? api.searchCoaches : api.searchGyms)(params)
       .then(setResults)
       .catch((err) => setError(err.message))
@@ -91,7 +96,7 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
 
         <div className="grid lg:grid-cols-[280px_1fr] gap-6 items-start">
           <div className={`${filtresOuverts ? 'block' : 'hidden'} lg:block`}>
-            <FilterBar filters={filters} onChange={setFilters} showTarif={type === 'coach'} />
+            <FilterBar filters={filters} onChange={setFilters} showTarif={type === 'coach'} showRemplacements={type === 'coach'} />
           </div>
 
           <section>

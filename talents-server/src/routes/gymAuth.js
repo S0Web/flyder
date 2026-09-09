@@ -19,7 +19,7 @@ function issueSession(gymId) {
 }
 
 const PROFIL_PUBLIC_FIELDS =
-  'id, email, nom, adresse, lat, lng, disciplines_recherchees, description, photo_url, contact_nom, contact_email, contact_telephone, profil_complet';
+  'id, email, nom, adresse, lat, lng, disciplines_recherchees, description, photo_url, contact_nom, contact_email, contact_telephone, profil_complet, actif';
 
 // POST /api/gym-auth/signup — aucune vérification d'identité de la salle en
 // MVP, même niveau de confiance minimal que côté coach (voir plan).
@@ -80,6 +80,7 @@ router.put('/me', requireGymAuth, async (req, res) => {
   const contactTelephone = b.contact_telephone !== undefined ? clean(b.contact_telephone, 30) : current.contact_telephone;
   if (!nom) return res.status(400).json({ error: 'Nom de la salle requis' });
   if (contactEmail && !EMAIL_RE.test(contactEmail)) return res.status(400).json({ error: 'Email de contact invalide' });
+  const actif = b.actif !== undefined ? (b.actif ? 1 : 0) : current.actif;
   const disciplinesRecherchees = b.disciplines_recherchees !== undefined
     ? (Array.isArray(b.disciplines_recherchees) ? b.disciplines_recherchees.join(',') : String(b.disciplines_recherchees))
     : current.disciplines_recherchees;
@@ -98,8 +99,8 @@ router.put('/me', requireGymAuth, async (req, res) => {
   const profilComplet = adresse && lat != null && disciplinesRecherchees ? 1 : 0;
 
   db.run(
-    `UPDATE gyms SET nom=?, adresse=?, lat=?, lng=?, disciplines_recherchees=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, adresse, lat, lng, disciplinesRecherchees, description, contactNom, contactEmail, contactTelephone, profilComplet, req.gym.id]
+    `UPDATE gyms SET nom=?, adresse=?, lat=?, lng=?, disciplines_recherchees=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, actif=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
+    [nom, adresse, lat, lng, disciplinesRecherchees, description, contactNom, contactEmail, contactTelephone, actif, profilComplet, req.gym.id]
   );
 
   res.json(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [req.gym.id]));

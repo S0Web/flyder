@@ -2,13 +2,14 @@ import { RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { DISCIPLINES } from '../lib/constants';
 
 const RAYONS = [5, 10, 20, 50];
-const DEFAULTS = { disciplines: [], rayon_km: 20, tarif_min: '', tarif_max: '' };
+const DEFAULTS = { disciplines: [], rayon_km: 20, tarif_min: '', tarif_max: '', remplacements: false };
 
 export { DEFAULTS as FILTER_DEFAULTS };
 
 // Panneau de filtres latéral (esprit Malt), collant au scroll sur desktop.
-export default function FilterBar({ filters, onChange, showTarif }) {
-  const actifs = filters.disciplines.length + (filters.tarif_min || filters.tarif_max ? 1 : 0) + (filters.rayon_km !== DEFAULTS.rayon_km ? 1 : 0);
+export default function FilterBar({ filters, onChange, showTarif, showRemplacements }) {
+  const actifs = filters.disciplines.length + (filters.tarif_min || filters.tarif_max ? 1 : 0)
+    + (filters.rayon_km !== DEFAULTS.rayon_km ? 1 : 0) + (filters.remplacements ? 1 : 0);
 
   function toggleDiscipline(value) {
     const set = new Set(filters.disciplines);
@@ -77,6 +78,15 @@ export default function FilterBar({ filters, onChange, showTarif }) {
             </div>
           </div>
         </div>
+      )}
+
+      {showRemplacements && (
+        <label className="flex items-center gap-3 rounded-2xl bg-brand-cream px-4 py-3 cursor-pointer">
+          <input type="checkbox" checked={filters.remplacements}
+            onChange={(e) => onChange({ ...filters, remplacements: e.target.checked })}
+            className="h-4 w-4 rounded border-black/20 text-brand-blue focus:ring-brand-blue" />
+          <span className="text-sm text-brand-ink/80">Dispo remplacements de dernière minute</span>
+        </label>
       )}
     </aside>
   );

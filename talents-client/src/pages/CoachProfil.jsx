@@ -15,6 +15,8 @@ export default function CoachProfil() {
     bio: actor.bio || '',
     telephone: actor.telephone || '',
     email_public: !!actor.email_public,
+    actif: actor.actif !== 0,
+    disponible_remplacements: !!actor.disponible_remplacements,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -43,6 +45,14 @@ export default function CoachProfil() {
     <ProfilLayout base="/coach" titre={{ ink: 'Ce que les salles', blue: 'verront' }}
       checklist={checklist} onSubmit={handleSubmit} saving={saving} saved={saved} error={error} setError={setError}
       form={<>
+        <Section titre="Visibilité" aide="Mets ton profil en pause quand tu n'es pas disponible — il reste modifiable, juste invisible dans les recherches.">
+          <label className="flex items-center gap-3 rounded-2xl bg-brand-cream px-4 py-3 cursor-pointer">
+            <input type="checkbox" checked={form.actif} onChange={(e) => set('actif', e.target.checked)}
+              className="h-4 w-4 rounded border-black/20 text-brand-blue focus:ring-brand-blue" />
+            <span className="text-sm text-brand-ink/80">Profil actif et visible dans les recherches</span>
+          </label>
+        </Section>
+
         <Section titre="Identité">
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Prénom"><input className="field" required value={form.prenom} onChange={(e) => set('prenom', e.target.value)} /></Field>
@@ -66,6 +76,11 @@ export default function CoachProfil() {
               ))}
             </div>
           </Field>
+          <label className="flex items-center gap-3 rounded-2xl bg-brand-cream px-4 py-3 cursor-pointer">
+            <input type="checkbox" checked={form.disponible_remplacements} onChange={(e) => set('disponible_remplacements', e.target.checked)}
+              className="h-4 w-4 rounded border-black/20 text-brand-blue focus:ring-brand-blue" />
+            <span className="text-sm text-brand-ink/80">Disponible pour des remplacements de dernière minute</span>
+          </label>
           <div className="grid sm:grid-cols-[160px_1fr] gap-4">
             <Field label="Tarif horaire" aide="Affiché sur ta carte.">
               <div className="relative">

@@ -99,6 +99,12 @@ export default function ProfileCard({ type, profile, index = 0 }) {
           </div>
         )}
 
+        {isCoach && !!profile.disponible_remplacements && (
+          <span className="self-start rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-semibold">
+            Dispo remplacements de dernière minute
+          </span>
+        )}
+
         {error && <p className="text-xs text-red-600">{error}</p>}
 
         <div className="mt-auto pt-1">

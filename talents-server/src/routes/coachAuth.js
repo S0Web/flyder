@@ -19,7 +19,7 @@ function issueSession(coachId) {
 }
 
 const PROFIL_PUBLIC_FIELDS =
-  'id, email, nom, prenom, adresse, lat, lng, disciplines, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet';
+  'id, email, nom, prenom, adresse, lat, lng, disciplines, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet, actif, disponible_remplacements';
 
 // POST /api/coach-auth/signup
 router.post('/signup', (req, res) => {
@@ -81,6 +81,8 @@ router.put('/me', requireCoachAuth, async (req, res) => {
   if (!nom || !prenom) return res.status(400).json({ error: 'Nom et prénom requis' });
   const tarifHoraire = b.tarif_horaire !== undefined ? (b.tarif_horaire === null ? null : Number(b.tarif_horaire)) : current.tarif_horaire;
   const emailPublic = b.email_public !== undefined ? (b.email_public ? 1 : 0) : current.email_public;
+  const actif = b.actif !== undefined ? (b.actif ? 1 : 0) : current.actif;
+  const disponibleRemplacements = b.disponible_remplacements !== undefined ? (b.disponible_remplacements ? 1 : 0) : current.disponible_remplacements;
   const disciplines = b.disciplines !== undefined
     ? (Array.isArray(b.disciplines) ? b.disciplines.join(',') : String(b.disciplines))
     : current.disciplines;
@@ -99,8 +101,8 @@ router.put('/me', requireCoachAuth, async (req, res) => {
   const profilComplet = adresse && lat != null && disciplines ? 1 : 0;
 
   db.run(
-    `UPDATE coaches SET nom=?, prenom=?, adresse=?, lat=?, lng=?, disciplines=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, prenom, adresse, lat, lng, disciplines, tarifHoraire, bio, telephone, emailPublic, profilComplet, req.coach.id]
+    `UPDATE coaches SET nom=?, prenom=?, adresse=?, lat=?, lng=?, disciplines=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
+    [nom, prenom, adresse, lat, lng, disciplines, tarifHoraire, bio, telephone, emailPublic, actif, disponibleRemplacements, profilComplet, req.coach.id]
   );
 
   res.json(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [req.coach.id]));
