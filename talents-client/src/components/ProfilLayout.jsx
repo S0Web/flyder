@@ -4,6 +4,46 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import TopBar from './TopBar';
 
+// Effet immédiat, hors formulaire : c'est le contrôle le plus consulté et le
+// plus urgent (se mettre en pause / se rendre visible), il ne doit jamais
+// dépendre d'un clic sur "Enregistrer" ni être caché en bas de page.
+function VisibiliteSwitch({ base, actor, updateActor }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const actif = actor.actif !== 0;
+
+  async function toggle() {
+    setBusy(true); setError(null);
+    try {
+      const updateFn = base === '/coach' ? api.updateCoachMe : api.updateGymMe;
+      updateActor(await updateFn({ actif: !actif }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={`mb-6 rounded-2xl border p-4 flex items-center justify-between gap-3 animate-fadeInUp ${
+      actif ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
+    }`}>
+      <div className="min-w-0">
+        <p className={`text-sm font-semibold ${actif ? 'text-emerald-800' : 'text-amber-800'}`}>
+          {actif ? 'Profil actif — visible dans les recherches' : 'Profil en pause — invisible dans les recherches'}
+        </p>
+        <p className="text-xs text-brand-ink/50 mt-0.5">
+          {error || "Bascule à tout moment, sans perdre tes informations. Effet immédiat."}
+        </p>
+      </div>
+      <button type="button" onClick={toggle} disabled={busy} role="switch" aria-checked={actif}
+        className={`relative flex-shrink-0 w-12 h-7 rounded-full transition-colors disabled:opacity-50 ${actif ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+        <span className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${actif ? 'translate-x-5' : ''}`} />
+      </button>
+    </div>
+  );
+}
+
 // Gabarit commun aux deux pages de profil : colonne gauche collante (photo +
 // jauge de complétion + checklist), colonne droite = le formulaire passé en
 // enfant. La checklist rend concret le "profil_complet" du serveur.
@@ -36,6 +76,8 @@ export default function ProfilLayout({ base, titre, checklist, form, onSubmit, s
             {titre.ink} <span className="text-brand-blue">{titre.blue}.</span>
           </h1>
         </div>
+
+        <VisibiliteSwitch base={base} actor={actor} updateActor={updateActor} />
 
         <div className="grid lg:grid-cols-[320px_1fr] gap-6 items-start">
           <aside className="space-y-4 lg:sticky lg:top-24 animate-fadeInUp" style={{ animationDelay: '60ms' }}>

@@ -14,7 +14,6 @@ export default function GymProfil() {
     contact_nom: actor.contact_nom || '',
     contact_email: actor.contact_email || '',
     contact_telephone: actor.contact_telephone || '',
-    actif: actor.actif !== 0,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -44,14 +43,6 @@ export default function GymProfil() {
     <ProfilLayout base="/salle" titre={{ ink: 'Ce que les coachs', blue: 'verront' }}
       checklist={checklist} onSubmit={handleSubmit} saving={saving} saved={saved} error={error} setError={setError}
       form={<>
-        <Section titre="Visibilité" aide="Mets ta fiche en pause quand tu n'es pas en recherche de coachs — elle reste modifiable, juste invisible dans les recherches.">
-          <label className="flex items-center gap-3 rounded-2xl bg-brand-cream px-4 py-3 cursor-pointer">
-            <input type="checkbox" checked={form.actif} onChange={(e) => set('actif', e.target.checked)}
-              className="h-4 w-4 rounded border-black/20 text-brand-blue focus:ring-brand-blue" />
-            <span className="text-sm text-brand-ink/80">Fiche active et visible dans les recherches</span>
-          </label>
-        </Section>
-
         <Section titre="La salle">
           <Field label="Nom"><input className="field" required value={form.nom} onChange={(e) => set('nom', e.target.value)} /></Field>
           <Field label="Adresse" aide="Sert à calculer les distances et affiche ta ville aux coachs.">
