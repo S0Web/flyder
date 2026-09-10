@@ -10,6 +10,7 @@ const gymAuthRouter = require('./routes/gymAuth');
 const searchRouter = require('./routes/search');
 const contactRouter = require('./routes/contact');
 const photoRouter = require('./routes/photo');
+const adminRouter = require('./routes/admin');
 const { scheduleDailyBackup } = require('./lib/backup');
 const { rateLimit } = require('./lib/rateLimit');
 
@@ -40,12 +41,16 @@ app.use(
   ['/api/coach-auth/login', '/api/coach-auth/signup', '/api/gym-auth/login', '/api/gym-auth/signup'],
   rateLimit({ windowMs: 15 * 60 * 1000, max: 30 })
 );
+// Clé partagée, donc surface de brute-force réduite mais réelle : limiteur
+// plus strict que les comptes normaux.
+app.use('/api/admin/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }));
 
 app.use('/api/coach-auth', coachAuthRouter);
 app.use('/api/gym-auth', gymAuthRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/contact', contactRouter);
 app.use('/api/photo', photoRouter);
+app.use('/api/admin', adminRouter);
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../data/talents.db');
 const uploadsDir = path.join(path.dirname(DB_PATH), 'uploads');

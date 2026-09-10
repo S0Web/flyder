@@ -7,6 +7,7 @@ import CoachRecherche from './pages/CoachRecherche';
 import GymAuth from './pages/GymAuth';
 import GymProfil from './pages/GymProfil';
 import GymRecherche from './pages/GymRecherche';
+import AdminPage from './pages/AdminPage';
 
 // Une route "AuthPage" (CoachAuth/GymAuth) redirige vers la recherche si on
 // est déjà connecté sous le bon rôle ; une route protégée redirige vers la
@@ -42,6 +43,9 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<Home />} />
+
+          {/* Non référencée : accès admin par URL directe, voir AdminPage.jsx */}
+          <Route path="/admin" element={<AdminPage />} />
 
           <Route path="/coach" element={<AuthPage role="coach"><CoachAuth /></AuthPage>} />
           <Route path="/coach/profil" element={<ProtectedPage role="coach"><CoachProfil /></ProtectedPage>} />
