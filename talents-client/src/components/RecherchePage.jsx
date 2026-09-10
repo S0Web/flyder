@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { LocateFixed, SearchX, AlertCircle, ArrowRight, SlidersHorizontal } from 'lucide-react';
+import { LocateFixed, SearchX, AlertTriangle, ArrowRight, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import TopBar from './TopBar';
@@ -55,27 +55,31 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
   }
 
   const n = results.length;
-  const sousTitre = loading ? 'Recherche en cours…'
-    : origine ? `${n} ${n > 1 ? pluriel : singulier} dans un rayon de ${filters.rayon_km} km`
-    : `${n} ${n > 1 ? pluriel : singulier} — active ta position pour trier par distance`;
+  const compteur = loading ? '…' : String(n).padStart(2, '0');
+  const sousTitre = loading ? 'Recherche en cours'
+    : origine ? `${n > 1 ? pluriel : singulier} dans un rayon de ${filters.rayon_km} km`
+    : `${n > 1 ? pluriel : singulier} — active ta position pour trier par distance`;
 
   return (
-    <div className="min-h-screen bg-brand-cream">
+    <div className="min-h-screen paper">
       <TopBar base={base} />
 
       <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-          <div className="animate-fadeInUp">
-            <p className="microlabel mb-2">Autour de toi</p>
-            <h1 className="text-3xl sm:text-4xl font-bold text-brand-ink leading-tight">
+        <div className="flex flex-wrap items-end justify-between gap-5 mb-6 pb-6 border-b-2 border-brand-ink">
+          <div className="animate-fadeInUp min-w-0">
+            <p className="ink-bar mb-4">Autour de toi</p>
+            <h1 className="display-title text-4xl sm:text-5xl">
               {titre.ink} <span className="text-brand-blue">{titre.blue}.</span>
             </h1>
-            <p className="mt-1.5 text-sm text-brand-ink/60">{sousTitre}</p>
+            <p className="mt-3 flex items-baseline gap-2.5">
+              <span className="font-display text-3xl font-bold text-brand-coral leading-none">{compteur}</span>
+              <span className="microlabel text-brand-ink/70">{sousTitre}</span>
+            </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button onClick={() => setFiltresOuverts((o) => !o)} className="btn-secondary lg:hidden">
-              <SlidersHorizontal className="h-4 w-4 text-brand-blue" /> Filtres
-              {nbFiltres > 0 && <span className="rounded-full bg-brand-blue text-white text-[10px] font-bold h-5 min-w-5 px-1.5 inline-flex items-center justify-center">{nbFiltres}</span>}
+              <SlidersHorizontal className="h-4 w-4" /> Filtres
+              {nbFiltres > 0 && <span className="bg-brand-coral text-white px-1.5 py-0.5 rounded-[1px] text-[10px]">{nbFiltres}</span>}
             </button>
             <button onClick={utiliserMaPosition} className="btn-secondary">
               <LocateFixed className="h-4 w-4 text-brand-blue" /> <span className="hidden sm:inline">Utiliser ma position</span><span className="sm:hidden">Ma position</span>
@@ -85,12 +89,13 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
 
         {!actor.profil_complet && (
           <Link to={`${base}/profil`}
-            className="group flex items-center gap-3 rounded-2xl bg-white border border-black/5 shadow-card px-4 py-3 mb-6 hover:border-brand-ink/15 transition animate-fadeInUp">
-            <span className="h-8 w-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center flex-none"><AlertCircle className="h-4 w-4" /></span>
-            <span className="text-sm text-brand-ink/80 flex-1">
-              <strong className="font-semibold text-brand-ink">Ton profil n'est pas encore visible.</strong> Ajoute une adresse et une discipline pour apparaître dans les recherches.
+            className="group flex items-stretch card-hard card-hard-hover mb-6 overflow-hidden animate-fadeInUp">
+            <span className="bg-brand-coral text-white flex items-center px-3 border-r-2 border-brand-ink flex-none"><AlertTriangle className="h-5 w-5" /></span>
+            <span className="text-sm text-brand-ink/80 flex-1 px-4 py-3">
+              <strong className="font-display font-bold uppercase tracking-wide text-brand-ink block text-[12px] mb-0.5">Ton profil n'est pas encore visible</strong>
+              Ajoute une adresse et une discipline pour apparaître dans les recherches.
             </span>
-            <ArrowRight className="h-4 w-4 text-brand-slate group-hover:translate-x-0.5 transition" />
+            <span className="flex items-center px-4 text-brand-ink"><ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition" /></span>
           </Link>
         )}
 
@@ -100,10 +105,10 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
           </div>
 
           <section>
-            {error && <div className="bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-2.5 text-sm mb-4">{error}</div>}
+            {error && <div className="border-2 border-brand-coral text-brand-coral rounded-[2px] px-4 py-2.5 text-sm font-medium mb-4 bg-white">{error}</div>}
 
             {loading ? (
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
               </div>
             ) : n === 0 ? (
@@ -112,7 +117,7 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
                 texte="Élargis le rayon ou retire un filtre — et reviens bientôt, l'annuaire se remplit."
                 action={<button onClick={() => setFilters({ ...FILTER_DEFAULTS, rayon_km: 50 })} className="btn-secondary">Chercher à 50 km</button>} />
             ) : (
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {results.map((r, i) => <ProfileCard key={r.id} type={type} profile={r} index={i} />)}
               </div>
             )}

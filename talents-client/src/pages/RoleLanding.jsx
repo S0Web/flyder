@@ -1,100 +1,117 @@
 import { Link } from 'react-router-dom';
-import { Building2, Dumbbell, ChevronRight, MapPin, Sparkles, Handshake } from 'lucide-react';
+import { Building2, Dumbbell, ArrowUpRight } from 'lucide-react';
 import Wordmark from '../components/Wordmark';
 
 const ETAPES = [
-  { icon: Sparkles, titre: 'Crée ton profil', texte: 'Deux minutes, une adresse, tes disciplines. Pas de CV, pas de dossier.' },
-  { icon: MapPin, titre: 'Regarde autour de toi', texte: 'On te montre qui cherche, à combien de kilomètres — rien de national, que du local.' },
-  { icon: Handshake, titre: 'Contacte en direct', texte: 'Un clic révèle les coordonnées. Vous vous parlez sans intermédiaire.' },
+  { num: '01', titre: 'Crée ton profil', texte: 'Deux minutes, une adresse, tes disciplines. Pas de CV, pas de dossier.' },
+  { num: '02', titre: 'Regarde autour de toi', texte: 'On te montre qui cherche, à combien de kilomètres — rien de national, que du local.' },
+  { num: '03', titre: 'Contacte en direct', texte: 'Un clic révèle les coordonnées. Vous vous parlez sans intermédiaire.' },
 ];
 
-function OptionCard({ to, icon: Icon, badge, titre, texte, delay }) {
+const TAPE = ['Gratuit pendant le lancement', 'Île-de-France', 'Sans commission', 'Coachs indépendants', 'Salles de sport', 'Trié par distance réelle'];
+
+// Les deux entrées, comme deux fiches punaisées côte à côte : numéro, tampon
+// de rôle, titre en capitales, flèche. Celle des salles est en encre pleine,
+// celle des coachs en blanc — deux faces d'un même panneau.
+function OptionCard({ to, icon: Icon, num, badge, titre, texte, ink, delay }) {
   return (
     <Link to={to}
-      className="group relative bg-white rounded-4xl border border-black/5 shadow-card hover:shadow-card-hover hover:-translate-y-1 hover:border-brand-ink/15 transition-all duration-300 p-6 sm:p-7 flex items-center gap-5 animate-fadeInUp"
+      className={`group relative rounded-sm border-2 border-brand-ink p-6 sm:p-7 flex flex-col gap-5 min-h-[15rem] card-hard-hover animate-fadeInUp ${
+        ink ? 'bg-brand-ink text-brand-cream shadow-hard-blue' : 'bg-white text-brand-ink shadow-hard'
+      }`}
       style={{ animationDelay: delay }}>
-      <span className="h-14 w-14 rounded-2xl bg-sky-50 text-brand-blue flex items-center justify-center flex-none group-hover:bg-brand-blue group-hover:text-white transition-colors duration-300">
-        <Icon className="h-6 w-6" />
+      <div className="flex items-start justify-between">
+        <span className={`font-display text-5xl font-bold leading-none ${ink ? 'text-brand-cream/25' : 'text-brand-ink/15'}`}>{num}</span>
+        <span className={`stamp ${ink ? '' : 'stamp-blue'}`}>{badge}</span>
+      </div>
+      <div className="mt-auto pr-12">
+        <Icon className={`h-6 w-6 mb-3 ${ink ? 'text-brand-coral' : 'text-brand-blue'}`} />
+        <span className="display-title block text-2xl sm:text-[1.75rem]">{titre}</span>
+        <span className={`block text-sm mt-2 max-w-xs ${ink ? 'text-brand-cream/65' : 'text-brand-ink/60'}`}>{texte}</span>
+      </div>
+      <span className={`absolute bottom-5 right-5 h-10 w-10 border-2 flex items-center justify-center rounded-[2px] transition ${
+        ink ? 'border-brand-cream/40 group-hover:bg-brand-coral group-hover:border-brand-coral' : 'border-brand-ink group-hover:bg-brand-ink group-hover:text-brand-cream'
+      }`}>
+        <ArrowUpRight className="h-5 w-5" />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-blue">{badge}</span>
-        <span className="block font-display text-xl font-bold text-brand-ink leading-tight mt-0.5">{titre}</span>
-        <span className="block text-sm text-brand-ink/60 mt-1">{texte}</span>
-      </span>
-      <ChevronRight className="h-5 w-5 text-brand-slate group-hover:text-brand-ink group-hover:translate-x-0.5 transition flex-none" />
     </Link>
   );
 }
 
 export default function RoleLanding() {
   return (
-    <div className="min-h-screen bg-brand-cream relative overflow-hidden">
-      <div className="pointer-events-none absolute -top-48 -right-40 h-[36rem] w-[36rem] rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #3D5AFE 0%, transparent 70%)' }} />
-      <div className="pointer-events-none absolute top-96 -left-32 h-80 w-80 rounded-full opacity-10 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #FF5A36 0%, transparent 70%)' }} />
-
-      <header className="relative max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+    <div className="min-h-screen paper">
+      <header className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between border-b-2 border-brand-ink">
         <Wordmark />
-        <a href="https://flyder.fr" className="text-sm font-medium text-brand-ink/60 hover:text-brand-ink transition">Un projet Flyder</a>
+        <a href="https://flyder.fr" className="microlabel text-brand-ink/60 hover:text-brand-ink transition">Un projet Flyder</a>
       </header>
 
-      <main className="relative max-w-6xl mx-auto px-5 sm:px-8">
-        <section className="pt-10 sm:pt-20 pb-16 text-center">
-          <div className="inline-flex items-center gap-2 bg-white border border-black/5 rounded-full pl-1.5 pr-4 py-1.5 mb-8 shadow-sm animate-fadeInUp">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-white px-2.5 py-0.5 rounded-full bg-brand-coral">Nouveau</span>
-            <span className="text-xs font-medium text-brand-ink/70">Gratuit pendant le lancement, Île-de-France</span>
+      <div className="tape py-2">
+        <div className="tape-track">
+          {[...TAPE, ...TAPE].map((t, i) => <span key={i} className="mx-6">{t} <span className="mx-2 text-brand-ink">■</span></span>)}
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto px-5 sm:px-8">
+        <section className="pt-10 sm:pt-16 pb-14 grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-end">
+          <div>
+            <p className="ink-bar mb-6 animate-fadeInUp">Annuaire local <span className="text-brand-coral">■</span> coachs &amp; salles</p>
+            <h1 className="display-title text-[3.25rem] sm:text-7xl lg:text-[6.5rem] animate-fadeInUp" style={{ animationDelay: '60ms' }}>
+              Le bon<br />coach,<br />
+              <span className="outline-blue">la bonne</span><br />
+              <span className="text-brand-blue">salle.</span>
+            </h1>
           </div>
-
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.02] text-brand-ink animate-fadeInUp" style={{ animationDelay: '60ms' }}>
-            Le bon coach,<br />
-            <span className="text-brand-blue">la bonne salle.</span>
-          </h1>
-          <p className="mt-6 text-lg sm:text-xl text-brand-ink/60 max-w-xl mx-auto animate-fadeInUp" style={{ animationDelay: '120ms' }}>
-            L'annuaire local qui met en relation les salles de sport et les coachs indépendants — près de chez toi, sans commission.
-          </p>
-
-          <div className="mt-12 grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto text-left">
-            <OptionCard to="/salle" icon={Building2} badge="Pour les salles" titre="Je cherche un coach"
-              texte="Trouve un indépendant dispo près de ta salle, par discipline et par tarif." delay="180ms" />
-            <OptionCard to="/coach" icon={Dumbbell} badge="Pour les coachs" titre="Je cherche des salles"
-              texte="Sois visible des salles qui recrutent autour de toi. Zéro prospection." delay="240ms" />
+          <div className="lg:pb-3 animate-fadeInUp" style={{ animationDelay: '120ms' }}>
+            <div className="rule mb-5" />
+            <p className="text-lg sm:text-xl text-brand-ink/75 leading-snug max-w-md">
+              L'annuaire qui met en relation les salles de sport et les coachs indépendants — près de chez toi, sans commission.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 microlabel text-brand-ink">
+              <span><span className="text-brand-coral">■</span> 0 % de commission</span>
+              <span><span className="text-brand-coral">■</span> Trié par distance</span>
+              <span><span className="text-brand-coral">■</span> Coordonnées en direct</span>
+            </div>
           </div>
         </section>
 
+        <section className="pb-20 grid sm:grid-cols-2 gap-5 sm:gap-6">
+          <OptionCard to="/salle" icon={Building2} num="01" badge="Salles" ink titre="Je cherche un coach"
+            texte="Trouve un indépendant dispo près de ta salle, par discipline et par tarif." delay="180ms" />
+          <OptionCard to="/coach" icon={Dumbbell} num="02" badge="Coachs" titre="Je cherche des salles"
+            texte="Sois visible des salles qui recrutent autour de toi. Zéro prospection." delay="240ms" />
+        </section>
+
+        {/* Déroulé comme une grille horaire : numéro en colonne, trait, texte. */}
         <section className="pb-20">
-          <p className="microlabel text-center mb-6">Comment ça marche</p>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="flex items-center gap-4 mb-2">
+            <p className="ink-bar">Comment ça marche</p>
+            <div className="rule flex-1" />
+          </div>
+          <ol>
             {ETAPES.map((e, i) => (
-              <div key={e.titre} className="bg-white rounded-3xl border border-black/5 shadow-card p-6 animate-fadeInUp" style={{ animationDelay: `${300 + i * 60}ms` }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="h-9 w-9 rounded-xl bg-brand-ink text-white font-display font-bold text-sm flex items-center justify-center">{i + 1}</span>
-                  <e.icon className="h-5 w-5 text-brand-blue" />
-                </div>
-                <h3 className="font-display text-lg font-bold text-brand-ink">{e.titre}</h3>
-                <p className="mt-1.5 text-sm text-brand-ink/60 leading-relaxed">{e.texte}</p>
+              <li key={e.num} className="grid grid-cols-[3.5rem_1fr] sm:grid-cols-[6rem_1fr_1.4fr] gap-x-4 sm:gap-x-8 items-baseline py-6 border-b-2 border-brand-ink animate-fadeInUp" style={{ animationDelay: `${300 + i * 60}ms` }}>
+                <span className="font-display text-4xl sm:text-6xl font-bold leading-none text-brand-coral">{e.num}</span>
+                <h3 className="display-title text-xl sm:text-2xl">{e.titre}</h3>
+                <p className="col-start-2 sm:col-start-3 text-sm sm:text-base text-brand-ink/65 leading-relaxed mt-2 sm:mt-0">{e.texte}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="pb-16">
+          <div className="card-ink grid sm:grid-cols-3 shadow-hard-coral">
+            {[['0 %', 'de commission, aujourd\'hui comme demain sur le socle'], ['Local', 'trié par distance réelle, pas par budget publicitaire'], ['Direct', 'vos coordonnées, vos échanges — sans messagerie imposée']].map(([k, v], i) => (
+              <div key={k} className={`px-6 py-7 sm:px-8 sm:py-9 ${i > 0 ? 'border-t-2 sm:border-t-0 sm:border-l-2 border-brand-cream/20' : ''}`}>
+                <p className="display-title text-4xl sm:text-5xl">{k}</p>
+                <p className="mt-3 text-sm text-brand-cream/60 leading-relaxed">{v}</p>
               </div>
             ))}
           </div>
         </section>
-
-        <section className="pb-16">
-          <div className="rounded-4xl bg-brand-ink text-white px-8 py-10 sm:px-12 sm:py-12 relative overflow-hidden">
-            <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full opacity-30 blur-3xl"
-              style={{ background: 'radial-gradient(circle, #3D5AFE 0%, transparent 70%)' }} />
-            <div className="relative grid sm:grid-cols-3 gap-8">
-              {[['0 %', 'de commission, aujourd\'hui comme demain sur le socle'], ['Local', 'trié par distance réelle, pas par budget publicitaire'], ['Direct', 'vos coordonnées, vos échanges — sans messagerie imposée']].map(([k, v]) => (
-                <div key={k}>
-                  <p className="font-display text-3xl font-bold">{k}</p>
-                  <p className="mt-1.5 text-sm text-white/60 leading-relaxed">{v}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
       </main>
 
-      <footer className="relative max-w-6xl mx-auto px-5 sm:px-8 py-8 flex items-center justify-between text-xs text-brand-slate">
+      <footer className="max-w-6xl mx-auto px-5 sm:px-8 py-8 flex items-center justify-between microlabel border-t-2 border-brand-ink">
         <span>© Flyder — Talents</span>
         <a href="https://flyder.fr" className="hover:text-brand-ink transition">flyder.fr</a>
       </footer>

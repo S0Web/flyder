@@ -67,16 +67,16 @@ export default function CoachProfil() {
               ))}
             </div>
           </Field>
-          <label className="flex items-center gap-3 rounded-2xl bg-brand-cream px-4 py-3 cursor-pointer">
+          <label className="tickrow">
             <input type="checkbox" checked={form.disponible_remplacements} onChange={(e) => set('disponible_remplacements', e.target.checked)}
-              className="h-4 w-4 rounded border-black/20 text-brand-blue focus:ring-brand-blue" />
-            <span className="text-sm text-brand-ink/80">Disponible pour des remplacements de dernière minute</span>
+              className="h-4 w-4 flex-none" />
+            <span className="font-display font-bold uppercase tracking-[0.08em] text-[12px]">Dispo remplacements de dernière minute</span>
           </label>
           <div className="grid sm:grid-cols-[160px_1fr] gap-4">
             <Field label="Tarif horaire" aide="Affiché sur ta carte.">
               <div className="relative">
-                <input className="field pr-8" type="number" min="0" value={form.tarif_horaire} onChange={(e) => set('tarif_horaire', e.target.value)} placeholder="35" />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-brand-slate">€</span>
+                <input className="field pr-6 font-display font-bold text-lg" type="number" min="0" value={form.tarif_horaire} onChange={(e) => set('tarif_horaire', e.target.value)} placeholder="35" />
+                <span className="absolute right-0 bottom-3 text-sm font-bold text-brand-slate">€</span>
               </div>
             </Field>
             <Field label="Bio" aide="Deux ou trois phrases : parcours, spécialités, ce qui te différencie.">
@@ -90,9 +90,9 @@ export default function CoachProfil() {
           <Field label="Téléphone">
             <input className="field" value={form.telephone} onChange={(e) => set('telephone', e.target.value)} placeholder="06 12 34 56 78" />
           </Field>
-          <label className="flex items-center gap-3 rounded-2xl bg-brand-cream px-4 py-3 cursor-pointer">
+          <label className="tickrow">
             <input type="checkbox" checked={form.email_public} onChange={(e) => set('email_public', e.target.checked)}
-              className="h-4 w-4 rounded border-black/20 text-brand-blue focus:ring-brand-blue" />
+              className="h-4 w-4 flex-none" />
             <span className="text-sm text-brand-ink/80">Partager aussi mon email <span className="text-brand-slate">({actor.email})</span></span>
           </label>
         </Section>
