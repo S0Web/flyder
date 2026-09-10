@@ -3,174 +3,124 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Flyder Talents — système "tableau d'affichage".
-   Référence : l'affiche de planning punaisée au mur de la salle, le dossard, la
-   fiche d'inscription tamponnée. Bords nets, cadres encre 2px, ombres pleines
-   décalées, tampons corail, capitales espacées, chiffres lourds. Même charte que
-   Flyder (encre / crème / bleu / corail, Space Grotesk + Inter) — traitement
-   volontairement à l'opposé du SaaS à cartes blanches arrondies.
+   Flyder Talents — système "app mobile".
+   Références : apps de club (planning, réservations) et apps de service
+   publiques récentes : bloc d'en-tête coloré à coins arrondis, cartes douces
+   sans bordure sur fond blanc, tuiles d'icônes pastel, navigation flottante en
+   pilule, gros interrupteurs, titres soulignés d'un trait court. Même charte
+   que Flyder (encre / crème / bleu / corail, Space Grotesk + Inter).
    ───────────────────────────────────────────────────────────────────────────── */
 
 @layer base {
   html { -webkit-font-smoothing: antialiased; }
-  body {
-    @apply bg-brand-cream text-brand-ink font-sans;
-    font-variant-numeric: tabular-nums;
-  }
+  body { @apply bg-white text-brand-ink font-sans; }
   h1, h2, h3 { @apply font-display tracking-tight; }
-  ::selection { background: #FF5A36; color: #fff; }
-  :focus-visible { outline: 2px solid #FF5A36; outline-offset: 3px; }
-  input[type="checkbox"] { accent-color: #FF5A36; }
+  ::selection { background: rgba(61,90,254,0.18); }
+  input[type="checkbox"] { accent-color: #3D5AFE; }
 }
 
 @layer components {
-  /* Fond papier : grille très légère, comme une feuille millimétrée punaisée. */
-  .paper {
-    background-color: #F6F5F1;
-    background-image:
-      linear-gradient(rgba(18,22,43,0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(18,22,43,0.06) 1px, transparent 1px);
-    background-size: 28px 28px;
+  /* En-tête coloré, coins bas très arrondis — la signature de l'app. */
+  .hero {
+    @apply bg-brand-blue text-white rounded-b-[2.25rem] sm:rounded-b-[3rem];
+    background-image: radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 55%);
   }
 
-  /* Cadre posé : bordure encre 2px + ombre pleine décalée (pas de flou). */
-  .card-hard {
-    @apply bg-white border-2 border-brand-ink rounded-sm;
-    box-shadow: 4px 4px 0 #12162B;
-  }
-  .card-hard-hover {
-    transition: transform .18s cubic-bezier(.16,1,.3,1), box-shadow .18s cubic-bezier(.16,1,.3,1);
-  }
-  .card-hard-hover:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 7px 7px 0 #12162B;
-  }
-  .card-ink {
-    @apply bg-brand-ink text-brand-cream border-2 border-brand-ink rounded-sm;
-    box-shadow: 4px 4px 0 #3D5AFE;
-  }
+  /* Cartes douces : gris chaud sans bordure, ou blanches avec bordure hairline. */
+  .card       { @apply bg-brand-cream rounded-3xl; }
+  .card-white { @apply bg-white rounded-3xl border border-black/[0.06] shadow-soft; }
+  .card-hover { @apply transition duration-300 hover:-translate-y-0.5 hover:shadow-lift; }
 
-  /* Barre encre : en-tête de section, comme l'en-tête de jour sur l'affiche. */
-  .ink-bar {
-    @apply bg-brand-ink text-brand-cream font-display font-bold uppercase tracking-[0.14em] text-[11px] px-3 py-1.5 inline-flex items-center gap-2 leading-none;
-  }
-  .ink-bar-blue { @apply bg-brand-blue; }
-  .ink-bar-coral { @apply bg-brand-coral text-white; }
+  /* Tuiles d'icônes pastel. */
+  .tile { @apply h-12 w-12 rounded-2xl flex items-center justify-center flex-none; }
+  .tile-sm { @apply h-9 w-9 rounded-xl; }
+  .tile-lg { @apply h-14 w-14 rounded-[1.25rem]; }
+  .tile-blue   { @apply bg-[#EEF1FF] text-brand-blue; }
+  .tile-coral  { @apply bg-[#FFEDE8] text-brand-coral; }
+  .tile-green  { @apply bg-[#E6F7EF] text-[#0F8A5F]; }
+  .tile-amber  { @apply bg-[#FFF4DB] text-[#C77700]; }
+  .tile-violet { @apply bg-[#F0ECFF] text-[#6B4EFF]; }
+  .tile-ink    { @apply bg-brand-ink text-white; }
+  .tile-grey   { @apply bg-brand-cream text-brand-ink; }
 
-  /* Traits séparateurs, tableau imprimé. */
-  .rule { @apply border-t-2 border-brand-ink; }
-  .rule-thin { @apply border-t border-brand-ink/15; }
+  /* Titre de section : gras, souligné d'un trait court. */
+  .h-section { @apply font-display text-xl font-bold text-brand-ink relative pb-3; }
+  .h-section::after { content: ''; @apply absolute left-0 bottom-0 h-1 w-10 rounded-full bg-brand-ink; }
+  .h-section-light::after { @apply bg-white; }
 
-  .microlabel {
-    @apply font-display text-[11px] font-bold uppercase tracking-[0.16em] text-brand-slate leading-none;
-  }
+  .microlabel { @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-slate; }
 
-  /* Titre affiche : capitales lourdes, interlignage serré. */
-  .display-title {
-    @apply font-display font-bold uppercase leading-[0.92] tracking-[-0.02em];
+  /* Boutons pilule, grands, doux. */
+  .btn-primary, .btn-accent, .btn-secondary, .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full font-semibold text-[15px] px-6 py-3.5 transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
   }
-  /* Texte au trait (contour) : pour le second mot du titre. */
-  .outline-blue {
-    color: transparent;
-    -webkit-text-stroke: 2px #3D5AFE;
-    paint-order: stroke fill;
-  }
-  @media (min-width: 640px) { .outline-blue { -webkit-text-stroke-width: 3px; } }
+  .btn-primary { @apply bg-brand-ink text-white; }
+  .btn-primary:hover:not(:disabled) { @apply bg-brand-blue shadow-glow; }
+  .btn-accent { @apply bg-brand-blue text-white shadow-glow; }
+  .btn-accent:hover:not(:disabled) { @apply bg-brand-ink shadow-none; }
+  .btn-secondary { @apply bg-white text-brand-ink border border-black/10; }
+  .btn-secondary:hover:not(:disabled) { @apply border-brand-ink/30 bg-brand-cream; }
+  .btn-ghost { @apply bg-brand-cream text-brand-ink; }
+  .btn-ghost:hover:not(:disabled) { @apply bg-[#ECEBE6]; }
+  .btn-sm { @apply text-sm px-4 py-2.5; }
 
-  /* Tampon : rectangle corail légèrement incliné, double liseré, capitales. */
-  .stamp {
-    @apply inline-flex items-center gap-1.5 font-display font-bold uppercase tracking-[0.12em] text-[11px] leading-none px-2.5 py-1.5 rounded-[2px] border-2 select-none whitespace-nowrap;
-    color: #FF5A36; border-color: #FF5A36; background: #fff;
-    box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgba(255,90,54,0.45);
-    transform: rotate(-2deg);
-  }
-  .stamp-ink   { color: #12162B; border-color: #12162B; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgba(18,22,43,0.45); }
-  .stamp-blue  { color: #3D5AFE; border-color: #3D5AFE; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgba(61,90,254,0.45); }
-  .stamp-green { color: #0F8A5F; border-color: #0F8A5F; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgba(15,138,95,0.45); }
-  .stamp-slate { color: #8B93A7; border-color: #8B93A7; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgba(139,147,167,0.45); }
-  .stamp-flat  { transform: none; }
-  .stamp-slam  { animation: slam .32s cubic-bezier(.16,1,.3,1) both; }
-
-  /* Étiquette plate : petit cartouche bordé (disciplines, ville). */
-  .tag {
-    @apply inline-flex items-center font-display font-bold uppercase tracking-[0.08em] text-[10px] leading-none px-2 py-1 border border-brand-ink/70 text-brand-ink rounded-[2px] whitespace-nowrap;
-  }
-  .tag-soft { @apply border-brand-ink/25 text-brand-ink/70; }
-
-  /* Numéro de dossard : chiffres lourds dans un cartouche crème. */
-  .dossard {
-    @apply font-display font-bold text-brand-ink bg-brand-cream border-2 border-brand-ink px-2 py-1 text-[13px] leading-none rounded-[2px] tracking-[0.06em];
-  }
-
-  /* Hachures : zone "photo manquante" sur l'affiche. */
-  .hatch {
-    background-color: #EDECE6;
-    background-image: repeating-linear-gradient(45deg, rgba(18,22,43,0.12) 0 2px, transparent 2px 11px);
-  }
-
-  /* Boutons rectangulaires en capitales, ombre pleine : on les enfonce. */
-  .btn-primary, .btn-coral, .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-[2px] font-display font-bold uppercase tracking-[0.12em] text-[12px] px-5 py-3 border-2 select-none whitespace-nowrap;
-    transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
-  }
-  .btn-primary { @apply bg-brand-ink text-brand-cream border-brand-ink; box-shadow: 3px 3px 0 #3D5AFE; }
-  .btn-primary:hover:not(:disabled) { @apply bg-brand-blue border-brand-blue text-white; box-shadow: 3px 3px 0 #12162B; }
-  .btn-coral { @apply bg-brand-coral text-white border-brand-ink; box-shadow: 3px 3px 0 #12162B; }
-  .btn-coral:hover:not(:disabled) { @apply bg-brand-ink; }
-  .btn-secondary { @apply bg-white text-brand-ink border-brand-ink; box-shadow: 3px 3px 0 #12162B; }
-  .btn-secondary:hover:not(:disabled) { @apply bg-brand-cream; }
-  .btn-primary:active:not(:disabled), .btn-coral:active:not(:disabled), .btn-secondary:active:not(:disabled) {
-    transform: translate(3px, 3px); box-shadow: 0 0 0 transparent;
-  }
-  .btn-primary:disabled, .btn-coral:disabled, .btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
-  .btn-sm { @apply px-3 py-2 text-[11px]; }
-
-  /* Champ "formulaire papier" : ligne encre dessous, bleu à la saisie. */
+  /* Champs : blancs, très arrondis, anneau bleu au focus. */
   .field {
-    @apply w-full bg-transparent border-0 border-b-2 border-brand-ink/30 rounded-none px-0 py-2.5 text-[15px] text-brand-ink placeholder:text-brand-slate/70 transition;
+    @apply w-full bg-white border border-black/[0.08] rounded-2xl px-4 py-3.5 text-[15px] text-brand-ink placeholder:text-brand-slate/70 transition
+           focus:outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/10;
   }
-  .field:focus { @apply outline-none border-brand-blue; box-shadow: 0 2px 0 #3D5AFE; }
-  textarea.field { @apply border-2 border-brand-ink/30 px-3 py-2.5 rounded-[2px] text-sm; }
-  textarea.field:focus { @apply border-brand-blue; box-shadow: none; }
+  .field-grey { @apply bg-brand-cream border-transparent focus:bg-white; }
 
-  /* Ticket à cocher : case carrée + capitales, bord encre. Coché = encre pleine, case corail. */
-  .chip {
-    @apply inline-flex items-center gap-2 rounded-[2px] px-2.5 py-1.5 font-display text-[11px] font-bold uppercase tracking-[0.08em] border-2 select-none transition cursor-pointer whitespace-nowrap;
-  }
-  .chip::before { content: ''; @apply inline-block h-2.5 w-2.5 border-2 border-current rounded-[1px] flex-none; }
-  .chip-off { @apply bg-white border-brand-ink/25 text-brand-ink/75 hover:border-brand-ink hover:text-brand-ink; }
-  .chip-on  { @apply bg-brand-ink border-brand-ink text-brand-cream; }
-  .chip-on::before { background: #FF5A36; border-color: #FF5A36; }
+  /* Contrôle segmenté : rail gris, segment actif blanc (ou encre en variante). */
+  .seg { @apply inline-grid grid-flow-col auto-cols-fr rounded-full bg-brand-cream p-1 gap-1; }
+  .seg > button { @apply rounded-full py-2 px-2 text-sm font-semibold text-brand-ink/55 transition whitespace-nowrap; }
+  .seg > button:hover { @apply text-brand-ink; }
+  .seg > button[data-on="true"] { @apply bg-white text-brand-ink shadow-sm; }
+  .seg-ink > button[data-on="true"] { @apply bg-brand-ink text-white; }
 
-  /* Ligne à cocher, style formulaire papier. */
-  .tickrow {
-    @apply flex items-center gap-3 border-2 border-brand-ink/20 hover:border-brand-ink px-4 py-3 cursor-pointer rounded-[2px] text-sm text-brand-ink/85 transition bg-white;
-  }
+  /* Pastilles de choix multiple. */
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold border transition select-none whitespace-nowrap; }
+  .chip-off { @apply bg-white border-black/10 text-brand-ink/70 hover:border-brand-ink/40; }
+  .chip-on  { @apply bg-brand-ink border-brand-ink text-white; }
 
-  /* Interrupteur physique : glissière encre, bloc mobile OUI/NON. */
-  .switch-hard {
-    @apply relative inline-flex items-center h-10 w-[5.25rem] rounded-[2px] border-2 border-brand-ink bg-brand-cream flex-shrink-0 select-none cursor-pointer;
-    box-shadow: 3px 3px 0 #12162B;
-  }
-  .switch-hard:disabled { opacity: .6; cursor: wait; }
-  .switch-hard .knob {
-    @apply absolute top-[3px] bottom-[3px] left-[3px] w-[2.35rem] rounded-[1px] text-white font-display font-bold text-[10px] uppercase tracking-[0.1em] flex items-center justify-center;
-    transition: transform .2s cubic-bezier(.16,1,.3,1), background-color .2s ease;
-  }
-  .switch-hard[aria-checked="true"] .knob  { transform: translateX(2.35rem); background: #0F8A5F; }
-  .switch-hard[aria-checked="false"] .knob { background: #FF5A36; }
+  /* Badges (statut, discipline). */
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap; }
+  .badge-blue  { @apply bg-[#EEF1FF] text-brand-blue; }
+  .badge-green { @apply bg-[#E6F7EF] text-[#0F8A5F]; }
+  .badge-amber { @apply bg-[#FFF4DB] text-[#C77700]; }
+  .badge-coral { @apply bg-[#FFEDE8] text-brand-coral; }
+  .badge-grey  { @apply bg-brand-cream text-brand-ink/70; }
+  .badge-white { @apply bg-white/20 text-white backdrop-blur; }
 
-  /* Bande défilante, ruban adhésif corail. */
-  .tape {
-    @apply bg-brand-coral text-white font-display font-bold uppercase tracking-[0.18em] text-[11px] overflow-hidden whitespace-nowrap select-none border-y-2 border-brand-ink;
+  /* Ligne "réglage" : tuile + libellé + chevron. */
+  .row { @apply flex items-center gap-4 rounded-2xl bg-white border border-black/[0.06] px-4 py-3.5; }
+
+  /* Interrupteur iOS, gros. */
+  .switch { @apply relative inline-flex h-8 w-14 flex-none items-center rounded-full transition-colors duration-300 disabled:opacity-60; }
+  .switch .knob { @apply absolute left-1 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300; }
+  .switch[aria-checked="true"]  { @apply bg-[#0F8A5F]; }
+  .switch[aria-checked="true"] .knob { transform: translateX(1.5rem); }
+  .switch[aria-checked="false"] { @apply bg-black/20; }
+
+  /* Navigation flottante en pilule (mobile). */
+  .bottom-nav {
+    @apply fixed bottom-4 left-4 right-4 z-30 flex items-center justify-around rounded-full bg-white border border-black/[0.06] px-2 py-2 shadow-nav;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
-  .tape-track { display: inline-block; animation: marquee 28s linear infinite; padding-left: 0; }
-  @media (prefers-reduced-motion: reduce) { .tape-track { animation: none; } }
+  .bottom-nav a, .bottom-nav button {
+    @apply flex flex-col items-center gap-1 rounded-full px-4 py-1.5 text-[11px] font-semibold text-brand-ink/55 transition min-w-[4.5rem];
+  }
+  .bottom-nav a.active { @apply bg-brand-cream text-brand-ink; }
+  .fab { @apply h-14 w-14 rounded-full bg-brand-ink text-white flex items-center justify-center shadow-nav flex-none; }
 
   .skeleton {
-    @apply rounded-[2px];
+    @apply rounded-2xl;
     background: linear-gradient(90deg, #ECEBE6 25%, #F6F5F1 50%, #ECEBE6 75%);
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
   }
+
+  /* Défilement horizontal sans barre. */
+  .scroll-x { @apply flex gap-2 overflow-x-auto pb-1 -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap; scrollbar-width: none; }
+  .scroll-x::-webkit-scrollbar { display: none; }
 }

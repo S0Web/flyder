@@ -27,7 +27,7 @@ function ProtectedPage({ role, children }) {
 }
 
 function LoadingScreen() {
-  return <div className="min-h-screen paper flex items-center justify-center"><span className="ink-bar">Chargement…</span></div>;
+  return <div className="min-h-screen flex items-center justify-center bg-white text-sm text-brand-slate">Chargement…</div>;
 }
 
 function Home() {

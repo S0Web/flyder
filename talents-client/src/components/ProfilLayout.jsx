@@ -1,14 +1,13 @@
 import { useRef, useState } from 'react';
-import { Camera, Check, CheckCircle2 } from 'lucide-react';
+import { Camera, Check, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import TopBar from './TopBar';
+import { AppHeader, BottomNav } from './AppShell';
 
 // Effet immédiat, hors formulaire : c'est le contrôle le plus consulté et le
 // plus urgent (se mettre en pause / se rendre visible), il ne doit jamais
-// dépendre d'un clic sur "Enregistrer" ni être caché en bas de page.
-// Visuellement : une grande fiche encre avec le tampon d'état et un
-// interrupteur physique OUI/NON.
+// dépendre d'un clic sur "Enregistrer" ni être caché en bas de page. Grande
+// carte colorée selon l'état, gros interrupteur.
 function VisibiliteSwitch({ base, actor, updateActor }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -27,23 +26,19 @@ function VisibiliteSwitch({ base, actor, updateActor }) {
   }
 
   return (
-    <div className={`mb-8 rounded-sm border-2 border-brand-ink flex items-stretch overflow-hidden animate-fadeInUp ${actif ? 'bg-white shadow-hard' : 'bg-brand-ink text-brand-cream shadow-hard-coral'}`}>
-      <div className={`w-2.5 flex-none ${actif ? 'bg-brand-green' : 'bg-brand-coral'}`} />
-      <div className="flex-1 min-w-0 px-4 sm:px-6 py-4 sm:py-5 grid grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto] gap-x-4 sm:gap-x-6 gap-y-3 items-center">
-        <span key={String(actif)} className={`stamp stamp-slam ${actif ? 'stamp-green' : ''}`}>{actif ? 'Visible' : 'En pause'}</span>
-        <button type="button" onClick={toggle} disabled={busy} role="switch" aria-checked={actif} aria-label="Visibilité du profil"
-          className="switch-hard justify-self-end sm:order-last">
-          <span className="knob">{actif ? 'Oui' : 'Non'}</span>
-        </button>
-        <div className="min-w-0 col-span-2 sm:col-span-1">
-          <p className="display-title text-lg sm:text-xl">
-            {actif ? 'Ton profil est dans les recherches' : 'Ton profil est masqué'}
-          </p>
-          <p className={`text-xs mt-1 ${error ? 'text-brand-coral font-medium' : actif ? 'text-brand-slate' : 'text-brand-cream/60'}`}>
-            {error || (actif ? 'Bascule en pause à tout moment, sans rien perdre. Effet immédiat.' : 'Personne ne te voit tant que tu es en pause. Réactive quand tu veux.')}
-          </p>
-        </div>
+    <div className={`rounded-3xl p-4 sm:p-5 flex items-center gap-4 transition-colors duration-300 animate-fadeInUp ${actif ? 'bg-[#E6F7EF]' : 'bg-[#FFF4DB]'}`}>
+      <span className={`tile ${actif ? 'bg-[#0F8A5F] text-white' : 'bg-[#C77700] text-white'}`}>{actif ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}</span>
+      <div className="min-w-0 flex-1">
+        <p className={`font-display font-bold leading-tight ${actif ? 'text-[#0B6B49]' : 'text-[#8A5300]'}`}>
+          {actif ? 'Profil visible dans les recherches' : 'Profil en pause — invisible'}
+        </p>
+        <p className={`text-xs mt-0.5 ${error ? 'text-brand-coral font-medium' : actif ? 'text-[#0B6B49]/70' : 'text-[#8A5300]/70'}`}>
+          {error || (actif ? 'Mets-toi en pause à tout moment, sans rien perdre.' : 'Personne ne te voit. Réactive quand tu veux, effet immédiat.')}
+        </p>
       </div>
+      <button type="button" onClick={toggle} disabled={busy} role="switch" aria-checked={actif} aria-label="Visibilité du profil" className="switch">
+        <span className="knob" />
+      </button>
     </div>
   );
 }
@@ -70,95 +65,82 @@ export default function ProfilLayout({ base, titre, checklist, form, onSubmit, s
   }
 
   return (
-    <div className="min-h-screen paper">
-      <TopBar base={base} />
+    <div className="min-h-screen bg-white">
+      <AppHeader base={base} eyebrow="Mon profil" titre={<>{titre.ink} {titre.blue}.</>} />
 
-      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
-        <div className="mb-6 pb-6 border-b-2 border-brand-ink animate-fadeInUp">
-          <p className="ink-bar mb-4">Mon profil <span className="text-brand-coral">■</span> #{String(actor.id).padStart(4, '0')}</p>
-          <h1 className="display-title text-4xl sm:text-5xl">
-            {titre.ink} <span className="text-brand-blue">{titre.blue}.</span>
-          </h1>
+      <main className="max-w-6xl mx-auto px-5 sm:px-8 -mt-3 sm:-mt-4 relative pb-8">
+        <div className="card-white p-1.5 mb-6">
+          <VisibiliteSwitch base={base} actor={actor} updateActor={updateActor} />
         </div>
 
-        <VisibiliteSwitch base={base} actor={actor} updateActor={updateActor} />
-
         <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
-          <aside className="space-y-5 lg:sticky lg:top-24 animate-fadeInUp" style={{ animationDelay: '60ms' }}>
-            <div className="card-hard overflow-hidden">
+          <aside className="space-y-4 lg:sticky lg:top-6 animate-fadeInUp" style={{ animationDelay: '60ms' }}>
+            <div className="card p-5 flex items-center gap-4 lg:flex-col lg:text-center">
               <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading}
-                className="group relative w-full aspect-square overflow-hidden hatch border-b-2 border-brand-ink">
+                className="relative flex-none h-24 w-24 lg:h-36 lg:w-36 rounded-[2rem] overflow-hidden bg-brand-blue text-white focus:outline-none focus:ring-4 focus:ring-brand-blue/20">
                 {actor.photo_url
                   ? <img src={actor.photo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                  : <span className="absolute inset-0 flex items-center justify-center display-title text-[8rem] text-brand-ink/10">{initiale}</span>}
-                <span className="absolute inset-0 bg-brand-ink/0 group-hover:bg-brand-ink/50 transition flex items-center justify-center">
-                  <span className="btn-secondary btn-sm opacity-0 group-hover:opacity-100 transition">
-                    <Camera className="h-3.5 w-3.5" /> {uploading ? 'Envoi…' : actor.photo_url ? 'Changer' : 'Ajouter'}
-                  </span>
-                </span>
+                  : <span className="absolute inset-0 flex items-center justify-center font-display text-5xl font-bold">{initiale}</span>}
+                <span className="absolute bottom-1.5 right-1.5 h-8 w-8 rounded-full bg-white text-brand-ink shadow flex items-center justify-center"><Camera className="h-4 w-4" /></span>
               </button>
               <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={handlePhoto} />
-              <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading}
-                className="w-full ink-bar justify-between py-2.5 hover:bg-brand-blue transition">
-                <span>Photo</span>
-                <span className="inline-flex items-center gap-1.5 text-brand-cream/70"><Camera className="h-3 w-3" /> {actor.photo_url ? 'Changer' : 'Ajouter'}</span>
-              </button>
+              <div className="min-w-0">
+                <p className="font-display font-bold text-brand-ink truncate">{actor.prenom ? `${actor.prenom} ${actor.nom}` : actor.nom}</p>
+                <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading} className="text-sm font-semibold text-brand-blue">
+                  {uploading ? 'Envoi…' : actor.photo_url ? 'Changer la photo' : 'Ajouter une photo'}
+                </button>
+                {!actor.photo_url && <p className="text-xs text-brand-slate mt-1">Une photo multiplie les contacts.</p>}
+              </div>
             </div>
 
-            <div className="card-hard">
-              <div className="flex items-center justify-between border-b-2 border-brand-ink">
-                <p className="ink-bar py-2.5">Complétion</p>
-                <p className={`font-display text-2xl font-bold px-3 leading-none ${pct === 100 ? 'text-brand-green' : 'text-brand-coral'}`}>{pct}<span className="text-xs">%</span></p>
+            <div className="card p-5">
+              <div className="flex items-end justify-between mb-2">
+                <p className="font-display font-bold text-brand-ink">Complétion</p>
+                <p className={`font-display text-2xl font-bold leading-none ${pct === 100 ? 'text-[#0F8A5F]' : 'text-brand-blue'}`}>{pct}<span className="text-sm text-brand-slate">%</span></p>
               </div>
-              {/* Jauge en segments : un bloc par point de la checklist. */}
-              <div className="grid gap-1 p-3 border-b border-brand-ink/15" style={{ gridTemplateColumns: `repeat(${checklist.length}, 1fr)` }}>
-                {checklist.map((c) => (
-                  <span key={c.label} className={`h-2.5 border border-brand-ink ${c.ok ? (pct === 100 ? 'bg-brand-green' : 'bg-brand-ink') : 'bg-white'}`} />
-                ))}
+              <div className="h-2.5 rounded-full bg-white overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? 'bg-[#0F8A5F]' : 'bg-brand-blue'}`} style={{ width: `${pct}%` }} />
               </div>
-              <ul>
+              <ul className="mt-4 space-y-1.5">
                 {checklist.map((c) => (
-                  <li key={c.label} className={`flex items-center gap-3 px-4 py-2.5 text-sm border-b border-brand-ink/15 last:border-b-0 ${c.ok ? 'text-brand-ink line-through decoration-brand-coral decoration-2' : 'text-brand-ink/70'}`}>
-                    <span className={`h-4 w-4 border-2 border-brand-ink flex items-center justify-center flex-none rounded-[1px] ${c.ok ? 'bg-brand-ink text-brand-cream' : 'bg-white'}`}>
+                  <li key={c.label} className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm ${c.ok ? 'text-brand-ink' : 'text-brand-slate bg-white/60'}`}>
+                    <span className={`h-5 w-5 rounded-full flex items-center justify-center flex-none ${c.ok ? 'bg-[#0F8A5F] text-white' : 'bg-white border border-black/10'}`}>
                       {c.ok && <Check className="h-3 w-3" strokeWidth={3} />}
                     </span>
                     {c.label}
                   </li>
                 ))}
               </ul>
-              <p className={`microlabel px-4 py-3 border-t-2 border-brand-ink ${actor.profil_complet ? 'text-brand-green' : 'text-brand-coral'}`}>
-                {actor.profil_complet ? '■ Fiche recevable' : '■ Adresse + discipline requises'}
-              </p>
             </div>
           </aside>
 
-          <form onSubmit={onSubmit} className="space-y-5 animate-fadeInUp" style={{ animationDelay: '120ms' }}>
-            {error && <div className="border-2 border-brand-coral bg-white text-brand-coral rounded-[2px] px-4 py-2.5 text-sm font-medium">{error}</div>}
+          <form onSubmit={onSubmit} className="space-y-4 animate-fadeInUp" style={{ animationDelay: '120ms' }}>
+            {error && <div className="bg-[#FFEDE8] text-brand-coral rounded-2xl px-4 py-3 text-sm font-medium">{error}</div>}
             {form}
-            <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 card-ink pl-4 pr-2 py-2">
-              <span className="text-xs sm:text-sm text-brand-cream/80 inline-flex items-center gap-2 min-w-0">
-                {saved ? <><CheckCircle2 className="h-4 w-4 text-brand-green flex-none" /> <span className="truncate">Modifications enregistrées</span></> : <span className="truncate">Pense à enregistrer tes modifications</span>}
+            <div className="sticky bottom-24 md:bottom-4 z-10 flex items-center justify-between gap-3 rounded-full bg-brand-ink text-white pl-5 pr-1.5 py-1.5 shadow-nav">
+              <span className="text-sm text-white/80 inline-flex items-center gap-2 min-w-0">
+                {saved ? <><CheckCircle2 className="h-4 w-4 text-[#4ADE80] flex-none" /> <span className="truncate">Enregistré</span></> : <span className="truncate">Pense à enregistrer</span>}
               </span>
-              <button type="submit" disabled={saving} className="btn-coral !py-2.5 flex-none">
+              <button type="submit" disabled={saving} className="btn-accent !py-3 !px-5 flex-none">
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </button>
             </div>
           </form>
         </div>
       </main>
+
+      <BottomNav base={base} />
     </div>
   );
 }
 
-// Bloc de section du formulaire : barre encre en titre + champs.
+// Bloc de section du formulaire : titre + micro-description + champs.
 export function Section({ titre, aide, children }) {
   return (
-    <section className="card-hard">
-      <div className="border-b-2 border-brand-ink flex flex-wrap items-center gap-x-4 gap-y-1">
-        <h2 className="ink-bar py-2.5">{titre}</h2>
-        {aide && <p className="text-xs text-brand-slate pr-4 py-1.5">{aide}</p>}
-      </div>
-      <div className="p-5 sm:p-6 space-y-5">{children}</div>
+    <section className="card p-5 sm:p-6">
+      <h2 className="font-display text-base font-bold text-brand-ink">{titre}</h2>
+      {aide ? <p className="text-xs text-brand-slate mt-0.5 mb-4">{aide}</p> : <div className="mb-4" />}
+      <div className="space-y-4">{children}</div>
     </section>
   );
 }
@@ -166,9 +148,9 @@ export function Section({ titre, aide, children }) {
 export function Field({ label, aide, children }) {
   return (
     <label className="block">
-      <span className="microlabel text-brand-ink/70">{label}</span>
-      <div className="mt-1">{children}</div>
-      {aide && <span className="block mt-1.5 text-xs text-brand-slate">{aide}</span>}
+      <span className="microlabel pl-1">{label}</span>
+      <div className="mt-1.5">{children}</div>
+      {aide && <span className="block mt-1.5 text-xs text-brand-slate pl-1">{aide}</span>}
     </label>
   );
 }

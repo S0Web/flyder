@@ -27,29 +27,27 @@ export default {
           green: '#0F8A5F',
         },
       },
+      borderRadius: { '4xl': '2rem' },
       boxShadow: {
-        // Ombres pleines décalées, jamais floues : le papier posé sur le panneau.
-        hard:        '4px 4px 0 #12162B',
-        'hard-lg':   '7px 7px 0 #12162B',
-        'hard-blue': '4px 4px 0 #3D5AFE',
-        'hard-coral':'4px 4px 0 #FF5A36',
+        // Ombres très diffuses, teintées encre, jamais grises.
+        soft: '0 1px 2px rgba(18,22,43,0.03), 0 8px 24px -12px rgba(18,22,43,0.10)',
+        lift: '0 2px 4px rgba(18,22,43,0.04), 0 20px 40px -16px rgba(18,22,43,0.18)',
+        nav:  '0 8px 30px -8px rgba(18,22,43,0.25)',
+        glow: '0 12px 32px -10px rgba(61,90,254,0.55)',
       },
       keyframes: {
         fadeInUp: { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
         fadeIn:   { from: { opacity: 0 }, to: { opacity: 1 } },
         pop:      { '0%': { transform: 'scale(0.96)', opacity: 0 }, '60%': { transform: 'scale(1.02)' }, '100%': { transform: 'scale(1)', opacity: 1 } },
         shimmer:  { from: { backgroundPosition: '-200% 0' }, to: { backgroundPosition: '200% 0' } },
-        // Le tampon qui s'abat sur la fiche.
-        slam:     { '0%': { transform: 'rotate(-2deg) scale(1.6)', opacity: 0 }, '70%': { transform: 'rotate(-2deg) scale(0.96)', opacity: 1 }, '100%': { transform: 'rotate(-2deg) scale(1)', opacity: 1 } },
-        marquee:  { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+        float:    { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
       },
       animation: {
         fadeInUp: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
         fadeIn:   'fadeIn 0.3s ease-out both',
         pop:      'pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',
         shimmer:  'shimmer 1.6s linear infinite',
-        slam:     'slam 0.32s cubic-bezier(0.16, 1, 0.3, 1) both',
-        marquee:  'marquee 28s linear infinite',
+        float:    'float 5s ease-in-out infinite',
       },
     },
   },

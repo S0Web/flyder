@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { LocateFixed, SearchX, AlertTriangle, ArrowRight, SlidersHorizontal } from 'lucide-react';
+import { LocateFixed, SearchX, AlertCircle, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import TopBar from './TopBar';
-import FilterBar, { FILTER_DEFAULTS } from './FilterBar';
+import { AppHeader, BottomNav } from './AppShell';
+import FilterBar, { FILTER_DEFAULTS, DisciplineChips, nbFiltresActifs } from './FilterBar';
 import ProfileCard from './ProfileCard';
 import EmptyState from './EmptyState';
 import { CardSkeleton } from './Skeleton';
@@ -19,12 +19,10 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Sur mobile les filtres prendraient tout le premier écran : repliés par défaut.
+  // Sur mobile le panneau de réglages est replié par défaut (les disciplines
+  // restent toujours accessibles en pastilles).
   const [filtresOuverts, setFiltresOuverts] = useState(false);
-  const nbFiltres = filters.disciplines.length
-    + (filters.tarif_min || filters.tarif_max ? 1 : 0)
-    + (filters.rayon_km !== FILTER_DEFAULTS.rayon_km ? 1 : 0)
-    + (filters.remplacements ? 1 : 0);
+  const nbFiltres = nbFiltresActifs(filters);
 
   const chercher = useCallback(() => {
     setLoading(true); setError(null);
@@ -55,61 +53,48 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
   }
 
   const n = results.length;
-  const compteur = loading ? '…' : String(n).padStart(2, '0');
-  const sousTitre = loading ? 'Recherche en cours'
-    : origine ? `${n > 1 ? pluriel : singulier} dans un rayon de ${filters.rayon_km} km`
-    : `${n > 1 ? pluriel : singulier} — active ta position pour trier par distance`;
+  const sousTitre = loading ? 'Recherche en cours…'
+    : origine ? `${n} ${n > 1 ? pluriel : singulier} dans un rayon de ${filters.rayon_km} km`
+    : `${n} ${n > 1 ? pluriel : singulier} — active ta position pour trier par distance`;
 
   return (
-    <div className="min-h-screen paper">
-      <TopBar base={base} />
+    <div className="min-h-screen bg-white">
+      <AppHeader base={base} eyebrow="Autour de toi" titre={<>{titre.ink} {titre.blue}.</>} sousTitre={sousTitre}>
+        <button onClick={utiliserMaPosition} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2.5 text-sm font-semibold transition">
+          <LocateFixed className="h-4 w-4" /> <span className="hidden sm:inline">Utiliser ma position</span><span className="sm:hidden">Ma position</span>
+        </button>
+      </AppHeader>
 
-      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
-        <div className="flex flex-wrap items-end justify-between gap-5 mb-6 pb-6 border-b-2 border-brand-ink">
-          <div className="animate-fadeInUp min-w-0">
-            <p className="ink-bar mb-4">Autour de toi</p>
-            <h1 className="display-title text-4xl sm:text-5xl">
-              {titre.ink} <span className="text-brand-blue">{titre.blue}.</span>
-            </h1>
-            <p className="mt-3 flex items-baseline gap-2.5">
-              <span className="font-display text-3xl font-bold text-brand-coral leading-none">{compteur}</span>
-              <span className="microlabel text-brand-ink/70">{sousTitre}</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setFiltresOuverts((o) => !o)} className="btn-secondary lg:hidden">
-              <SlidersHorizontal className="h-4 w-4" /> Filtres
-              {nbFiltres > 0 && <span className="bg-brand-coral text-white px-1.5 py-0.5 rounded-[1px] text-[10px]">{nbFiltres}</span>}
-            </button>
-            <button onClick={utiliserMaPosition} className="btn-secondary">
-              <LocateFixed className="h-4 w-4 text-brand-blue" /> <span className="hidden sm:inline">Utiliser ma position</span><span className="sm:hidden">Ma position</span>
-            </button>
-          </div>
-        </div>
-
+      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-6 sm:py-8">
         {!actor.profil_complet && (
-          <Link to={`${base}/profil`}
-            className="group flex items-stretch card-hard card-hard-hover mb-6 overflow-hidden animate-fadeInUp">
-            <span className="bg-brand-coral text-white flex items-center px-3 border-r-2 border-brand-ink flex-none"><AlertTriangle className="h-5 w-5" /></span>
-            <span className="text-sm text-brand-ink/80 flex-1 px-4 py-3">
-              <strong className="font-display font-bold uppercase tracking-wide text-brand-ink block text-[12px] mb-0.5">Ton profil n'est pas encore visible</strong>
+          <Link to={`${base}/profil`} className="row card-hover mb-5 animate-fadeInUp">
+            <span className="tile tile-amber"><AlertCircle className="h-5 w-5" /></span>
+            <span className="text-sm text-brand-ink/70 flex-1 leading-snug">
+              <strong className="block font-semibold text-brand-ink">Ton profil n'est pas encore visible</strong>
               Ajoute une adresse et une discipline pour apparaître dans les recherches.
             </span>
-            <span className="flex items-center px-4 text-brand-ink"><ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition" /></span>
+            <ChevronRight className="h-4 w-4 text-brand-slate flex-none" />
           </Link>
         )}
 
-        <div className="grid lg:grid-cols-[280px_1fr] gap-6 items-start">
-          <div className={`${filtresOuverts ? 'block' : 'hidden'} lg:block`}>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="min-w-0 flex-1"><DisciplineChips filters={filters} onChange={setFilters} /></div>
+          <button onClick={() => setFiltresOuverts((o) => !o)} className="btn-ghost btn-sm lg:hidden flex-none">
+            <SlidersHorizontal className="h-4 w-4" /> {nbFiltres > 0 && <span className="badge badge-blue">{nbFiltres}</span>}
+          </button>
+        </div>
+
+        <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
+          <div className={`${filtresOuverts ? 'block animate-fadeInUp' : 'hidden'} lg:block`}>
             <FilterBar filters={filters} onChange={setFilters} showTarif={type === 'coach'} showRemplacements={type === 'coach'} />
           </div>
 
           <section>
-            {error && <div className="border-2 border-brand-coral text-brand-coral rounded-[2px] px-4 py-2.5 text-sm font-medium mb-4 bg-white">{error}</div>}
+            {error && <div className="bg-[#FFEDE8] text-brand-coral rounded-2xl px-4 py-3 text-sm font-medium mb-4">{error}</div>}
 
             {loading ? (
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+              <div className="grid xl:grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
               </div>
             ) : n === 0 ? (
               <EmptyState icon={SearchX}
@@ -117,13 +102,15 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
                 texte="Élargis le rayon ou retire un filtre — et reviens bientôt, l'annuaire se remplit."
                 action={<button onClick={() => setFilters({ ...FILTER_DEFAULTS, rayon_km: 50 })} className="btn-secondary">Chercher à 50 km</button>} />
             ) : (
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid xl:grid-cols-2 gap-4">
                 {results.map((r, i) => <ProfileCard key={r.id} type={type} profile={r} index={i} />)}
               </div>
             )}
           </section>
         </div>
       </main>
+
+      <BottomNav base={base} fab={{ icon: SlidersHorizontal, label: 'Filtres', onClick: () => { setFiltresOuverts((o) => !o); window.scrollTo({ top: 0, behavior: 'smooth' }); } }} />
     </div>
   );
 }
