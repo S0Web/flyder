@@ -10,7 +10,7 @@ export default function GymAuth() {
       promesses={[
         'Des profils autour de ta salle, pas des annonces nationales',
         'Filtre par discipline, rayon et tarif horaire',
-        'Aucun compte Flyder requis — ouvert à toutes les salles',
+        'Gratuit pendant la bêta — des offres arriveront ensuite pour les salles',
       ]}
     />
   );

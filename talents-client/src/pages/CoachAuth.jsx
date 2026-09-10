@@ -10,7 +10,7 @@ export default function CoachAuth() {
       promesses={[
         'Visible des salles dans le rayon que tu choisis',
         'Ton tarif, tes disciplines, ta bio — rien d\'autre à remplir',
-        'Gratuit, sans commission sur tes missions',
+        'Gratuit, sans commission — et ça le restera, même après la bêta',
       ]}
     />
   );

@@ -42,7 +42,7 @@ export default function RoleLanding() {
           </div>
 
           <div className="mt-10 sm:mt-16 max-w-2xl">
-            <span className="badge badge-white animate-fadeInUp"><span className="h-1.5 w-1.5 rounded-full bg-brand-coral" /> Gratuit pendant le lancement · Île-de-France</span>
+            <span className="badge badge-white animate-fadeInUp"><span className="h-1.5 w-1.5 rounded-full bg-brand-coral" /> Bêta gratuite · Île-de-France</span>
             <h1 className="mt-4 text-[2.75rem] sm:text-6xl lg:text-7xl font-bold leading-[1.02] animate-fadeInUp" style={{ animationDelay: '60ms' }}>
               Le bon coach,<br />la bonne salle.
             </h1>
