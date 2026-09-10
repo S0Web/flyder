@@ -60,93 +60,101 @@ function ActifToggle({ actif, onToggle }) {
   );
 }
 
-function CoachesTable({ coaches, onToggle, onDelete }) {
+function Badge({ ok, labelOk, labelKo }) {
   return (
-    <div className="overflow-x-auto bg-white rounded-3xl border border-black/5 shadow-card">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-brand-slate border-b border-black/5">
-            <th className="px-4 py-3">Nom</th>
-            <th className="px-4 py-3">Email</th>
-            <th className="px-4 py-3">Ville</th>
-            <th className="px-4 py-3">Disciplines</th>
-            <th className="px-4 py-3">Tarif</th>
-            <th className="px-4 py-3">Remplacements</th>
-            <th className="px-4 py-3">Complet</th>
-            <th className="px-4 py-3">Statut</th>
-            <th className="px-4 py-3">Créé le</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {coaches.map((c, i) => (
-            <tr key={c.id} className={`border-b border-black/5 last:border-0 ${i % 2 === 1 ? 'bg-brand-cream/40' : ''}`}>
-              <td className="px-4 py-2.5 font-medium text-brand-ink whitespace-nowrap">{c.prenom} {c.nom}</td>
-              <td className="px-4 py-2.5 text-brand-ink/70">{c.email}</td>
-              <td className="px-4 py-2.5 text-brand-ink/70 whitespace-nowrap">{ville(c.adresse)}</td>
-              <td className="px-4 py-2.5 text-brand-ink/70">
-                {(c.disciplines || '').split(',').filter(Boolean).map(labelDiscipline).join(', ') || '—'}
-              </td>
-              <td className="px-4 py-2.5 text-brand-ink/70 whitespace-nowrap">{c.tarif_horaire != null ? `${c.tarif_horaire} €/h` : '—'}</td>
-              <td className="px-4 py-2.5">{c.disponible_remplacements ? '✅' : '—'}</td>
-              <td className="px-4 py-2.5">{c.profil_complet ? '✅' : '—'}</td>
-              <td className="px-4 py-2.5"><ActifToggle actif={!!c.actif} onToggle={() => onToggle(c)} /></td>
-              <td className="px-4 py-2.5 text-brand-slate whitespace-nowrap">{fmtDate(c.created_at)}</td>
-              <td className="px-4 py-2.5">
-                <button type="button" onClick={() => onDelete(c)} title="Supprimer" className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
-              </td>
-            </tr>
-          ))}
-          {coaches.length === 0 && (
-            <tr><td colSpan={10} className="px-4 py-8 text-center text-brand-slate italic">Aucun coach inscrit.</td></tr>
-          )}
-        </tbody>
-      </table>
+    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${ok ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700'}`}>
+      {ok ? labelOk : labelKo}
+    </span>
+  );
+}
+
+// Cartes plutôt que tableau : la priorité est le mobile (c'est comme ça que
+// cette page est utilisée en pratique), où un tableau large ne montre que 2-3
+// colonnes et cache le statut et les actions — les infos les plus utiles ici.
+function EntityCard({ nom, email, ville: v, chips, tarif, extra, complet, actif, onToggle, onDelete, dateLabel }) {
+  return (
+    <div className="bg-white rounded-2xl border border-black/5 shadow-card p-4 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="font-display font-bold text-brand-ink truncate">{nom}</h3>
+          <p className="text-xs text-brand-slate truncate">{email}</p>
+        </div>
+        <button type="button" onClick={onDelete} title="Supprimer" className="text-red-400 hover:text-red-600 flex-shrink-0 p-1">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      {(v !== '—' || chips.length > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          {v !== '—' && <span className="chip chip-off !py-1 !px-2.5">{v}</span>}
+          {chips.map((c) => <span key={c} className="chip chip-off !py-1 !px-2.5">{c}</span>)}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between text-xs text-brand-slate">
+        <span>{tarif}</span>
+        <span>{dateLabel}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-black/5">
+        <ActifToggle actif={actif} onToggle={onToggle} />
+        {extra}
+        <Badge ok={complet} labelOk="Profil complet" labelKo="Profil incomplet" />
+      </div>
     </div>
   );
 }
 
-function GymsTable({ gyms, onToggle, onDelete }) {
+function CardGrid({ children, empty }) {
+  const items = children.filter(Boolean);
+  if (items.length === 0) return <p className="text-brand-slate text-sm italic text-center py-10">{empty}</p>;
+  return <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">{items}</div>;
+}
+
+function CoachesCards({ coaches, onToggle, onDelete }) {
   return (
-    <div className="overflow-x-auto bg-white rounded-3xl border border-black/5 shadow-card">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-brand-slate border-b border-black/5">
-            <th className="px-4 py-3">Nom</th>
-            <th className="px-4 py-3">Email</th>
-            <th className="px-4 py-3">Ville</th>
-            <th className="px-4 py-3">Disciplines recherchées</th>
-            <th className="px-4 py-3">Contact</th>
-            <th className="px-4 py-3">Complet</th>
-            <th className="px-4 py-3">Statut</th>
-            <th className="px-4 py-3">Créé le</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {gyms.map((g, i) => (
-            <tr key={g.id} className={`border-b border-black/5 last:border-0 ${i % 2 === 1 ? 'bg-brand-cream/40' : ''}`}>
-              <td className="px-4 py-2.5 font-medium text-brand-ink whitespace-nowrap">{g.nom}</td>
-              <td className="px-4 py-2.5 text-brand-ink/70">{g.email}</td>
-              <td className="px-4 py-2.5 text-brand-ink/70 whitespace-nowrap">{ville(g.adresse)}</td>
-              <td className="px-4 py-2.5 text-brand-ink/70">
-                {(g.disciplines_recherchees || '').split(',').filter(Boolean).map(labelDiscipline).join(', ') || '—'}
-              </td>
-              <td className="px-4 py-2.5 text-brand-ink/70 whitespace-nowrap">{g.contact_telephone || g.contact_email || '—'}</td>
-              <td className="px-4 py-2.5">{g.profil_complet ? '✅' : '—'}</td>
-              <td className="px-4 py-2.5"><ActifToggle actif={!!g.actif} onToggle={() => onToggle(g)} /></td>
-              <td className="px-4 py-2.5 text-brand-slate whitespace-nowrap">{fmtDate(g.created_at)}</td>
-              <td className="px-4 py-2.5">
-                <button type="button" onClick={() => onDelete(g)} title="Supprimer" className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
-              </td>
-            </tr>
-          ))}
-          {gyms.length === 0 && (
-            <tr><td colSpan={9} className="px-4 py-8 text-center text-brand-slate italic">Aucune salle inscrite.</td></tr>
+    <CardGrid empty="Aucun coach inscrit.">
+      {coaches.map((c) => (
+        <EntityCard
+          key={c.id}
+          nom={`${c.prenom} ${c.nom}`}
+          email={c.email}
+          ville={ville(c.adresse)}
+          chips={(c.disciplines || '').split(',').filter(Boolean).map(labelDiscipline)}
+          tarif={c.tarif_horaire != null ? `${c.tarif_horaire} €/h` : 'Tarif non renseigné'}
+          dateLabel={fmtDate(c.created_at)}
+          complet={!!c.profil_complet}
+          actif={!!c.actif}
+          onToggle={() => onToggle(c)}
+          onDelete={() => onDelete(c)}
+          extra={c.disponible_remplacements && (
+            <span className="rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-semibold">Remplacements</span>
           )}
-        </tbody>
-      </table>
-    </div>
+        />
+      ))}
+    </CardGrid>
+  );
+}
+
+function GymsCards({ gyms, onToggle, onDelete }) {
+  return (
+    <CardGrid empty="Aucune salle inscrite.">
+      {gyms.map((g) => (
+        <EntityCard
+          key={g.id}
+          nom={g.nom}
+          email={g.email}
+          ville={ville(g.adresse)}
+          chips={(g.disciplines_recherchees || '').split(',').filter(Boolean).map(labelDiscipline)}
+          tarif={g.contact_telephone || g.contact_email || 'Contact non renseigné'}
+          dateLabel={fmtDate(g.created_at)}
+          complet={!!g.profil_complet}
+          actif={!!g.actif}
+          onToggle={() => onToggle(g)}
+          onDelete={() => onDelete(g)}
+        />
+      ))}
+    </CardGrid>
   );
 }
 
@@ -191,19 +199,19 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-brand-cream">
-      <header className="bg-white border-b border-black/5">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Wordmark />
-            <span className="microlabel">Admin</span>
+      <header className="bg-white border-b border-black/5 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-shrink">
+            <Wordmark className="flex-shrink-0" />
+            <span className="microlabel hidden sm:inline flex-shrink-0">Admin</span>
           </div>
-          <button type="button" onClick={logout} className="btn-secondary py-2 px-4 text-xs">
+          <button type="button" onClick={logout} className="btn-secondary py-2 px-3 sm:px-4 text-xs flex-shrink-0">
             <LogOut className="h-3.5 w-3.5" /> Déconnexion
           </button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8 space-y-5">
+      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
         {error && <div className="bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-2.5 text-sm">{error}</div>}
 
         <div className="inline-flex rounded-full bg-white border border-black/5 p-1 gap-1">
@@ -220,9 +228,9 @@ function Dashboard() {
         {coaches === null || gyms === null ? (
           <p className="text-brand-slate text-sm">Chargement…</p>
         ) : tab === 'coaches' ? (
-          <CoachesTable coaches={coaches} onToggle={toggleCoach} onDelete={deleteCoach} />
+          <CoachesCards coaches={coaches} onToggle={toggleCoach} onDelete={deleteCoach} />
         ) : (
-          <GymsTable gyms={gyms} onToggle={toggleGym} onDelete={deleteGym} />
+          <GymsCards gyms={gyms} onToggle={toggleGym} onDelete={deleteGym} />
         )}
       </main>
     </div>
