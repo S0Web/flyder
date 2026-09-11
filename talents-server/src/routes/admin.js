@@ -86,4 +86,30 @@ router.delete('/gyms/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/admin/contacts — qui a contacté qui, et quand. `contact_events` ne
+// garde qu'un log (pas de fil de discussion, voir plan), enrichi ici avec les
+// noms pour être lisible — la table brute n'a que des id/type. Un id qui ne
+// correspond plus à personne (profil supprimé depuis) devient "supprimé".
+router.get('/contacts', (req, res) => {
+  const events = db.all('SELECT * FROM contact_events ORDER BY created_at DESC LIMIT 500');
+
+  const coaches = new Map(db.all('SELECT id, prenom, nom FROM coaches').map((c) => [c.id, `${c.prenom} ${c.nom}`.trim()]));
+  const gyms = new Map(db.all('SELECT id, nom FROM gyms').map((g) => [g.id, g.nom]));
+  const nomDe = (type, id) => {
+    const nom = (type === 'coach' ? coaches : gyms).get(id);
+    return nom || `${type === 'coach' ? 'Coach' : 'Salle'} supprimé(e) #${id}`;
+  };
+
+  res.json(events.map((e) => ({
+    id: e.id,
+    created_at: e.created_at,
+    initiateur_type: e.initiateur_type,
+    initiateur_id: e.initiateur_id,
+    initiateur_nom: nomDe(e.initiateur_type, e.initiateur_id),
+    cible_type: e.cible_type,
+    cible_id: e.cible_id,
+    cible_nom: nomDe(e.cible_type, e.cible_id),
+  })));
+});
+
 module.exports = router;

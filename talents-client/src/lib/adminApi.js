@@ -40,4 +40,5 @@ export const adminApi = {
   toggleGymActif: (id, actif) => req(`/admin/gyms/${id}`, { method: 'PATCH', body: JSON.stringify({ actif }) }),
   deleteCoach: (id) => req(`/admin/coaches/${id}`, { method: 'DELETE' }),
   deleteGym: (id) => req(`/admin/gyms/${id}`, { method: 'DELETE' }),
+  getContacts: () => req('/admin/contacts'),
 };

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { LogOut, Trash2, ShieldCheck, Zap } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { LogOut, Trash2, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell } from 'lucide-react';
 import { adminApi, getAdminKey, setAdminKey, clearAdminKey } from '../lib/adminApi';
 import { labelDiscipline } from '../lib/constants';
 import Wordmark from '../components/Wordmark';
@@ -12,6 +12,11 @@ function ville(adresse) {
 function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function fmtDateHeure(iso) {
+  if (!iso) return '—';
+  return new Date(iso.replace(' ', 'T') + 'Z').toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 const TILES = ['tile-blue', 'tile-coral', 'tile-green', 'tile-amber', 'tile-violet'];
@@ -145,16 +150,91 @@ function GymsCards({ gyms, onToggle, onDelete }) {
   );
 }
 
+// "Qui a contacté qui, et combien de fois" — les deux questions que le log
+// contact_events permet de répondre sans fil de discussion (voir plan).
+function TopListe({ titre, icon: Icon, rows }) {
+  return (
+    <div className="card-white p-5">
+      <h3 className="font-display font-bold text-brand-ink flex items-center gap-2 mb-4">
+        <span className="tile tile-sm tile-blue"><Icon className="h-4 w-4" /></span> {titre}
+      </h3>
+      {rows.length === 0 ? (
+        <p className="text-sm text-brand-slate">Aucun contact pour l'instant.</p>
+      ) : (
+        <ol className="space-y-2.5">
+          {rows.map(({ nom, n }, i) => (
+            <li key={nom + i} className="flex items-center gap-3">
+              <span className="microlabel w-5 flex-none">{i + 1}</span>
+              <span className="text-sm text-brand-ink font-medium truncate flex-1">{nom}</span>
+              <span className="badge badge-blue flex-none">{n} contact{n > 1 ? 's' : ''}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function ContactsView({ contacts }) {
+  const { topCoaches, topGyms } = useMemo(() => {
+    const compte = (filtre) => {
+      const map = new Map();
+      for (const e of contacts.filter(filtre)) map.set(e.cible_nom, (map.get(e.cible_nom) || 0) + 1);
+      return Array.from(map, ([nom, n]) => ({ nom, n })).sort((a, b) => b.n - a.n).slice(0, 5);
+    };
+    return {
+      topCoaches: compte((e) => e.cible_type === 'coach'),
+      topGyms: compte((e) => e.cible_type === 'gym'),
+    };
+  }, [contacts]);
+
+  return (
+    <div className="space-y-5">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <TopListe titre="Coachs les plus contactés" icon={Dumbbell} rows={topCoaches} />
+        <TopListe titre="Salles les plus contactées" icon={Building2} rows={topGyms} />
+      </div>
+
+      <div className="card-white p-5">
+        <h3 className="font-display font-bold text-brand-ink flex items-center gap-2 mb-4">
+          <span className="tile tile-sm tile-green"><PhoneCall className="h-4 w-4" /></span> Historique des mises en contact
+          <span className="microlabel !normal-case !tracking-normal ml-auto">{contacts.length} au total</span>
+        </h3>
+        {contacts.length === 0 ? (
+          <p className="text-sm text-brand-slate text-center py-6">Aucune mise en contact enregistrée pour l'instant.</p>
+        ) : (
+          <ul className="space-y-2">
+            {contacts.map((e) => (
+              <li key={e.id} className="row !bg-brand-cream">
+                <span className={`tile tile-sm ${e.initiateur_type === 'gym' ? 'tile-blue' : 'tile-coral'}`}>
+                  {e.initiateur_type === 'gym' ? <Building2 className="h-4 w-4" /> : <Dumbbell className="h-4 w-4" />}
+                </span>
+                <span className="min-w-0 flex-1 text-sm">
+                  <span className="font-semibold text-brand-ink">{e.initiateur_nom}</span>
+                  <span className="text-brand-slate"> a contacté </span>
+                  <span className="font-semibold text-brand-ink">{e.cible_nom}</span>
+                </span>
+                <span className="text-xs text-brand-slate flex-none">{fmtDateHeure(e.created_at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const [tab, setTab] = useState('coaches');
   const [coaches, setCoaches] = useState(null);
   const [gyms, setGyms] = useState(null);
+  const [contacts, setContacts] = useState(null);
   const [error, setError] = useState(null);
 
   const load = useCallback(() => {
     setError(null);
-    Promise.all([adminApi.getCoaches(), adminApi.getGyms()])
-      .then(([c, g]) => { setCoaches(c); setGyms(g); })
+    Promise.all([adminApi.getCoaches(), adminApi.getGyms(), adminApi.getContacts()])
+      .then(([c, g, ct]) => { setCoaches(c); setGyms(g); setContacts(ct); })
       .catch((err) => setError(err.message));
   }, []);
 
@@ -200,7 +280,7 @@ function Dashboard() {
               <h1 className="text-3xl sm:text-4xl font-bold">Coachs &amp; salles</h1>
             </div>
             <div className="seg bg-white/15">
-              {[['coaches', 'Coachs', coaches], ['gyms', 'Salles', gyms]].map(([id, label, rows]) => (
+              {[['coaches', 'Coachs', coaches], ['gyms', 'Salles', gyms], ['contacts', 'Contacts', contacts]].map(([id, label, rows]) => (
                 <button key={id} type="button" data-on={tab === id} onClick={() => setTab(id)} className={tab === id ? '' : '!text-white/70 hover:!text-white'}>
                   {label} {rows ? <span className="opacity-60">({rows.length})</span> : ''}
                 </button>
@@ -212,12 +292,14 @@ function Dashboard() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-5">
         {error && <div className="bg-[#FFEDE8] text-brand-coral rounded-2xl px-4 py-3 text-sm font-medium">{error}</div>}
-        {coaches === null || gyms === null ? (
+        {coaches === null || gyms === null || contacts === null ? (
           <p className="text-brand-slate text-sm">Chargement…</p>
         ) : tab === 'coaches' ? (
           <CoachesCards coaches={coaches} onToggle={toggleCoach} onDelete={deleteCoach} />
-        ) : (
+        ) : tab === 'gyms' ? (
           <GymsCards gyms={gyms} onToggle={toggleGym} onDelete={deleteGym} />
+        ) : (
+          <ContactsView contacts={contacts} />
         )}
       </main>
     </div>
