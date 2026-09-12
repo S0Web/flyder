@@ -1,18 +1,19 @@
 // Géocodage via l'API Adresse du gouvernement français (Base Adresse Nationale) —
 // gratuite, sans clé, bien adaptée au contexte France/Île-de-France. Aucune
 // capacité de géocodage n'existait ailleurs dans le repo avant Flyder Talents.
-async function geocodeAdresse(adresse) {
-  if (!adresse || !adresse.trim()) return null;
+//
+// `codePostal` est passé en paramètre dédié (filtre strict côté API), jamais
+// mélangé au texte libre de `voieEtVille` : sans ça, l'API renvoie le meilleur
+// match texte n'importe où en France dès que la voie exacte n'existe pas dans
+// la commune donnée ("Avenue du Général Leclerc" existe dans des dizaines de
+// villes) — un géocodage sans ce filtre a déjà atterri près de Nancy pour une
+// adresse à Draveil. Depuis que ville/code postal viennent d'une commune
+// choisie via autocomplétion (jamais de saisie libre), ce paramètre est
+// toujours fiable.
+async function geocodeAdresse(voieEtVille, codePostal) {
+  if (!voieEtVille || !voieEtVille.trim()) return null;
   try {
-    // Sans contrainte, l'API renvoie le meilleur match texte n'importe où en
-    // France dès que la voie exacte n'existe pas dans la commune donnée (ex.
-    // "Avenue du Général Leclerc" existe dans des dizaines de villes) — un "22
-    // Avenue du Général Leclerc, 91210 Draveil" peut ainsi atterrir près de
-    // Nancy. Extraire le code postal et le passer en paramètre dédié (filtre
-    // strict côté API, pas un simple mot du texte libre) élimine ce risque.
-    const cp = adresse.match(/\b(\d{5})\b/)?.[1];
-    const q = cp ? adresse.replace(cp, '').trim() : adresse.trim();
-    const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}${cp ? `&postcode=${cp}` : ''}&limit=1`;
+    const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(voieEtVille.trim())}${codePostal ? `&postcode=${encodeURIComponent(codePostal)}` : ''}&limit=1`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();

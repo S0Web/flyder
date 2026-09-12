@@ -4,11 +4,6 @@ import { adminApi, getAdminKey, setAdminKey, clearAdminKey } from '../lib/adminA
 import { labelDiscipline } from '../lib/constants';
 import Wordmark from '../components/Wordmark';
 
-function ville(adresse) {
-  const m = (adresse || '').match(/\d{5}\s+(.+)$/);
-  return m ? m[1] : (adresse || '—');
-}
-
 function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -112,7 +107,7 @@ function CoachesCards({ coaches, onToggle, onDelete }) {
           id={c.id}
           nom={`${c.prenom} ${c.nom}`}
           email={c.email}
-          ville={ville(c.adresse)}
+          ville={c.ville || '—'}
           chips={(c.disciplines || '').split(',').filter(Boolean).map(labelDiscipline)}
           tarif={c.tarif_horaire != null ? `${c.tarif_horaire} €/h` : 'Tarif non renseigné'}
           dateLabel={fmtDate(c.created_at)}
@@ -136,7 +131,7 @@ function GymsCards({ gyms, onToggle, onDelete }) {
           id={g.id}
           nom={g.nom}
           email={g.email}
-          ville={ville(g.adresse)}
+          ville={g.ville || '—'}
           chips={(g.disciplines_recherchees || '').split(',').filter(Boolean).map(labelDiscipline)}
           tarif={g.contact_telephone || g.contact_email || 'Contact non renseigné'}
           dateLabel={fmtDate(g.created_at)}

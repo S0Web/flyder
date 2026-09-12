@@ -3,17 +3,12 @@ import { MapPin, Phone, Mail, ChevronDown, Check, Copy, Zap } from 'lucide-react
 import { api } from '../lib/api';
 import { labelDiscipline } from '../lib/constants';
 
-// Extrait la ville d'une adresse "12 rue X, 91100 Corbeil-Essonnes".
-function ville(adresse) {
-  const m = (adresse || '').match(/\d{5}\s+(.+)$/);
-  return m ? m[1] : adresse;
-}
-
 const TILES = ['tile-blue', 'tile-coral', 'tile-green', 'tile-amber', 'tile-violet'];
 
-// Carte "ligne de planning" : tuile de distance à gauche (comme l'heure d'un
-// cours), carte douce avec nom / ville / disciplines, avatar carré arrondi à
-// droite. "Contacter" déplie les coordonnées brutes — pas de messagerie (plan).
+// Carte unique (pas de tuile de distance séparée à côté — deux formes
+// disjointes lisaient mal, surtout sur mobile) : avatar, nom, ville et
+// distance sur une même ligne. "Contacter" déplie les coordonnées brutes —
+// pas de messagerie (plan).
 export default function ProfileCard({ type, profile, index = 0 }) {
   const [reveal, setReveal] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -45,31 +40,24 @@ export default function ProfileCard({ type, profile, index = 0 }) {
   const tel = reveal?.telephone || reveal?.contact_telephone;
 
   return (
-    <article className="flex gap-3 animate-fadeInUp" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
-      <div className="card w-[4.5rem] flex-none self-start py-4 flex flex-col items-center justify-center text-brand-ink">
-        {profile.distance_km != null ? (
-          <>
-            <MapPin className="h-4 w-4 text-brand-blue mb-1" />
-            <span className="font-display text-lg font-bold leading-none">{profile.distance_km}</span>
-            <span className="text-[11px] text-brand-slate">km</span>
-          </>
-        ) : (
-          <><MapPin className="h-4 w-4 text-brand-slate mb-1" /><span className="text-[11px] text-brand-slate">—</span></>
-        )}
-      </div>
-
-      <div className="card card-hover flex-1 min-w-0 p-4 sm:p-5 flex flex-col gap-3.5">
+    <article className="card card-hover p-4 sm:p-5 flex flex-col gap-3.5 animate-fadeInUp" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
         <div className="flex items-start gap-3">
+          <span className={`tile tile-lg ${tile} overflow-hidden font-display text-xl font-bold flex-none`}>
+            {profile.photo_url ? <img src={profile.photo_url} alt="" className="h-full w-full object-cover" /> : initiale}
+          </span>
           <div className="min-w-0 flex-1">
             <h3 className="font-display text-lg font-bold text-brand-ink leading-tight truncate">{titre}</h3>
-            <p className="text-sm text-brand-ink/55 truncate">{profile.adresse ? ville(profile.adresse) : 'Ville non renseignée'}</p>
+            <p className="mt-0.5 flex items-center gap-1 text-sm text-brand-ink/55 truncate">
+              <MapPin className="h-3.5 w-3.5 flex-none text-brand-slate" />
+              <span className="truncate">{profile.ville || 'Ville non renseignée'}</span>
+              {profile.distance_km != null && (
+                <span className="flex-none font-semibold text-brand-blue">· {profile.distance_km} km</span>
+              )}
+            </p>
             {isCoach && profile.tarif_horaire != null && (
               <p className="mt-1 font-display font-bold text-brand-ink">{profile.tarif_horaire} €<span className="text-brand-slate font-normal text-sm">/h</span></p>
             )}
           </div>
-          <span className={`tile tile-lg ${tile} overflow-hidden font-display text-xl font-bold`}>
-            {profile.photo_url ? <img src={profile.photo_url} alt="" className="h-full w-full object-cover" /> : initiale}
-          </span>
         </div>
 
         {(disciplines.length > 0 || (isCoach && !!profile.disponible_remplacements)) && (
@@ -128,7 +116,6 @@ export default function ProfileCard({ type, profile, index = 0 }) {
             {busy ? 'Un instant…' : 'Contacter'}
           </button>
         )}
-      </div>
     </article>
   );
 }

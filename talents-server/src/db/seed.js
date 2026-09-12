@@ -48,10 +48,14 @@ const RUES = [
   'Rue du Général Leclerc', 'Avenue de la Libération', 'Rue Jean Moulin', 'Rue des Écoles', 'Avenue de la Gare',
 ];
 
+// Retourne les 3 champs désormais séparés dans le formulaire (voie / code
+// postal / ville) plutôt qu'une seule chaîne — la ville et le code postal
+// viennent toujours de `COMMUNES` (l'équivalent seed de la sélection par
+// autocomplétion côté client), jamais reconstruits par regex.
 function adresseDe(communeIdx, n) {
-  const [ville, cp] = COMMUNES[communeIdx];
-  const rue = RUES[n % RUES.length];
-  return `${1 + (n % 70)} ${rue}, ${cp} ${ville}`;
+  const [ville, codePostal] = COMMUNES[communeIdx];
+  const rue = `${1 + (n % 70)} ${RUES[n % RUES.length]}`;
+  return { rue, codePostal, ville };
 }
 
 // ─── Coachs — [prenom, nom, communeIdx, disciplines[], tarif|null, telephone, email_public, bio] ──
@@ -187,20 +191,20 @@ async function seedCoaches() {
   console.log(`Géocodage et insertion de ${COACHES_DEF.length} coachs…`);
   for (let i = 0; i < COACHES_DEF.length; i++) {
     const [prenom, nom, communeIdx, disciplines, tarif, telephone, emailPublic, bio] = COACHES_DEF[i];
-    const adresseTexte = communeIdx >= 0 ? adresseDe(communeIdx, i) : '';
+    const { rue, codePostal, ville } = communeIdx >= 0 ? adresseDe(communeIdx, i) : { rue: '', codePostal: '', ville: '' };
     let lat = null, lng = null;
-    if (adresseTexte) {
-      const geo = await geocodeAdresse(adresseTexte);
+    if (rue && ville) {
+      const geo = await geocodeAdresse(`${rue} ${ville}`, codePostal);
       if (geo) { lat = geo.lat; lng = geo.lng; }
-      else console.warn(`  ⚠ géocodage échoué pour ${prenom} ${nom} (${adresseTexte})`);
+      else console.warn(`  ⚠ géocodage échoué pour ${prenom} ${nom} (${rue}, ${codePostal} ${ville})`);
     }
     const disciplinesStr = disciplines.join(',');
-    const profilComplet = adresseTexte && lat != null && disciplinesStr ? 1 : 0;
+    const profilComplet = rue && ville && lat != null && disciplinesStr ? 1 : 0;
     const email = stripAccents(`${prenom.toLowerCase()}.${nom.toLowerCase()}.${i}@talents-test.fr`);
     db.run(
-      `INSERT INTO coaches (email, password_hash, nom, prenom, adresse, lat, lng, disciplines, tarif_horaire, bio, telephone, email_public, profil_complet)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [email, hashPassword(MOT_DE_PASSE), nom, prenom, adresseTexte || null, lat, lng, disciplinesStr, tarif, bio, telephone, emailPublic ? 1 : 0, profilComplet]
+      `INSERT INTO coaches (email, password_hash, nom, prenom, adresse, code_postal, ville, lat, lng, disciplines, tarif_horaire, bio, telephone, email_public, profil_complet)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [email, hashPassword(MOT_DE_PASSE), nom, prenom, rue || null, codePostal || null, ville || null, lat, lng, disciplinesStr, tarif, bio, telephone, emailPublic ? 1 : 0, profilComplet]
     );
   }
   console.log(`  ✓ ${COACHES_DEF.length} coachs traités`);
@@ -210,21 +214,21 @@ async function seedGyms() {
   console.log(`Géocodage et insertion de ${GYMS_DEF.length} salles…`);
   for (let i = 0; i < GYMS_DEF.length; i++) {
     const [nom, communeIdx, disciplines, contactNom, contactTel, description] = GYMS_DEF[i];
-    const adresseTexte = communeIdx >= 0 ? adresseDe(communeIdx, i + 200) : '';
+    const { rue, codePostal, ville } = communeIdx >= 0 ? adresseDe(communeIdx, i + 200) : { rue: '', codePostal: '', ville: '' };
     let lat = null, lng = null;
-    if (adresseTexte) {
-      const geo = await geocodeAdresse(adresseTexte);
+    if (rue && ville) {
+      const geo = await geocodeAdresse(`${rue} ${ville}`, codePostal);
       if (geo) { lat = geo.lat; lng = geo.lng; }
-      else console.warn(`  ⚠ géocodage échoué pour ${nom} (${adresseTexte})`);
+      else console.warn(`  ⚠ géocodage échoué pour ${nom} (${rue}, ${codePostal} ${ville})`);
     }
     const disciplinesStr = disciplines.join(',');
-    const profilComplet = adresseTexte && lat != null && disciplinesStr ? 1 : 0;
+    const profilComplet = rue && ville && lat != null && disciplinesStr ? 1 : 0;
     const email = `contact@${slug(nom)}-${i}.fr`;
     const contactEmail = contactNom ? email : '';
     db.run(
-      `INSERT INTO gyms (email, password_hash, nom, adresse, lat, lng, disciplines_recherchees, description, contact_nom, contact_email, contact_telephone, profil_complet)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [email, hashPassword(MOT_DE_PASSE), nom, adresseTexte || null, lat, lng, disciplinesStr, description, contactNom, contactEmail, contactTel, profilComplet]
+      `INSERT INTO gyms (email, password_hash, nom, adresse, code_postal, ville, lat, lng, disciplines_recherchees, description, contact_nom, contact_email, contact_telephone, profil_complet)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [email, hashPassword(MOT_DE_PASSE), nom, rue || null, codePostal || null, ville || null, lat, lng, disciplinesStr, description, contactNom, contactEmail, contactTel, profilComplet]
     );
   }
   console.log(`  ✓ ${GYMS_DEF.length} salles traitées`);

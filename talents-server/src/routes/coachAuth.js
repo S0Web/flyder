@@ -8,6 +8,7 @@ const { geocodeAdresse } = require('../lib/geo');
 
 const DUREE_SESSION_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CODE_POSTAL_RE = /^\d{5}$/;
 // Borne les champs libres : évite qu'un profil serve de dépotoir (spam, abus).
 const clean = (v, max) => String(v ?? '').trim().slice(0, max);
 
@@ -19,7 +20,7 @@ function issueSession(coachId) {
 }
 
 const PROFIL_PUBLIC_FIELDS =
-  'id, email, nom, prenom, adresse, lat, lng, disciplines, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet, actif, disponible_remplacements';
+  'id, email, nom, prenom, adresse, code_postal, ville, lat, lng, disciplines, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet, actif, disponible_remplacements';
 
 // POST /api/coach-auth/signup
 router.post('/signup', (req, res) => {
@@ -87,22 +88,31 @@ router.put('/me', requireCoachAuth, async (req, res) => {
     ? (Array.isArray(b.disciplines) ? b.disciplines.join(',') : String(b.disciplines))
     : current.disciplines;
 
-  let adresse = current.adresse, lat = current.lat, lng = current.lng;
-  if (b.adresse !== undefined) {
-    const adresseTrim = clean(b.adresse, 200);
-    if (adresseTrim !== (current.adresse || '')) {
-      adresse = adresseTrim;
-      const geo = adresseTrim ? await geocodeAdresse(adresseTrim) : null;
-      lat = geo ? geo.lat : null;
-      lng = geo ? geo.lng : null;
-    }
+  // La ville vient obligatoirement d'une commune réelle choisie côté client
+  // (autocomplétion Base Adresse Nationale) — jamais de saisie libre, pour
+  // qu'il soit impossible d'enregistrer "aulnay" à la place d'"Aulnay-sous-
+  // Bois" et de fausser silencieusement le tri par distance.
+  if (b.code_postal !== undefined && b.code_postal && !CODE_POSTAL_RE.test(String(b.code_postal).trim())) {
+    return res.status(400).json({ error: 'Code postal invalide (5 chiffres)' });
   }
 
-  const profilComplet = adresse && lat != null && disciplines ? 1 : 0;
+  let adresse = current.adresse, codePostal = current.code_postal, ville = current.ville, lat = current.lat, lng = current.lng;
+  let adresseChangee = false;
+  if (b.adresse !== undefined) { const v = clean(b.adresse, 200); if (v !== (current.adresse || '')) { adresse = v; adresseChangee = true; } }
+  if (b.code_postal !== undefined) { const v = clean(b.code_postal, 5); if (v !== (current.code_postal || '')) { codePostal = v; adresseChangee = true; } }
+  if (b.ville !== undefined) { const v = clean(b.ville, 100); if (v !== (current.ville || '')) { ville = v; adresseChangee = true; } }
+
+  if (adresseChangee) {
+    const geo = (adresse && ville) ? await geocodeAdresse(`${adresse} ${ville}`, codePostal) : null;
+    lat = geo ? geo.lat : null;
+    lng = geo ? geo.lng : null;
+  }
+
+  const profilComplet = adresse && codePostal && ville && lat != null && disciplines ? 1 : 0;
 
   db.run(
-    `UPDATE coaches SET nom=?, prenom=?, adresse=?, lat=?, lng=?, disciplines=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, prenom, adresse, lat, lng, disciplines, tarifHoraire, bio, telephone, emailPublic, actif, disponibleRemplacements, profilComplet, req.coach.id]
+    `UPDATE coaches SET nom=?, prenom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
+    [nom, prenom, adresse, codePostal, ville, lat, lng, disciplines, tarifHoraire, bio, telephone, emailPublic, actif, disponibleRemplacements, profilComplet, req.coach.id]
   );
 
   res.json(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [req.coach.id]));

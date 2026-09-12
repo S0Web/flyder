@@ -112,4 +112,15 @@ tryAlter('ALTER TABLE coaches ADD COLUMN actif INTEGER NOT NULL DEFAULT 1');
 // la place) d'une recherche de créneaux fixes — filtrable côté recherche salle.
 tryAlter('ALTER TABLE coaches ADD COLUMN disponible_remplacements INTEGER NOT NULL DEFAULT 0');
 
+// Ville et code postal séparés de la voie/numéro (colonne `adresse`, conservée
+// pour la précision du géocodage) — la ville vient obligatoirement d'une liste
+// de communes réelles choisie côté client (autocomplétion Base Adresse
+// Nationale), jamais d'une saisie libre : impossible d'enregistrer "aulnay" à
+// la place d'"Aulnay-sous-Bois". C'est aussi ce qui est affiché publiquement
+// (jamais la voie exacte, question de vie privée avant tout contact).
+tryAlter('ALTER TABLE coaches ADD COLUMN code_postal TEXT');
+tryAlter('ALTER TABLE coaches ADD COLUMN ville TEXT');
+tryAlter('ALTER TABLE gyms ADD COLUMN code_postal TEXT');
+tryAlter('ALTER TABLE gyms ADD COLUMN ville TEXT');
+
 module.exports = db;

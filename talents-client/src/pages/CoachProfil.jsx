@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { DISCIPLINES } from '../lib/constants';
 import ProfilLayout, { Section, Field } from '../components/ProfilLayout';
+import VilleAutocomplete from '../components/VilleAutocomplete';
 
 export default function CoachProfil() {
   const { actor, updateActor } = useAuth();
@@ -10,6 +11,8 @@ export default function CoachProfil() {
     prenom: actor.prenom || '',
     nom: actor.nom || '',
     adresse: actor.adresse || '',
+    code_postal: actor.code_postal || '',
+    ville: actor.ville || '',
     disciplines: (actor.disciplines || '').split(',').filter(Boolean),
     tarif_horaire: actor.tarif_horaire ?? '',
     bio: actor.bio || '',
@@ -33,7 +36,7 @@ export default function CoachProfil() {
   }
 
   const checklist = [
-    { label: 'Adresse localisée', ok: actor.lat != null },
+    { label: 'Ville et adresse', ok: actor.lat != null },
     { label: 'Au moins une discipline', ok: !!actor.disciplines },
     { label: 'Une bio', ok: !!actor.bio },
     { label: 'Un téléphone', ok: !!actor.telephone },
@@ -52,10 +55,20 @@ export default function CoachProfil() {
         </Section>
 
         <Section titre="Où tu interviens" aide="Ton adresse sert uniquement à calculer les distances — elle n'est jamais affichée telle quelle, seulement ta ville.">
-          <Field label="Adresse">
+          <Field label="Adresse (rue et numéro)">
             <input className="field" value={form.adresse} onChange={(e) => set('adresse', e.target.value)}
-              placeholder="12 rue de la République, 91100 Corbeil-Essonnes" />
+              placeholder="12 rue de la République" />
           </Field>
+          <div className="grid sm:grid-cols-[140px_1fr] gap-4">
+            <Field label="Code postal">
+              <input className="field" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} value={form.code_postal}
+                onChange={(e) => set('code_postal', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="91100" />
+            </Field>
+            <Field label="Ville" aide="Choisis-la dans la liste — pas de saisie libre, pour que ta position soit toujours fiable.">
+              <VilleAutocomplete ville={form.ville} placeholder="Corbeil-Essonnes"
+                onSelect={(ville, codePostal) => setForm((f) => ({ ...f, ville, code_postal: codePostal }))} />
+            </Field>
+          </div>
         </Section>
 
         <Section titre="Ton activité">

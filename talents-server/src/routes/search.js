@@ -21,7 +21,8 @@ function marquerDejaContactes(rows, req, cibleType) {
 // Aucune donnée sensible dans les SELECT ci-dessous : téléphone/email/contact_*
 // ne sont jamais chargés pour la recherche publique — c'est la rédaction la
 // plus sûre (ne jamais aller chercher ce qui ne doit pas fuiter), plutôt qu'un
-// filtrage a posteriori sur un objet déjà complet.
+// filtrage a posteriori sur un objet déjà complet. Même logique pour la voie
+// exacte (`adresse`) : seule la `ville` est sélectionnée, jamais la rue/numéro.
 
 function parseDisciplines(q) {
   return q ? String(q).split(',').map((s) => s.trim()).filter(Boolean) : [];
@@ -47,7 +48,7 @@ function appliquerDistance(rows, lat, lng, rayonKm) {
 // GET /api/search/coaches?discipline=fitness,boxe&tarif_min=&tarif_max=&remplacements=1&lat=&lng=&rayon_km=
 router.get('/coaches', (req, res) => {
   let rows = db.all(
-    `SELECT id, nom, prenom, adresse, lat, lng, disciplines, tarif_horaire, bio, photo_url, disponible_remplacements
+    `SELECT id, nom, prenom, ville, lat, lng, disciplines, tarif_horaire, bio, photo_url, disponible_remplacements
      FROM coaches WHERE profil_complet = 1 AND actif = 1`
   );
 
@@ -75,20 +76,18 @@ router.get('/coaches', (req, res) => {
 // pré-remplir une fiche coach locale à partir d'une "Réf. Talents".
 router.get('/coaches/:id', (req, res) => {
   const coach = db.get(
-    `SELECT id, nom, prenom, adresse, disciplines, tarif_horaire, bio, photo_url, disponible_remplacements
+    `SELECT id, nom, prenom, ville, disciplines, tarif_horaire, bio, photo_url, disponible_remplacements
      FROM coaches WHERE id = ? AND profil_complet = 1 AND actif = 1`,
     [Number(req.params.id)]
   );
   if (!coach) return res.status(404).json({ error: 'Profil Talents introuvable' });
-  const m = (coach.adresse || '').match(/\d{5}\s+(.+)$/);
-  const { adresse, ...publicFields } = coach;
-  res.json({ ...publicFields, ville: m ? m[1] : null });
+  res.json(coach);
 });
 
 // GET /api/search/gyms?discipline=fitness,boxe&lat=&lng=&rayon_km=
 router.get('/gyms', (req, res) => {
   let rows = db.all(
-    `SELECT id, nom, adresse, lat, lng, disciplines_recherchees, description, photo_url
+    `SELECT id, nom, ville, lat, lng, disciplines_recherchees, description, photo_url
      FROM gyms WHERE profil_complet = 1 AND actif = 1`
   );
 

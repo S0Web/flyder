@@ -18,10 +18,36 @@ export function AppHeader({ base, eyebrow, titre, sousTitre, children }) {
       isActive ? 'bg-white text-brand-ink shadow-sm' : 'text-white/75 hover:text-white hover:bg-white/10'
     }`;
 
+  // Même dégradé, ancré à l'écran (background-attachment: fixed) plutôt qu'à
+  // chaque bloc : la barre et le bloc titre deviennent deux fenêtres sur un
+  // même "papier peint" fixé au viewport, donc toujours raccordées à leur
+  // jointure — y compris une fois la barre décrochée du bloc titre au
+  // défilement, puisque à cet instant précis la barre s'arrête à la même
+  // ligne d'écran où le bloc titre redevient visible en dessous.
+  const glow = {
+    backgroundColor: '#3D5AFE',
+    backgroundImage: 'radial-gradient(1400px 320px at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 60%)',
+    backgroundAttachment: 'fixed',
+  };
+
   return (
-    <header className="hero">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-4 sm:pt-5 pb-7 sm:pb-9">
-        <div className="flex items-center justify-between gap-3">
+    <>
+      {/* Rangée épinglée en haut au défilement — sur toute la hauteur de la
+          page, pas seulement celle du bloc bleu ci-dessous : un élément
+          "sticky" ne peut jamais dépasser le bas de SON PARENT direct. En la
+          sortant du <header>, son parent devient le conteneur de page entier
+          (voir RecherchePage.jsx/ProfilLayout.jsx, qui l'appellent en frère
+          direct de <main>) — elle reste donc accrochée jusqu'en bas de page,
+          pas seulement tant que le bloc bleu est à l'écran. Couleur pleine,
+          jamais de transparence/flou ici : combinés à "sticky", ils créent un
+          filet blanc visible à la jointure avec le bloc bleu du dessous
+          (artefact de compositing du navigateur). text-white explicite : en
+          sortant cette rangée du <header className="hero"> ci-dessous, elle a
+          perdu le text-white que .hero appliquait en cascade à tout son
+          contenu — nom et icône retombaient sur l'encre (texte par défaut du
+          site), quasi invisible sur fond bleu. */}
+      <div className="sticky top-0 z-30 text-white" style={glow}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-3">
           <Link to={`${base}/recherche`}><Wordmark tone="light" /></Link>
           <nav className="hidden md:flex items-center gap-1 rounded-full bg-black/10 p-1">
             <NavLink to={`${base}/recherche`} className={pill}><Search className="h-4 w-4" /> Rechercher</NavLink>
@@ -32,25 +58,37 @@ export function AppHeader({ base, eyebrow, titre, sousTitre, children }) {
               <span className="h-8 w-8 rounded-full overflow-hidden bg-white text-brand-blue text-sm font-bold flex items-center justify-center">
                 {actor?.photo_url ? <img src={actor.photo_url} alt="" className="h-full w-full object-cover" /> : initiale}
               </span>
-              <span className="text-sm font-semibold max-w-[8rem] truncate hidden sm:inline">{nom}</span>
+              <span className="text-sm font-semibold max-w-[8rem] truncate hidden sm:inline-block">{nom}</span>
             </Link>
             <button onClick={logout} title="Se déconnecter"
-              className="h-10 w-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition">
+              className="h-10 w-10 rounded-full bg-white/15 hover:bg-white/25 text-white/80 hover:text-white flex items-center justify-center transition">
               <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
-
-        <div className="mt-8 sm:mt-10 flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0 animate-fadeInUp">
-            {eyebrow && <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70 mb-2">{eyebrow}</p>}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-[1.05]">{titre}</h1>
-            {sousTitre && <p className="mt-2 text-sm sm:text-base text-white/75">{sousTitre}</p>}
-          </div>
-          {children && <div className="flex items-center gap-2 animate-fadeInUp">{children}</div>}
-        </div>
       </div>
-    </header>
+
+      <header className="hero" style={glow}>
+        {/* style={glow} inline plutôt que le dégradé par défaut de .hero (qui
+            est relatif à CE bloc, donc différent de la barre du dessus) —
+            voir le commentaire sur `glow` plus haut. */}
+        {/* pt- ici, pas mt- sur l'enfant : une marge (contrairement à un
+            padding) aurait fusionné à travers ce conteneur jusqu'au-dessus du
+            <header> (aucun des deux n'a de padding-top/bordure pour arrêter
+            la fusion), ouvrant un vide blanc entre la barre du haut et le
+            bloc bleu — le même bug que la barre elle-même, cause différente. */}
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-4 sm:pt-6 pb-7 sm:pb-9">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0 animate-fadeInUp">
+              {eyebrow && <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70 mb-2">{eyebrow}</p>}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-[1.05]">{titre}</h1>
+              {sousTitre && <p className="mt-2 text-sm sm:text-base text-white/75">{sousTitre}</p>}
+            </div>
+            {children && <div className="flex items-center gap-2 animate-fadeInUp">{children}</div>}
+          </div>
+        </div>
+      </header>
+    </>
   );
 }
 
