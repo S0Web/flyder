@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const db = require('../db/database');
+const { updateCoachProfile, updateGymProfile, EMAIL_RE } = require('../lib/updateProfile');
 
 // Protection minimale : une seule clé partagée (ADMIN_KEY, variable d'env par
 // service), pas de système de comptes — cette interface n'a qu'un seul
@@ -67,6 +68,45 @@ router.patch('/gyms/:id', (req, res) => {
     db.run("UPDATE gyms SET actif = ?, updated_at = datetime('now') WHERE id = ?", [req.body.actif ? 1 : 0, gym.id]);
   }
   res.json(sansMotDePasse(db.get('SELECT * FROM gyms WHERE id = ?', [gym.id])));
+});
+
+// Change l'email de connexion — seul champ que l'admin peut modifier mais
+// pas le titulaire lui-même via PUT .../me (corriger une coquille à
+// l'inscription, réattribuer un compte). Validé et vérifié unique ici,
+// séparément de updateCoachProfile/updateGymProfile qui n'y touchent jamais.
+function changerEmail(table, id, email) {
+  const emailNorm = String(email).trim().toLowerCase().slice(0, 120);
+  if (!EMAIL_RE.test(emailNorm)) return 'Adresse email invalide';
+  const conflit = db.get(`SELECT id FROM ${table} WHERE email = ? AND id != ?`, [emailNorm, id]);
+  if (conflit) return 'Un autre compte utilise déjà cet email';
+  db.run(`UPDATE ${table} SET email = ? WHERE id = ?`, [emailNorm, id]);
+  return null;
+}
+
+// PUT /api/admin/coaches/:id — édition complète du profil (contrairement au
+// PATCH ci-dessus qui ne bascule que actif/inactif) : mêmes champs et même
+// géocodage que le libre-service (updateCoachProfile), plus l'email, que le
+// titulaire ne peut pas changer lui-même.
+router.put('/coaches/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (req.body.email !== undefined) {
+    const erreur = changerEmail('coaches', id, req.body.email);
+    if (erreur) return res.status(400).json({ error: erreur });
+  }
+  const result = await updateCoachProfile(id, req.body);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  res.json(sansMotDePasse(result.profile));
+});
+
+router.put('/gyms/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (req.body.email !== undefined) {
+    const erreur = changerEmail('gyms', id, req.body.email);
+    if (erreur) return res.status(400).json({ error: erreur });
+  }
+  const result = await updateGymProfile(id, req.body);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  res.json(sansMotDePasse(result.profile));
 });
 
 // DELETE — modération (spam, faux profils). Les contact_events historiques

@@ -4,11 +4,10 @@ const router = express.Router();
 const db = require('../db/database');
 const { hashPassword, verifyPassword } = require('../lib/passwordHash');
 const { requireGymAuth, getToken } = require('../middleware/auth');
-const { geocodeAdresse } = require('../lib/geo');
+const { updateGymProfile, GYM_FIELDS } = require('../lib/updateProfile');
 
 const DUREE_SESSION_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CODE_POSTAL_RE = /^\d{5}$/;
 // Borne les champs libres : évite qu'un profil serve de dépotoir (spam, abus).
 const clean = (v, max) => String(v ?? '').trim().slice(0, max);
 
@@ -19,8 +18,7 @@ function issueSession(gymId) {
   return token;
 }
 
-const PROFIL_PUBLIC_FIELDS =
-  'id, email, nom, adresse, code_postal, ville, lat, lng, disciplines_recherchees, description, photo_url, contact_nom, contact_email, contact_telephone, profil_complet, actif';
+const PROFIL_PUBLIC_FIELDS = GYM_FIELDS;
 
 // POST /api/gym-auth/signup — aucune vérification d'identité de la salle en
 // MVP, même niveau de confiance minimal que côté coach (voir plan).
@@ -69,50 +67,12 @@ router.get('/me', requireGymAuth, (req, res) => {
   res.json(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [req.gym.id]));
 });
 
-// PUT /api/gym-auth/me — mise à jour partielle, même logique que coachAuth.js.
+// PUT /api/gym-auth/me — mise à jour partielle. Logique partagée avec
+// PUT /api/admin/gyms/:id — voir lib/updateProfile.js.
 router.put('/me', requireGymAuth, async (req, res) => {
-  const current = db.get('SELECT * FROM gyms WHERE id = ?', [req.gym.id]);
-  const b = req.body;
-
-  const nom = b.nom !== undefined ? clean(b.nom, 120) : current.nom;
-  const description = b.description !== undefined ? clean(b.description, 3000) : current.description;
-  const contactNom = b.contact_nom !== undefined ? clean(b.contact_nom, 80) : current.contact_nom;
-  const contactEmail = b.contact_email !== undefined ? clean(b.contact_email, 120) : current.contact_email;
-  const contactTelephone = b.contact_telephone !== undefined ? clean(b.contact_telephone, 30) : current.contact_telephone;
-  if (!nom) return res.status(400).json({ error: 'Nom de la salle requis' });
-  if (contactEmail && !EMAIL_RE.test(contactEmail)) return res.status(400).json({ error: 'Email de contact invalide' });
-  const actif = b.actif !== undefined ? (b.actif ? 1 : 0) : current.actif;
-  const disciplinesRecherchees = b.disciplines_recherchees !== undefined
-    ? (Array.isArray(b.disciplines_recherchees) ? b.disciplines_recherchees.join(',') : String(b.disciplines_recherchees))
-    : current.disciplines_recherchees;
-
-  // La ville vient obligatoirement d'une commune réelle choisie côté client
-  // (autocomplétion Base Adresse Nationale) — jamais de saisie libre, même
-  // raison que côté coach (voir coachAuth.js).
-  if (b.code_postal !== undefined && b.code_postal && !CODE_POSTAL_RE.test(String(b.code_postal).trim())) {
-    return res.status(400).json({ error: 'Code postal invalide (5 chiffres)' });
-  }
-
-  let adresse = current.adresse, codePostal = current.code_postal, ville = current.ville, lat = current.lat, lng = current.lng;
-  let adresseChangee = false;
-  if (b.adresse !== undefined) { const v = clean(b.adresse, 200); if (v !== (current.adresse || '')) { adresse = v; adresseChangee = true; } }
-  if (b.code_postal !== undefined) { const v = clean(b.code_postal, 5); if (v !== (current.code_postal || '')) { codePostal = v; adresseChangee = true; } }
-  if (b.ville !== undefined) { const v = clean(b.ville, 100); if (v !== (current.ville || '')) { ville = v; adresseChangee = true; } }
-
-  if (adresseChangee) {
-    const geo = (adresse && ville) ? await geocodeAdresse(`${adresse} ${ville}`, codePostal) : null;
-    lat = geo ? geo.lat : null;
-    lng = geo ? geo.lng : null;
-  }
-
-  const profilComplet = adresse && codePostal && ville && lat != null && disciplinesRecherchees ? 1 : 0;
-
-  db.run(
-    `UPDATE gyms SET nom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines_recherchees=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, actif=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, adresse, codePostal, ville, lat, lng, disciplinesRecherchees, description, contactNom, contactEmail, contactTelephone, actif, profilComplet, req.gym.id]
-  );
-
-  res.json(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [req.gym.id]));
+  const result = await updateGymProfile(req.gym.id, req.body);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  res.json(result.profile);
 });
 
 module.exports = router;

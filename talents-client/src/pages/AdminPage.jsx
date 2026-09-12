@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Trash2, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell } from 'lucide-react';
+import { LogOut, Trash2, Pencil, X, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell } from 'lucide-react';
 import { adminApi, getAdminKey, setAdminKey, clearAdminKey } from '../lib/adminApi';
-import { labelDiscipline } from '../lib/constants';
+import { DISCIPLINES, labelDiscipline } from '../lib/constants';
 import Wordmark from '../components/Wordmark';
+import VilleAutocomplete from '../components/VilleAutocomplete';
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -60,7 +61,7 @@ function LoginForm({ onLoggedIn }) {
 // Cartes plutôt que tableau : la priorité est le mobile (c'est comme ça que
 // cette page est utilisée en pratique), où un tableau large ne montre que 2-3
 // colonnes et cache le statut et les actions — les infos les plus utiles ici.
-function EntityCard({ id, nom, email, ville: v, chips, tarif, extra, complet, actif, onToggle, onDelete, dateLabel }) {
+function EntityCard({ id, nom, email, ville: v, chips, tarif, extra, complet, actif, onToggle, onEdit, onDelete, dateLabel }) {
   return (
     <div className={`card p-4 flex flex-col gap-3 transition ${actif ? '' : 'opacity-60'}`}>
       <div className="flex items-start gap-3">
@@ -69,6 +70,9 @@ function EntityCard({ id, nom, email, ville: v, chips, tarif, extra, complet, ac
           <h3 className="font-display font-bold text-brand-ink truncate leading-tight">{nom}</h3>
           <p className="text-xs text-brand-slate truncate">{email}</p>
         </div>
+        <button type="button" onClick={onEdit} title="Modifier" className="h-9 w-9 rounded-full bg-white text-brand-slate hover:text-white hover:bg-brand-blue flex items-center justify-center flex-none transition">
+          <Pencil className="h-4 w-4" />
+        </button>
         <button type="button" onClick={onDelete} title="Supprimer" className="h-9 w-9 rounded-full bg-white text-brand-slate hover:text-white hover:bg-brand-coral flex items-center justify-center flex-none transition">
           <Trash2 className="h-4 w-4" />
         </button>
@@ -98,7 +102,7 @@ function CardGrid({ children, empty }) {
   return <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">{items}</div>;
 }
 
-function CoachesCards({ coaches, onToggle, onDelete }) {
+function CoachesCards({ coaches, onToggle, onEdit, onDelete }) {
   return (
     <CardGrid empty="Aucun coach inscrit.">
       {coaches.map((c) => (
@@ -114,6 +118,7 @@ function CoachesCards({ coaches, onToggle, onDelete }) {
           complet={!!c.profil_complet}
           actif={!!c.actif}
           onToggle={() => onToggle(c)}
+          onEdit={() => onEdit(c)}
           onDelete={() => onDelete(c)}
           extra={c.disponible_remplacements ? <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span> : null}
         />
@@ -122,7 +127,7 @@ function CoachesCards({ coaches, onToggle, onDelete }) {
   );
 }
 
-function GymsCards({ gyms, onToggle, onDelete }) {
+function GymsCards({ gyms, onToggle, onEdit, onDelete }) {
   return (
     <CardGrid empty="Aucune salle inscrite.">
       {gyms.map((g) => (
@@ -138,10 +143,161 @@ function GymsCards({ gyms, onToggle, onDelete }) {
           complet={!!g.profil_complet}
           actif={!!g.actif}
           onToggle={() => onToggle(g)}
+          onEdit={() => onEdit(g)}
           onDelete={() => onDelete(g)}
         />
       ))}
     </CardGrid>
+  );
+}
+
+// Champ + micro-label, cohérent avec les formulaires libre-service
+// (CoachProfil.jsx/GymProfil.jsx) mais en version compacte pour la modale.
+function Champ({ label, children }) {
+  return (
+    <label className="block">
+      <span className="microlabel">{label}</span>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
+}
+
+// Modale d'édition complète — mêmes champs que le libre-service, plus
+// l'email (que le titulaire ne peut pas changer lui-même). Un seul
+// composant pour les deux types : les champs qui diffèrent (nom/prénom vs
+// nom de salle, disciplines vs disciplines recherchées, etc.) sont
+// conditionnés sur `type`.
+function EditModal({ type, entity, onClose, onSaved }) {
+  const isCoach = type === 'coach';
+  const disciplinesKey = isCoach ? 'disciplines' : 'disciplines_recherchees';
+  const [form, setForm] = useState(() => (isCoach ? {
+    email: entity.email || '',
+    nom: entity.nom || '', prenom: entity.prenom || '',
+    adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
+    disciplines: (entity.disciplines || '').split(',').filter(Boolean),
+    tarif_horaire: entity.tarif_horaire ?? '', bio: entity.bio || '',
+    telephone: entity.telephone || '', email_public: !!entity.email_public,
+    disponible_remplacements: !!entity.disponible_remplacements,
+  } : {
+    email: entity.email || '',
+    nom: entity.nom || '',
+    adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
+    disciplines_recherchees: (entity.disciplines_recherchees || '').split(',').filter(Boolean),
+    description: entity.description || '',
+    contact_nom: entity.contact_nom || '', contact_email: entity.contact_email || '', contact_telephone: entity.contact_telephone || '',
+  }));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const toggleDiscipline = (v) => set(disciplinesKey, form[disciplinesKey].includes(v) ? form[disciplinesKey].filter((d) => d !== v) : [...form[disciplinesKey], v]);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null); setSaving(true);
+    try {
+      if (isCoach) await adminApi.updateCoach(entity.id, form);
+      else await adminApi.updateGym(entity.id, form);
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-brand-ink/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="card-white w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-display text-xl font-bold text-brand-ink">Modifier {isCoach ? 'le coach' : 'la salle'}</h2>
+          <button type="button" onClick={onClose} className="h-9 w-9 rounded-full bg-brand-cream flex items-center justify-center text-brand-slate hover:text-brand-ink transition">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="bg-[#FFEDE8] text-brand-coral rounded-2xl px-4 py-3 text-sm font-medium">{error}</div>}
+
+          {isCoach ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Champ label="Prénom"><input className="field field-grey" value={form.prenom} onChange={(e) => set('prenom', e.target.value)} /></Champ>
+              <Champ label="Nom"><input className="field field-grey" value={form.nom} onChange={(e) => set('nom', e.target.value)} /></Champ>
+            </div>
+          ) : (
+            <Champ label="Nom de la salle"><input className="field field-grey" value={form.nom} onChange={(e) => set('nom', e.target.value)} /></Champ>
+          )}
+
+          <Champ label="Email de connexion">
+            <input className="field field-grey" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
+          </Champ>
+
+          <Champ label="Adresse (rue et numéro)">
+            <input className="field field-grey" value={form.adresse} onChange={(e) => set('adresse', e.target.value)} />
+          </Champ>
+          <div className="grid grid-cols-[120px_1fr] gap-3">
+            <Champ label="Code postal">
+              <input className="field field-grey" value={form.code_postal}
+                onChange={(e) => set('code_postal', e.target.value.replace(/\D/g, '').slice(0, 5))} />
+            </Champ>
+            <Champ label="Ville">
+              <VilleAutocomplete ville={form.ville} onSelect={(ville, cp) => setForm((f) => ({ ...f, ville, code_postal: cp }))} />
+            </Champ>
+          </div>
+
+          <Champ label={isCoach ? 'Disciplines' : 'Disciplines recherchées'}>
+            <div className="flex flex-wrap gap-1.5">
+              {DISCIPLINES.map((d) => (
+                <button key={d.value} type="button" onClick={() => toggleDiscipline(d.value)}
+                  className={`chip ${form[disciplinesKey].includes(d.value) ? 'chip-on' : 'chip-off'}`}>{d.label}</button>
+              ))}
+            </div>
+          </Champ>
+
+          {isCoach ? (
+            <>
+              <div className="grid grid-cols-[140px_1fr] gap-3">
+                <Champ label="Tarif horaire (€)">
+                  <input className="field field-grey" type="number" min="0" value={form.tarif_horaire} onChange={(e) => set('tarif_horaire', e.target.value)} />
+                </Champ>
+                <Champ label="Téléphone">
+                  <input className="field field-grey" value={form.telephone} onChange={(e) => set('telephone', e.target.value)} />
+                </Champ>
+              </div>
+              <Champ label="Bio">
+                <textarea className="field field-grey min-h-[6rem]" value={form.bio} onChange={(e) => set('bio', e.target.value)} />
+              </Champ>
+              <label className="row cursor-pointer bg-white">
+                <input type="checkbox" checked={form.disponible_remplacements} onChange={(e) => set('disponible_remplacements', e.target.checked)} className="h-5 w-5 flex-none rounded-md" />
+                <span className="text-sm font-semibold text-brand-ink">Disponible pour des remplacements de dernière minute</span>
+              </label>
+              <label className="row cursor-pointer bg-white">
+                <input type="checkbox" checked={form.email_public} onChange={(e) => set('email_public', e.target.checked)} className="h-5 w-5 flex-none rounded-md" />
+                <span className="text-sm text-brand-ink/80">Email de connexion aussi visible comme coordonnée de contact</span>
+              </label>
+            </>
+          ) : (
+            <>
+              <Champ label="Description">
+                <textarea className="field field-grey min-h-[6rem]" value={form.description} onChange={(e) => set('description', e.target.value)} />
+              </Champ>
+              <div className="grid grid-cols-2 gap-3">
+                <Champ label="Contact — nom"><input className="field field-grey" value={form.contact_nom} onChange={(e) => set('contact_nom', e.target.value)} /></Champ>
+                <Champ label="Contact — téléphone"><input className="field field-grey" value={form.contact_telephone} onChange={(e) => set('contact_telephone', e.target.value)} /></Champ>
+              </div>
+              <Champ label="Contact — email">
+                <input className="field field-grey" type="email" value={form.contact_email} onChange={(e) => set('contact_email', e.target.value)} />
+              </Champ>
+            </>
+          )}
+
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">Annuler</button>
+            <button type="submit" disabled={saving} className="btn-accent flex-1">{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -225,6 +381,7 @@ function Dashboard() {
   const [gyms, setGyms] = useState(null);
   const [contacts, setContacts] = useState(null);
   const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(null); // { type: 'coach'|'gym', entity }
 
   const load = useCallback(() => {
     setError(null);
@@ -290,13 +447,22 @@ function Dashboard() {
         {coaches === null || gyms === null || contacts === null ? (
           <p className="text-brand-slate text-sm">Chargement…</p>
         ) : tab === 'coaches' ? (
-          <CoachesCards coaches={coaches} onToggle={toggleCoach} onDelete={deleteCoach} />
+          <CoachesCards coaches={coaches} onToggle={toggleCoach} onEdit={(c) => setEditing({ type: 'coach', entity: c })} onDelete={deleteCoach} />
         ) : tab === 'gyms' ? (
-          <GymsCards gyms={gyms} onToggle={toggleGym} onDelete={deleteGym} />
+          <GymsCards gyms={gyms} onToggle={toggleGym} onEdit={(g) => setEditing({ type: 'gym', entity: g })} onDelete={deleteGym} />
         ) : (
           <ContactsView contacts={contacts} />
         )}
       </main>
+
+      {editing && (
+        <EditModal
+          type={editing.type}
+          entity={editing.entity}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load(); }}
+        />
+      )}
     </div>
   );
 }
