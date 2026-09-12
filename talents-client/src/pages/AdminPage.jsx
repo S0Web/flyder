@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { LogOut, Trash2, Pencil, X, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell } from 'lucide-react';
 import { adminApi, getAdminKey, setAdminKey, clearAdminKey } from '../lib/adminApi';
-import { disciplineLabels } from '../lib/constants';
+import { disciplineLabels, disciplinesConnues } from '../lib/constants';
 import Wordmark from '../components/Wordmark';
 import VilleAutocomplete from '../components/VilleAutocomplete';
 import DisciplinePicker from '../components/DisciplinePicker';
@@ -175,7 +175,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     email: entity.email || '',
     nom: entity.nom || '', prenom: entity.prenom || '',
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
-    disciplines: (entity.disciplines || '').split(',').filter(Boolean),
+    disciplines: disciplinesConnues(entity.disciplines),
     disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
     tarif_horaire: entity.tarif_horaire ?? '', bio: entity.bio || '',
     telephone: entity.telephone || '', email_public: !!entity.email_public,
@@ -184,7 +184,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     email: entity.email || '',
     nom: entity.nom || '',
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
-    disciplines_recherchees: (entity.disciplines_recherchees || '').split(',').filter(Boolean),
+    disciplines_recherchees: disciplinesConnues(entity.disciplines_recherchees),
     disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
     description: entity.description || '',
     contact_nom: entity.contact_nom || '', contact_email: entity.contact_email || '', contact_telephone: entity.contact_telephone || '',

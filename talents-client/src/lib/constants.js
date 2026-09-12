@@ -41,15 +41,32 @@ export const DISCIPLINE_CATEGORIES = [
 // par sa valeur (badges, résumé) sans se soucier des catégories.
 export const DISCIPLINES = DISCIPLINE_CATEGORIES.flatMap((c) => c.disciplines);
 
+const VALEURS_CONNUES = new Set(DISCIPLINES.map((d) => d.value));
+
 export function labelDiscipline(value) {
   return DISCIPLINES.find((d) => d.value === value)?.label || value;
 }
 
+// Découpe une liste CSV en ne gardant que les valeurs de la taxonomie
+// actuelle — filtre silencieusement les anciennes valeurs génériques
+// ('fitness', 'musculation', 'crosstraining', 'cardio', 'aqua', 'poledance')
+// laissées par des profils enregistrés avant la refonte Fitness/Aqua : elles
+// ne correspondent plus à aucune case à cocher, ce filtre les fait donc
+// disparaître dès le prochain enregistrement du profil (édition libre-service
+// ou depuis Admin), sans script de migration à part.
+export function disciplinesConnues(disciplinesCsv) {
+  return (disciplinesCsv || '').split(',').filter(Boolean).filter((v) => VALEURS_CONNUES.has(v));
+}
+
 // Étiquettes prêtes à afficher pour une liste CSV de disciplines : une entrée
 // "Autre" cochée s'affiche avec le texte libre saisi par le titulaire plutôt
-// que le mot générique "Autre", quand ce texte existe.
+// que le mot générique "Autre", quand ce texte existe. Les anciennes valeurs
+// génériques d'avant la refonte Fitness/Aqua (ex. 'musculation', 'crosstraining')
+// ne correspondent plus à rien : plutôt que d'afficher le slug brut, on les
+// masque simplement (elles disparaissent pour de bon dès le prochain
+// enregistrement du profil, voir disciplinesConnues).
 export function disciplineLabels(disciplinesCsv, autreFitness, autreAqua) {
-  return (disciplinesCsv || '').split(',').filter(Boolean).map((v) => {
+  return disciplinesConnues(disciplinesCsv).map((v) => {
     if (v === 'autre_fitness' && autreFitness) return autreFitness;
     if (v === 'autre_aqua' && autreAqua) return autreAqua;
     return labelDiscipline(v);

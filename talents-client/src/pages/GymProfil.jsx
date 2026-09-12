@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import ProfilLayout, { Section, Field } from '../components/ProfilLayout';
 import VilleAutocomplete from '../components/VilleAutocomplete';
 import DisciplinePicker from '../components/DisciplinePicker';
+import { disciplinesConnues } from '../lib/constants';
 
 export default function GymProfil() {
   const { actor, updateActor } = useAuth();
@@ -12,7 +13,7 @@ export default function GymProfil() {
     adresse: actor.adresse || '',
     code_postal: actor.code_postal || '',
     ville: actor.ville || '',
-    disciplines_recherchees: (actor.disciplines_recherchees || '').split(',').filter(Boolean),
+    disciplines_recherchees: disciplinesConnues(actor.disciplines_recherchees),
     disciplines_autre_fitness: actor.disciplines_autre_fitness || '',
     disciplines_autre_aqua: actor.disciplines_autre_aqua || '',
     description: actor.description || '',

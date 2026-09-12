@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import ProfilLayout, { Section, Field } from '../components/ProfilLayout';
 import VilleAutocomplete from '../components/VilleAutocomplete';
 import DisciplinePicker from '../components/DisciplinePicker';
+import { disciplinesConnues } from '../lib/constants';
 
 export default function CoachProfil() {
   const { actor, updateActor } = useAuth();
@@ -13,7 +14,7 @@ export default function CoachProfil() {
     adresse: actor.adresse || '',
     code_postal: actor.code_postal || '',
     ville: actor.ville || '',
-    disciplines: (actor.disciplines || '').split(',').filter(Boolean),
+    disciplines: disciplinesConnues(actor.disciplines),
     disciplines_autre_fitness: actor.disciplines_autre_fitness || '',
     disciplines_autre_aqua: actor.disciplines_autre_aqua || '',
     tarif_horaire: actor.tarif_horaire ?? '',
