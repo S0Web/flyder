@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MapPin, Phone, Mail, ChevronDown, Check, Copy, Zap } from 'lucide-react';
 import { api } from '../lib/api';
-import { labelDiscipline } from '../lib/constants';
+import { disciplineLabels } from '../lib/constants';
 
 const TILES = ['tile-blue', 'tile-coral', 'tile-green', 'tile-amber', 'tile-violet'];
 
@@ -23,7 +23,10 @@ export default function ProfileCard({ type, profile, index = 0 }) {
   }
 
   const isCoach = type === 'coach';
-  const disciplines = ((isCoach ? profile.disciplines : profile.disciplines_recherchees) || '').split(',').filter(Boolean);
+  const disciplines = disciplineLabels(
+    isCoach ? profile.disciplines : profile.disciplines_recherchees,
+    profile.disciplines_autre_fitness, profile.disciplines_autre_aqua
+  );
   const titre = isCoach ? `${profile.prenom} ${profile.nom}` : profile.nom;
   const texte = isCoach ? profile.bio : profile.description;
   const initiale = (isCoach ? profile.prenom : profile.nom || '?').charAt(0).toUpperCase();
@@ -63,7 +66,7 @@ export default function ProfileCard({ type, profile, index = 0 }) {
         {(disciplines.length > 0 || (isCoach && !!profile.disponible_remplacements)) && (
           <div className="flex flex-wrap gap-1.5">
             {isCoach && !!profile.disponible_remplacements && <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span>}
-            {disciplines.slice(0, 4).map((d) => <span key={d} className="badge bg-white text-brand-ink/75">{labelDiscipline(d)}</span>)}
+            {disciplines.slice(0, 4).map((d, i) => <span key={i} className="badge bg-white text-brand-ink/75">{d}</span>)}
             {disciplines.length > 4 && <span className="badge bg-white text-brand-slate">+{disciplines.length - 4}</span>}
           </div>
         )}

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import { DISCIPLINES } from '../lib/constants';
 import ProfilLayout, { Section, Field } from '../components/ProfilLayout';
 import VilleAutocomplete from '../components/VilleAutocomplete';
+import DisciplinePicker from '../components/DisciplinePicker';
 
 export default function CoachProfil() {
   const { actor, updateActor } = useAuth();
@@ -14,6 +14,8 @@ export default function CoachProfil() {
     code_postal: actor.code_postal || '',
     ville: actor.ville || '',
     disciplines: (actor.disciplines || '').split(',').filter(Boolean),
+    disciplines_autre_fitness: actor.disciplines_autre_fitness || '',
+    disciplines_autre_aqua: actor.disciplines_autre_aqua || '',
     tarif_horaire: actor.tarif_horaire ?? '',
     bio: actor.bio || '',
     telephone: actor.telephone || '',
@@ -73,12 +75,9 @@ export default function CoachProfil() {
 
         <Section titre="Ton activité">
           <Field label="Disciplines">
-            <div className="flex flex-wrap gap-1.5">
-              {DISCIPLINES.map((d) => (
-                <button key={d.value} type="button" onClick={() => toggle(d.value)}
-                  className={`chip ${form.disciplines.includes(d.value) ? 'chip-on' : 'chip-off'}`}>{d.label}</button>
-              ))}
-            </div>
+            <DisciplinePicker selected={form.disciplines} onToggle={toggle} editable
+              autreFitness={form.disciplines_autre_fitness} onAutreFitnessChange={(v) => set('disciplines_autre_fitness', v)}
+              autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)} />
           </Field>
           <label className="row cursor-pointer bg-white">
             <input type="checkbox" checked={form.disponible_remplacements} onChange={(e) => set('disponible_remplacements', e.target.checked)}

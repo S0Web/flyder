@@ -4,7 +4,7 @@ import { LocateFixed, SearchX, AlertCircle, ChevronRight, SlidersHorizontal } fr
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { AppHeader, BottomNav } from './AppShell';
-import FilterBar, { FILTER_DEFAULTS, DisciplineChips, nbFiltresActifs } from './FilterBar';
+import FilterBar, { FILTER_DEFAULTS, nbFiltresActifs } from './FilterBar';
 import ProfileCard from './ProfileCard';
 import EmptyState from './EmptyState';
 import { CardSkeleton } from './Skeleton';
@@ -77,10 +77,9 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
           </Link>
         )}
 
-        <div className="flex items-center gap-3 mb-5">
-          <div className="min-w-0 flex-1"><DisciplineChips filters={filters} onChange={setFilters} /></div>
-          <button onClick={() => setFiltresOuverts((o) => !o)} className="btn-ghost btn-sm lg:hidden flex-none">
-            <SlidersHorizontal className="h-4 w-4" /> {nbFiltres > 0 && <span className="badge badge-blue">{nbFiltres}</span>}
+        <div className="flex justify-end mb-5 lg:hidden">
+          <button onClick={() => setFiltresOuverts((o) => !o)} className="btn-secondary btn-sm">
+            <SlidersHorizontal className="h-4 w-4" /> Filtres {nbFiltres > 0 && <span className="badge badge-blue">{nbFiltres}</span>}
           </button>
         </div>
 

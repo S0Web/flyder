@@ -1,5 +1,5 @@
 import { RotateCcw, SlidersHorizontal } from 'lucide-react';
-import { DISCIPLINES } from '../lib/constants';
+import DisciplinePicker from './DisciplinePicker';
 
 const RAYONS = [5, 10, 20, 50];
 const DEFAULTS = { disciplines: [], rayon_km: 20, tarif_min: '', tarif_max: '', remplacements: false };
@@ -11,29 +11,17 @@ export function nbFiltresActifs(filters) {
     + (filters.rayon_km !== DEFAULTS.rayon_km ? 1 : 0) + (filters.remplacements ? 1 : 0);
 }
 
-// Pastilles de disciplines, en ligne défilante sur mobile.
-export function DisciplineChips({ filters, onChange }) {
-  function toggle(value) {
+// Panneau de réglages : disciplines (fitness/aqua, cases à cocher), rayon en
+// contrôle segmenté, tarif, interrupteur remplacements. Collant au scroll sur
+// desktop, replié dans un tiroir sur mobile (voir RecherchePage).
+export default function FilterBar({ filters, onChange, showTarif, showRemplacements }) {
+  const actifs = nbFiltresActifs(filters);
+
+  function toggleDiscipline(value) {
     const set = new Set(filters.disciplines);
     set.has(value) ? set.delete(value) : set.add(value);
     onChange({ ...filters, disciplines: Array.from(set) });
   }
-  return (
-    <div className="scroll-x">
-      <button type="button" onClick={() => onChange({ ...filters, disciplines: [] })}
-        className={`chip ${filters.disciplines.length === 0 ? 'chip-on' : 'chip-off'}`}>Toutes</button>
-      {DISCIPLINES.map((d) => (
-        <button key={d.value} type="button" onClick={() => toggle(d.value)}
-          className={`chip ${filters.disciplines.includes(d.value) ? 'chip-on' : 'chip-off'}`}>{d.label}</button>
-      ))}
-    </div>
-  );
-}
-
-// Panneau de réglages : rayon en contrôle segmenté, tarif, interrupteur
-// remplacements. Collant au scroll sur desktop.
-export default function FilterBar({ filters, onChange, showTarif, showRemplacements }) {
-  const actifs = nbFiltresActifs(filters);
 
   return (
     <aside className="card p-5 space-y-6 lg:sticky lg:top-6">
@@ -48,6 +36,11 @@ export default function FilterBar({ filters, onChange, showTarif, showRemplaceme
             <RotateCcw className="h-3 w-3" /> Effacer
           </button>
         )}
+      </div>
+
+      <div className="space-y-2.5">
+        <p className="microlabel pl-1">Disciplines</p>
+        <DisciplinePicker selected={filters.disciplines} onToggle={toggleDiscipline} />
       </div>
 
       <div className="space-y-2.5">

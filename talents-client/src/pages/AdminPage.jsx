@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { LogOut, Trash2, Pencil, X, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell } from 'lucide-react';
 import { adminApi, getAdminKey, setAdminKey, clearAdminKey } from '../lib/adminApi';
-import { DISCIPLINES, labelDiscipline } from '../lib/constants';
+import { disciplineLabels } from '../lib/constants';
 import Wordmark from '../components/Wordmark';
 import VilleAutocomplete from '../components/VilleAutocomplete';
+import DisciplinePicker from '../components/DisciplinePicker';
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -112,7 +113,7 @@ function CoachesCards({ coaches, onToggle, onEdit, onDelete }) {
           nom={`${c.prenom} ${c.nom}`}
           email={c.email}
           ville={c.ville || '—'}
-          chips={(c.disciplines || '').split(',').filter(Boolean).map(labelDiscipline)}
+          chips={disciplineLabels(c.disciplines, c.disciplines_autre_fitness, c.disciplines_autre_aqua)}
           tarif={c.tarif_horaire != null ? `${c.tarif_horaire} €/h` : 'Tarif non renseigné'}
           dateLabel={fmtDate(c.created_at)}
           complet={!!c.profil_complet}
@@ -137,7 +138,7 @@ function GymsCards({ gyms, onToggle, onEdit, onDelete }) {
           nom={g.nom}
           email={g.email}
           ville={g.ville || '—'}
-          chips={(g.disciplines_recherchees || '').split(',').filter(Boolean).map(labelDiscipline)}
+          chips={disciplineLabels(g.disciplines_recherchees, g.disciplines_autre_fitness, g.disciplines_autre_aqua)}
           tarif={g.contact_telephone || g.contact_email || 'Contact non renseigné'}
           dateLabel={fmtDate(g.created_at)}
           complet={!!g.profil_complet}
@@ -175,6 +176,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     nom: entity.nom || '', prenom: entity.prenom || '',
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
     disciplines: (entity.disciplines || '').split(',').filter(Boolean),
+    disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
     tarif_horaire: entity.tarif_horaire ?? '', bio: entity.bio || '',
     telephone: entity.telephone || '', email_public: !!entity.email_public,
     disponible_remplacements: !!entity.disponible_remplacements,
@@ -183,6 +185,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     nom: entity.nom || '',
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
     disciplines_recherchees: (entity.disciplines_recherchees || '').split(',').filter(Boolean),
+    disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
     description: entity.description || '',
     contact_nom: entity.contact_nom || '', contact_email: entity.contact_email || '', contact_telephone: entity.contact_telephone || '',
   }));
@@ -246,12 +249,9 @@ function EditModal({ type, entity, onClose, onSaved }) {
           </div>
 
           <Champ label={isCoach ? 'Disciplines' : 'Disciplines recherchées'}>
-            <div className="flex flex-wrap gap-1.5">
-              {DISCIPLINES.map((d) => (
-                <button key={d.value} type="button" onClick={() => toggleDiscipline(d.value)}
-                  className={`chip ${form[disciplinesKey].includes(d.value) ? 'chip-on' : 'chip-off'}`}>{d.label}</button>
-              ))}
-            </div>
+            <DisciplinePicker selected={form[disciplinesKey]} onToggle={toggleDiscipline} editable
+              autreFitness={form.disciplines_autre_fitness} onAutreFitnessChange={(v) => set('disciplines_autre_fitness', v)}
+              autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)} />
           </Champ>
 
           {isCoach ? (

@@ -123,4 +123,14 @@ tryAlter('ALTER TABLE coaches ADD COLUMN ville TEXT');
 tryAlter('ALTER TABLE gyms ADD COLUMN code_postal TEXT');
 tryAlter('ALTER TABLE gyms ADD COLUMN ville TEXT');
 
+// Texte libre du volet "Autre" de chaque catégorie de disciplines (fitness et
+// aqua) : `disciplines`/`disciplines_recherchees` restent la liste de valeurs
+// cochées (dont 'autre_fitness'/'autre_aqua' si "Autre" est coché) — ces deux
+// colonnes ne portent que la précision tapée par le titulaire, affichée à la
+// place du mot générique "Autre" (voir talents-client/src/lib/constants.js).
+tryAlter('ALTER TABLE coaches ADD COLUMN disciplines_autre_fitness TEXT');
+tryAlter('ALTER TABLE coaches ADD COLUMN disciplines_autre_aqua TEXT');
+tryAlter('ALTER TABLE gyms ADD COLUMN disciplines_autre_fitness TEXT');
+tryAlter('ALTER TABLE gyms ADD COLUMN disciplines_autre_aqua TEXT');
+
 module.exports = db;

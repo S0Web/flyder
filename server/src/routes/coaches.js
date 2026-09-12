@@ -142,10 +142,19 @@ router.get('/', (req, res) => {
 // coordonnées : email/téléphone restent à saisir par la salle, qui les a déjà
 // obtenus en cliquant "Contacter" côté Talents. Déclarée avant '/:id'.
 const TALENTS_API_URL = process.env.TALENTS_API_URL || 'http://localhost:3003';
-// Disciplines Talents (vocabulaire public plus large) → cases de la fiche locale.
+// Disciplines Talents (vocabulaire public, fitness/aqua détaillé) → cases de
+// la fiche locale (plus grossière) : tout le volet fitness de Talents sauf la
+// boxe correspond à la case locale 'fitness', tout le volet aqua à la case
+// 'aqua'. Les cases locales 'crosstraining'/'poledance' n'ont plus
+// d'équivalent Talents depuis la refonte des disciplines — elles restent
+// utilisables localement mais ne sont plus jamais cochées par cet import.
 const TALENTS_VERS_LOCAL = {
-  fitness: 'fitness', musculation: 'fitness', cardio: 'fitness',
-  boxe: 'boxe', crosstraining: 'crosstraining', aqua: 'aqua', poledance: 'poledance',
+  pilates: 'fitness', pilates_reformer: 'fitness', stretching: 'fitness', yoga: 'fitness',
+  renforcement_choregraphie: 'fitness', cardio_choregraphie: 'fitness',
+  lesmills_bodypump: 'fitness', lesmills_rpm: 'fitness', lesmills_bodycombat: 'fitness',
+  step: 'fitness', zumba: 'fitness', crossfit: 'fitness', autre_fitness: 'fitness',
+  boxe: 'boxe',
+  aqua_toute: 'aqua', aquabike: 'aqua', aquagym: 'aqua', aquaboxing: 'aqua', aquapalming: 'aqua', autre_aqua: 'aqua',
 };
 router.get('/talents/:id', async (req, res) => {
   const id = Number(req.params.id);

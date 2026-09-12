@@ -12,9 +12,9 @@ const CODE_POSTAL_RE = /^\d{5}$/;
 const clean = (v, max) => String(v ?? '').trim().slice(0, max);
 
 const COACH_FIELDS =
-  'id, email, nom, prenom, adresse, code_postal, ville, lat, lng, disciplines, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet, actif, disponible_remplacements';
+  'id, email, nom, prenom, adresse, code_postal, ville, lat, lng, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet, actif, disponible_remplacements';
 const GYM_FIELDS =
-  'id, email, nom, adresse, code_postal, ville, lat, lng, disciplines_recherchees, description, photo_url, contact_nom, contact_email, contact_telephone, profil_complet, actif';
+  'id, email, nom, adresse, code_postal, ville, lat, lng, disciplines_recherchees, disciplines_autre_fitness, disciplines_autre_aqua, description, photo_url, contact_nom, contact_email, contact_telephone, profil_complet, actif';
 
 async function updateCoachProfile(coachId, b) {
   const current = db.get('SELECT * FROM coaches WHERE id = ?', [coachId]);
@@ -32,6 +32,8 @@ async function updateCoachProfile(coachId, b) {
   const disciplines = b.disciplines !== undefined
     ? (Array.isArray(b.disciplines) ? b.disciplines.join(',') : String(b.disciplines))
     : current.disciplines;
+  const disciplinesAutreFitness = b.disciplines_autre_fitness !== undefined ? clean(b.disciplines_autre_fitness, 200) : current.disciplines_autre_fitness;
+  const disciplinesAutreAqua = b.disciplines_autre_aqua !== undefined ? clean(b.disciplines_autre_aqua, 200) : current.disciplines_autre_aqua;
 
   // La ville vient obligatoirement d'une commune réelle choisie côté client
   // (autocomplétion Base Adresse Nationale) — jamais de saisie libre, pour
@@ -56,8 +58,8 @@ async function updateCoachProfile(coachId, b) {
   const profilComplet = adresse && codePostal && ville && lat != null && disciplines ? 1 : 0;
 
   db.run(
-    `UPDATE coaches SET nom=?, prenom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, prenom, adresse, codePostal, ville, lat, lng, disciplines, tarifHoraire, bio, telephone, emailPublic, actif, disponibleRemplacements, profilComplet, coachId]
+    `UPDATE coaches SET nom=?, prenom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
+    [nom, prenom, adresse, codePostal, ville, lat, lng, disciplines, disciplinesAutreFitness, disciplinesAutreAqua, tarifHoraire, bio, telephone, emailPublic, actif, disponibleRemplacements, profilComplet, coachId]
   );
 
   return { profile: db.get(`SELECT ${COACH_FIELDS} FROM coaches WHERE id = ?`, [coachId]) };
@@ -78,6 +80,8 @@ async function updateGymProfile(gymId, b) {
   const disciplinesRecherchees = b.disciplines_recherchees !== undefined
     ? (Array.isArray(b.disciplines_recherchees) ? b.disciplines_recherchees.join(',') : String(b.disciplines_recherchees))
     : current.disciplines_recherchees;
+  const disciplinesAutreFitness = b.disciplines_autre_fitness !== undefined ? clean(b.disciplines_autre_fitness, 200) : current.disciplines_autre_fitness;
+  const disciplinesAutreAqua = b.disciplines_autre_aqua !== undefined ? clean(b.disciplines_autre_aqua, 200) : current.disciplines_autre_aqua;
 
   if (b.code_postal !== undefined && b.code_postal && !CODE_POSTAL_RE.test(String(b.code_postal).trim())) {
     return { error: 'Code postal invalide (5 chiffres)', status: 400 };
@@ -98,8 +102,8 @@ async function updateGymProfile(gymId, b) {
   const profilComplet = adresse && codePostal && ville && lat != null && disciplinesRecherchees ? 1 : 0;
 
   db.run(
-    `UPDATE gyms SET nom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines_recherchees=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, actif=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, adresse, codePostal, ville, lat, lng, disciplinesRecherchees, description, contactNom, contactEmail, contactTelephone, actif, profilComplet, gymId]
+    `UPDATE gyms SET nom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines_recherchees=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, actif=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
+    [nom, adresse, codePostal, ville, lat, lng, disciplinesRecherchees, disciplinesAutreFitness, disciplinesAutreAqua, description, contactNom, contactEmail, contactTelephone, actif, profilComplet, gymId]
   );
 
   return { profile: db.get(`SELECT ${GYM_FIELDS} FROM gyms WHERE id = ?`, [gymId]) };
