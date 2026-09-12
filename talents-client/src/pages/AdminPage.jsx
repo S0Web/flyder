@@ -235,7 +235,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
             <input className="field field-grey" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
           </Champ>
 
-          <Champ label="Adresse (rue et numéro)">
+          <Champ label="Adresse (rue et numéro) — optionnel">
             <input className="field field-grey" value={form.adresse} onChange={(e) => set('adresse', e.target.value)} />
           </Champ>
           <div className="grid grid-cols-[120px_1fr] gap-3">

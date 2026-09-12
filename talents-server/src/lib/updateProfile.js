@@ -49,13 +49,20 @@ async function updateCoachProfile(coachId, b) {
   if (b.code_postal !== undefined) { const v = clean(b.code_postal, 5); if (v !== (current.code_postal || '')) { codePostal = v; adresseChangee = true; } }
   if (b.ville !== undefined) { const v = clean(b.ville, 100); if (v !== (current.ville || '')) { ville = v; adresseChangee = true; } }
 
+  // L'adresse exacte (voie et numéro) reste facultative — utile pour affiner
+  // le géocodage quand elle est fournie, mais la ville seule suffit à situer
+  // le profil (précision "centre-ville") : beaucoup de coachs se déplacent ou
+  // n'ont pas d'adresse fixe à donner, il ne fallait pas que ça les bloque.
   if (adresseChangee) {
-    const geo = (adresse && ville) ? await geocodeAdresse(`${adresse} ${ville}`, codePostal) : null;
+    const geo = ville ? await geocodeAdresse(adresse ? `${adresse} ${ville}` : ville, codePostal) : null;
     lat = geo ? geo.lat : null;
     lng = geo ? geo.lng : null;
   }
 
-  const profilComplet = adresse && codePostal && ville && lat != null && disciplines ? 1 : 0;
+  // Profil "complet" = visible en recherche : ville (donc localisation connue),
+  // identité et au moins une discipline. Ni l'adresse exacte ni la bio/photo/
+  // tarif n'en font partie — ce sont des compléments, pas des prérequis.
+  const profilComplet = nom && prenom && current.email && ville && disciplines ? 1 : 0;
 
   db.run(
     `UPDATE coaches SET nom=?, prenom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
@@ -94,12 +101,12 @@ async function updateGymProfile(gymId, b) {
   if (b.ville !== undefined) { const v = clean(b.ville, 100); if (v !== (current.ville || '')) { ville = v; adresseChangee = true; } }
 
   if (adresseChangee) {
-    const geo = (adresse && ville) ? await geocodeAdresse(`${adresse} ${ville}`, codePostal) : null;
+    const geo = ville ? await geocodeAdresse(adresse ? `${adresse} ${ville}` : ville, codePostal) : null;
     lat = geo ? geo.lat : null;
     lng = geo ? geo.lng : null;
   }
 
-  const profilComplet = adresse && codePostal && ville && lat != null && disciplinesRecherchees ? 1 : 0;
+  const profilComplet = nom && current.email && ville && disciplinesRecherchees ? 1 : 0;
 
   db.run(
     `UPDATE gyms SET nom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines_recherchees=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, actif=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,

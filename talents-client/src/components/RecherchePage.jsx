@@ -71,7 +71,7 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
             <span className="tile tile-amber"><AlertCircle className="h-5 w-5" /></span>
             <span className="text-sm text-brand-ink/70 flex-1 leading-snug">
               <strong className="block font-semibold text-brand-ink">Ton profil n'est pas encore visible</strong>
-              Ajoute une adresse et une discipline pour apparaître dans les recherches.
+              Ajoute ta ville et une discipline pour apparaître dans les recherches.
             </span>
             <ChevronRight className="h-4 w-4 text-brand-slate flex-none" />
           </Link>

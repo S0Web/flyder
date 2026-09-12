@@ -3,7 +3,7 @@ import { Building2, Dumbbell, ChevronRight, MapPin, Sparkles, Handshake, BadgePe
 import Wordmark from '../components/Wordmark';
 
 const ETAPES = [
-  { icon: Sparkles, tile: 'tile-blue', titre: 'Crée ton profil', texte: 'Deux minutes, une adresse, tes disciplines. Pas de CV, pas de dossier.' },
+  { icon: Sparkles, tile: 'tile-blue', titre: 'Crée ton profil', texte: 'Deux minutes, ta ville, tes disciplines. Pas de CV, pas de dossier.' },
   { icon: MapPin, tile: 'tile-coral', titre: 'Regarde autour de toi', texte: 'On te montre qui cherche, à combien de kilomètres — rien de national, que du local.' },
   { icon: Handshake, tile: 'tile-green', titre: 'Contacte en direct', texte: 'Un clic révèle les coordonnées. Vous vous parlez sans intermédiaire.' },
 ];

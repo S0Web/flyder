@@ -38,7 +38,7 @@ export default function GymProfil() {
   }
 
   const checklist = [
-    { label: 'Ville et adresse', ok: actor.lat != null },
+    { label: 'Ville', ok: actor.lat != null },
     { label: 'Disciplines recherchées', ok: !!actor.disciplines_recherchees },
     { label: 'Une description', ok: !!actor.description },
     { label: 'Un contact (téléphone)', ok: !!actor.contact_telephone },
@@ -51,20 +51,18 @@ export default function GymProfil() {
       form={<>
         <Section titre="La salle">
           <Field label="Nom"><input className="field" required value={form.nom} onChange={(e) => set('nom', e.target.value)} /></Field>
-          <Field label="Adresse (rue et numéro)" aide="Sert à calculer les distances et affiche ta ville aux coachs — jamais la rue exacte.">
+          <Field label="Ville" aide="Choisis-la dans la liste — pas de saisie libre, pour que ta position soit toujours fiable. Elle suffit pour apparaître dans les recherches.">
+            <VilleAutocomplete ville={form.ville} placeholder="Corbeil-Essonnes"
+              onSelect={(ville, codePostal) => setForm((f) => ({ ...f, ville, code_postal: codePostal }))} />
+          </Field>
+          <Field label="Adresse (rue et numéro) — optionnel" aide="Affine juste le calcul de distance — jamais affichée telle quelle, seulement ta ville.">
             <input className="field" value={form.adresse} onChange={(e) => set('adresse', e.target.value)}
               placeholder="5 avenue du Général Leclerc" />
           </Field>
-          <div className="grid sm:grid-cols-[140px_1fr] gap-4">
-            <Field label="Code postal">
-              <input className="field" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} value={form.code_postal}
-                onChange={(e) => set('code_postal', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="91100" />
-            </Field>
-            <Field label="Ville" aide="Choisis-la dans la liste — pas de saisie libre, pour que ta position soit toujours fiable.">
-              <VilleAutocomplete ville={form.ville} placeholder="Corbeil-Essonnes"
-                onSelect={(ville, codePostal) => setForm((f) => ({ ...f, ville, code_postal: codePostal }))} />
-            </Field>
-          </div>
+          <Field label="Code postal">
+            <input className="field w-[140px]" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} value={form.code_postal}
+              onChange={(e) => set('code_postal', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="91100" />
+          </Field>
           <Field label="Description" aide="L'ambiance, le public, ce que tu proposes aux coachs (créneaux, matériel, rémunération…).">
             <textarea className="field min-h-[7rem]" rows={4} value={form.description} onChange={(e) => set('description', e.target.value)}
               placeholder="Salle de 600 m² à Corbeil, 900 adhérents. On cherche des coachs pour des cours collectifs le soir et le samedi matin." />

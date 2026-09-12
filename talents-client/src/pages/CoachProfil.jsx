@@ -39,7 +39,7 @@ export default function CoachProfil() {
   }
 
   const checklist = [
-    { label: 'Ville et adresse', ok: actor.lat != null },
+    { label: 'Ville', ok: actor.lat != null },
     { label: 'Au moins une discipline', ok: !!actor.disciplines },
     { label: 'Une bio', ok: !!actor.bio },
     { label: 'Un téléphone', ok: !!actor.telephone },
@@ -57,21 +57,19 @@ export default function CoachProfil() {
           </div>
         </Section>
 
-        <Section titre="Où tu interviens" aide="Ton adresse sert uniquement à calculer les distances — elle n'est jamais affichée telle quelle, seulement ta ville.">
-          <Field label="Adresse (rue et numéro)">
+        <Section titre="Où tu interviens" aide="La ville suffit pour apparaître dans les recherches. L'adresse exacte est facultative — elle affine juste le calcul de distance, elle n'est jamais affichée telle quelle.">
+          <Field label="Ville" aide="Choisis-la dans la liste — pas de saisie libre, pour que ta position soit toujours fiable.">
+            <VilleAutocomplete ville={form.ville} placeholder="Corbeil-Essonnes"
+              onSelect={(ville, codePostal) => setForm((f) => ({ ...f, ville, code_postal: codePostal }))} />
+          </Field>
+          <Field label="Adresse (rue et numéro) — optionnel">
             <input className="field" value={form.adresse} onChange={(e) => set('adresse', e.target.value)}
               placeholder="12 rue de la République" />
           </Field>
-          <div className="grid sm:grid-cols-[140px_1fr] gap-4">
-            <Field label="Code postal">
-              <input className="field" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} value={form.code_postal}
-                onChange={(e) => set('code_postal', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="91100" />
-            </Field>
-            <Field label="Ville" aide="Choisis-la dans la liste — pas de saisie libre, pour que ta position soit toujours fiable.">
-              <VilleAutocomplete ville={form.ville} placeholder="Corbeil-Essonnes"
-                onSelect={(ville, codePostal) => setForm((f) => ({ ...f, ville, code_postal: codePostal }))} />
-            </Field>
-          </div>
+          <Field label="Code postal">
+            <input className="field w-[140px]" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} value={form.code_postal}
+              onChange={(e) => set('code_postal', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="91100" />
+          </Field>
         </Section>
 
         <Section titre="Ton activité">
