@@ -14,10 +14,11 @@ export default function ChangelogTab({ onRead }) {
     setError(null);
     api.getChangelog()
       .then(rows => {
-        setEntries(rows);
-        const nonVues = rows.filter(e => !e.vue);
+        const sortedRows = [...rows].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        setEntries(sortedRows);
+        const nonVues = sortedRows.filter(e => !e.vue);
         if (nonVues.length > 0) {
-          const maxId = Math.max(...rows.map(e => e.id));
+          const maxId = Math.max(...sortedRows.map(e => e.id));
           api.markChangelogVu(maxId).then(() => onRead?.()).catch(() => {});
         }
       })

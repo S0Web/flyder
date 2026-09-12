@@ -17,7 +17,9 @@ router.get('/', async (req, res) => {
   }
   const row = db.get('SELECT dernier_changelog_vu_id FROM app_users WHERE id = ?', [req.user.id]);
   const vuId = row?.dernier_changelog_vu_id || 0;
-  res.json(entries.map(e => ({ ...e, vue: e.id <= vuId })));
+
+  const orderedEntries = [...entries].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json(orderedEntries.map(e => ({ ...e, vue: e.id <= vuId })));
 });
 
 router.post('/vu', (req, res) => {
