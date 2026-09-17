@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Star } from 'lucide-react';
 import { DISCIPLINE_CATEGORIES } from '../lib/constants';
 
 const normalise = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -8,7 +8,10 @@ const normalise = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, ''
 // panneau défilant, avec une case "Autre" qui révèle un champ libre en mode
 // édition (en mode filtre, "Autre" reste une case comme les autres — une
 // salle filtre juste sur "ce coach a coché autre chose", sans texte à saisir).
-function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, onAutreChange, editable }) {
+// En mode édition, une case cochée gagne une étoile pour la désigner comme
+// spécialité mise en avant sur la carte — une seule à la fois (cliquer une
+// autre étoile la remplace, recliquer la même l'efface).
+function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, onAutreChange, editable, preferee, onToggleFavorite }) {
   const items = categorie.disciplines.filter(
     (d) => selected.includes(d.value) || !query || normalise(d.label).includes(normalise(query))
   );
@@ -22,33 +25,47 @@ function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, 
         {nbCochees > 0 && <span className="badge badge-blue">{nbCochees}</span>}
       </div>
       <div className="max-h-52 overflow-y-auto px-4 py-1">
-        {items.map((d) => (
-          <div key={d.value}>
-            <label className="flex items-center gap-3 py-2 cursor-pointer">
-              <input type="checkbox" checked={selected.includes(d.value)} onChange={() => onToggle(d.value)}
-                className="h-5 w-5 flex-none rounded-md" />
-              <span className="text-sm text-brand-ink flex-1">{d.label}</span>
-            </label>
-            {editable && d.autre && selected.includes(d.value) && (
-              <input className="field field-grey py-2 text-sm mb-2" placeholder="Précise…" value={autreTexte || ''}
-                onChange={(e) => onAutreChange(e.target.value)} onClick={(e) => e.stopPropagation()} />
-            )}
-          </div>
-        ))}
+        {items.map((d) => {
+          const coche = selected.includes(d.value);
+          return (
+            <div key={d.value}>
+              <div className="flex items-center gap-1 py-2">
+                <label className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
+                  <input type="checkbox" checked={coche} onChange={() => onToggle(d.value)}
+                    className="h-5 w-5 flex-none rounded-md" />
+                  <span className="text-sm text-brand-ink flex-1 truncate">{d.label}</span>
+                </label>
+                {editable && coche && (
+                  <button type="button" onClick={() => onToggleFavorite(d.value)}
+                    title={preferee === d.value ? 'Retirer comme spécialité' : 'Mettre en avant comme spécialité'}
+                    className={`h-7 w-7 rounded-full flex-none flex items-center justify-center transition ${preferee === d.value ? 'text-[#C77700]' : 'text-brand-slate/50 hover:text-brand-slate'}`}>
+                    <Star className="h-4 w-4" fill={preferee === d.value ? 'currentColor' : 'none'} />
+                  </button>
+                )}
+              </div>
+              {editable && d.autre && coche && (
+                <input className="field field-grey py-2 text-sm mb-2" placeholder="Précise…" value={autreTexte || ''}
+                  onChange={(e) => onAutreChange(e.target.value)} onClick={(e) => e.stopPropagation()} />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // Sélecteur de disciplines, réutilisé pour éditer un profil (avec champ
-// "Autre" libre) et pour filtrer une recherche (cases seulement). Beaucoup de
-// concepts au total (fitness + aqua) : une barre de recherche filtre les deux
-// volets en même temps plutôt que de faire défiler toute la liste.
+// "Autre" libre et étoile "spécialité") et pour filtrer une recherche (cases
+// seulement). Beaucoup de concepts au total (fitness + aqua) : une barre de
+// recherche filtre les deux volets en même temps plutôt que de faire défiler
+// toute la liste.
 export default function DisciplinePicker({
   selected, onToggle,
   editable = false,
   autreFitness, onAutreFitnessChange,
   autreAqua, onAutreAquaChange,
+  preferee, onPrefereeChange,
 }) {
   const [query, setQuery] = useState('');
 
@@ -59,10 +76,14 @@ export default function DisciplinePicker({
         <input className="field field-grey pl-10 py-2.5 text-sm" placeholder="Rechercher une discipline…"
           value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
+      {editable && preferee && (
+        <p className="text-xs text-brand-slate pl-1">⭐ Spécialité mise en avant sur ta carte : clique l'étoile d'une autre discipline pour la changer.</p>
+      )}
       <div className="space-y-3">
         {DISCIPLINE_CATEGORIES.map((categorie) => (
           <DisciplineFieldset key={categorie.key} categorie={categorie} selected={selected} onToggle={onToggle}
-            query={query} editable={editable}
+            query={query} editable={editable} preferee={preferee}
+            onToggleFavorite={(v) => onPrefereeChange?.(preferee === v ? null : v)}
             autreTexte={categorie.key === 'fitness' ? autreFitness : autreAqua}
             onAutreChange={categorie.key === 'fitness' ? onAutreFitnessChange : onAutreAquaChange} />
         ))}

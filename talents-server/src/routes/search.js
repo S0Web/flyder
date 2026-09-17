@@ -18,6 +18,26 @@ function marquerDejaContactes(rows, req, cibleType) {
   return rows.map((r) => ({ ...r, deja_contacte: ids.has(r.id) }));
 }
 
+// Journalise "ce profil est apparu dans les résultats d'une recherche" — une
+// ligne par (viewer, cible) et par jour (voir profile_views dans
+// db/database.js), pour donner à chaque salle/coach un ordre de grandeur de
+// combien de monde voit son profil, sans exploser le compteur à chaque
+// réglage de filtre dans la même session.
+function enregistrerVues(rows, req, cibleType) {
+  const actor = resolveActor(req);
+  if (!actor) return;
+  for (const r of rows) {
+    if (actor.type === cibleType && actor.id === r.id) continue;
+    const dejaVu = db.get(
+      `SELECT 1 FROM profile_views WHERE viewer_type = ? AND viewer_id = ? AND cible_type = ? AND cible_id = ? AND date(created_at) = date('now') LIMIT 1`,
+      [actor.type, actor.id, cibleType, r.id]
+    );
+    if (!dejaVu) {
+      db.run('INSERT INTO profile_views (viewer_type, viewer_id, cible_type, cible_id) VALUES (?, ?, ?, ?)', [actor.type, actor.id, cibleType, r.id]);
+    }
+  }
+}
+
 // Aucune donnée sensible dans les SELECT ci-dessous : téléphone/email/contact_*
 // ne sont jamais chargés pour la recherche publique — c'est la rédaction la
 // plus sûre (ne jamais aller chercher ce qui ne doit pas fuiter), plutôt qu'un
@@ -48,7 +68,7 @@ function appliquerDistance(rows, lat, lng, rayonKm) {
 // GET /api/search/coaches?discipline=fitness,boxe&tarif_min=&tarif_max=&remplacements=1&lat=&lng=&rayon_km=
 router.get('/coaches', (req, res) => {
   let rows = db.all(
-    `SELECT id, nom, prenom, ville, lat, lng, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, tarif_horaire, bio, photo_url, disponible_remplacements
+    `SELECT id, nom, prenom, ville, lat, lng, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, tarif_horaire, bio, photo_url, disponible_remplacements
      FROM coaches WHERE profil_complet = 1 AND actif = 1`
   );
 
@@ -68,6 +88,7 @@ router.get('/coaches', (req, res) => {
     rows = rows.filter((c) => !!c.disponible_remplacements);
   }
 
+  enregistrerVues(rows, req, 'coach');
   res.json(marquerDejaContactes(appliquerDistance(rows, req.query.lat, req.query.lng, req.query.rayon_km), req, 'coach'));
 });
 
@@ -76,7 +97,7 @@ router.get('/coaches', (req, res) => {
 // pré-remplir une fiche coach locale à partir d'une "Réf. Talents".
 router.get('/coaches/:id', (req, res) => {
   const coach = db.get(
-    `SELECT id, nom, prenom, ville, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, tarif_horaire, bio, photo_url, disponible_remplacements
+    `SELECT id, nom, prenom, ville, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, tarif_horaire, bio, photo_url, disponible_remplacements
      FROM coaches WHERE id = ? AND profil_complet = 1 AND actif = 1`,
     [Number(req.params.id)]
   );
@@ -87,7 +108,7 @@ router.get('/coaches/:id', (req, res) => {
 // GET /api/search/gyms?discipline=fitness,boxe&lat=&lng=&rayon_km=
 router.get('/gyms', (req, res) => {
   let rows = db.all(
-    `SELECT id, nom, ville, lat, lng, disciplines_recherchees, disciplines_autre_fitness, disciplines_autre_aqua, description, photo_url
+    `SELECT id, nom, ville, lat, lng, disciplines_recherchees, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, description, photo_url
      FROM gyms WHERE profil_complet = 1 AND actif = 1`
   );
 
@@ -96,6 +117,7 @@ router.get('/gyms', (req, res) => {
     rows = rows.filter((g) => disciplines.some((d) => (g.disciplines_recherchees || '').split(',').includes(d)));
   }
 
+  enregistrerVues(rows, req, 'gym');
   res.json(marquerDejaContactes(appliquerDistance(rows, req.query.lat, req.query.lng, req.query.rayon_km), req, 'gym'));
 });
 

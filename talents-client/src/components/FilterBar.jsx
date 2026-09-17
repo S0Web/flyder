@@ -70,10 +70,13 @@ export default function FilterBar({ filters, onChange, showTarif, showRemplaceme
       )}
 
       {showRemplacements && (
-        <label className="row cursor-pointer">
-          <span className="flex-1 text-sm font-semibold text-brand-ink leading-tight">Dispo remplacements<br /><span className="font-normal text-xs text-brand-ink/55">de dernière minute</span></span>
-          <button type="button" role="switch" aria-checked={filters.remplacements} onClick={() => onChange({ ...filters, remplacements: !filters.remplacements })} className="switch"><span className="knob" /></button>
-        </label>
+        <div className="space-y-2.5">
+          <p className="microlabel pl-1">Remplacements</p>
+          <label className="row cursor-pointer">
+            <span className="flex-1 text-sm font-semibold text-brand-ink leading-tight">Dispo dernière minute</span>
+            <button type="button" role="switch" aria-checked={filters.remplacements} onClick={() => onChange({ ...filters, remplacements: !filters.remplacements })} className="switch"><span className="knob" /></button>
+          </label>
+        </div>
       )}
     </aside>
   );

@@ -31,6 +31,8 @@ export default function VilleAutocomplete({ ville, onSelect, placeholder }) {
           ville: f.properties.city,
           codePostal: f.properties.postcode,
           contexte: f.properties.context,
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
         })));
       } catch (_) {
         setSuggestions([]);
@@ -53,7 +55,7 @@ export default function VilleAutocomplete({ ville, onSelect, placeholder }) {
     setValide(true);
     setOpen(false);
     setSuggestions([]);
-    onSelect(s.ville, s.codePostal);
+    onSelect(s.ville, s.codePostal, { lat: s.lat, lng: s.lng });
   }
 
   function handleBlur() {

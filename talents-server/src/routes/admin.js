@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const db = require('../db/database');
 const { updateCoachProfile, updateGymProfile, EMAIL_RE } = require('../lib/updateProfile');
+const { carteVues } = require('../lib/vues');
 
 // Protection minimale : une seule clé partagée (ADMIN_KEY, variable d'env par
 // service), pas de système de comptes — cette interface n'a qu'un seul
@@ -43,11 +44,13 @@ const sansMotDePasse = ({ password_hash, ...reste }) => reste;
 // recherche publique) : profils inactifs ou incomplets inclus, pour pouvoir
 // tout voir et modérer.
 router.get('/coaches', (req, res) => {
-  res.json(db.all('SELECT * FROM coaches ORDER BY created_at DESC').map(sansMotDePasse));
+  const vues = carteVues('coach');
+  res.json(db.all('SELECT * FROM coaches ORDER BY created_at DESC').map((c) => ({ ...sansMotDePasse(c), vues: vues.get(c.id) || 0 })));
 });
 
 router.get('/gyms', (req, res) => {
-  res.json(db.all('SELECT * FROM gyms ORDER BY created_at DESC').map(sansMotDePasse));
+  const vues = carteVues('gym');
+  res.json(db.all('SELECT * FROM gyms ORDER BY created_at DESC').map((g) => ({ ...sansMotDePasse(g), vues: vues.get(g.id) || 0 })));
 });
 
 // PATCH /api/admin/coaches/:id — bascule actif/inactif (modération), même

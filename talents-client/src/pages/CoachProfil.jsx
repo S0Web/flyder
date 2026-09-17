@@ -17,6 +17,7 @@ export default function CoachProfil() {
     disciplines: disciplinesConnues(actor.disciplines),
     disciplines_autre_fitness: actor.disciplines_autre_fitness || '',
     disciplines_autre_aqua: actor.disciplines_autre_aqua || '',
+    discipline_preferee: actor.discipline_preferee || null,
     tarif_horaire: actor.tarif_horaire ?? '',
     bio: actor.bio || '',
     telephone: actor.telephone || '',
@@ -28,7 +29,15 @@ export default function CoachProfil() {
   const [error, setError] = useState(null);
 
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
-  const toggle = (v) => set('disciplines', form.disciplines.includes(v) ? form.disciplines.filter((d) => d !== v) : [...form.disciplines, v]);
+  function toggle(v) {
+    const retrait = form.disciplines.includes(v);
+    setForm((f) => ({
+      ...f,
+      disciplines: retrait ? f.disciplines.filter((d) => d !== v) : [...f.disciplines, v],
+      discipline_preferee: retrait && f.discipline_preferee === v ? null : f.discipline_preferee,
+    }));
+    setSaved(false);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -76,7 +85,8 @@ export default function CoachProfil() {
           <Field label="Disciplines">
             <DisciplinePicker selected={form.disciplines} onToggle={toggle} editable
               autreFitness={form.disciplines_autre_fitness} onAutreFitnessChange={(v) => set('disciplines_autre_fitness', v)}
-              autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)} />
+              autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)}
+              preferee={form.discipline_preferee} onPrefereeChange={(v) => set('discipline_preferee', v)} />
           </Field>
           <label className="row cursor-pointer bg-white">
             <input type="checkbox" checked={form.disponible_remplacements} onChange={(e) => set('disponible_remplacements', e.target.checked)}

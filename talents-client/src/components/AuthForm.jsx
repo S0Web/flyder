@@ -93,7 +93,7 @@ export default function AuthForm({ role, eyebrow, titre, accroche, promesses }) 
               </div>
             )}
             {mode === 'signup' && role === 'gym' && (
-              <Champ label="Nom de la salle"><input className="field field-grey" placeholder="Magic Form Mennecy" required autoFocus value={form.nom} onChange={(e) => set('nom', e.target.value)} /></Champ>
+              <Champ label="Nom de la salle"><input className="field field-grey" required autoFocus value={form.nom} onChange={(e) => set('nom', e.target.value)} /></Champ>
             )}
             <Champ label="Email"><input className="field field-grey" type="email" placeholder="toi@exemple.fr" required value={form.email} onChange={(e) => set('email', e.target.value)} /></Champ>
             <Champ label={mode === 'signup' ? 'Mot de passe (8 caractères min.)' : 'Mot de passe'}>

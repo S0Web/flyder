@@ -5,6 +5,7 @@ const db = require('../db/database');
 const { hashPassword, verifyPassword } = require('../lib/passwordHash');
 const { requireCoachAuth, getToken } = require('../middleware/auth');
 const { updateCoachProfile, COACH_FIELDS } = require('../lib/updateProfile');
+const { compterVues } = require('../lib/vues');
 
 const DUREE_SESSION_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,6 +20,12 @@ function issueSession(coachId) {
 }
 
 const PROFIL_PUBLIC_FIELDS = COACH_FIELDS;
+
+// Le nombre de vues n'est pas une colonne de `coaches` (voir lib/vues.js) —
+// à recalculer et rattacher à chaque réponse contenant le profil complet du
+// titulaire (jamais dans la recherche publique, où c'est l'inverse : c'est
+// cette page qui écrit dans `profile_views`, voir routes/search.js).
+const avecVues = (coach) => coach && { ...coach, vues: compterVues('coach', coach.id) };
 
 // POST /api/coach-auth/signup
 router.post('/signup', (req, res) => {
@@ -37,7 +44,7 @@ router.post('/signup', (req, res) => {
     [emailNorm, hashPassword(password), clean(nom, 80), clean(prenom, 80)]
   );
   const token = issueSession(result.lastInsertRowid);
-  res.status(201).json({ token, coach: db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [result.lastInsertRowid]) });
+  res.status(201).json({ token, coach: avecVues(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [result.lastInsertRowid])) });
 });
 
 // POST /api/coach-auth/login
@@ -51,7 +58,7 @@ router.post('/login', (req, res) => {
   }
 
   const token = issueSession(coach.id);
-  res.json({ token, coach: db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [coach.id]) });
+  res.json({ token, coach: avecVues(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [coach.id])) });
 });
 
 // POST /api/coach-auth/logout
@@ -63,7 +70,7 @@ router.post('/logout', requireCoachAuth, (req, res) => {
 
 // GET /api/coach-auth/me
 router.get('/me', requireCoachAuth, (req, res) => {
-  res.json(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [req.coach.id]));
+  res.json(avecVues(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM coaches WHERE id = ?`, [req.coach.id])));
 });
 
 // PUT /api/coach-auth/me — mise à jour partielle : seuls les champs envoyés
@@ -73,7 +80,7 @@ router.get('/me', requireCoachAuth, (req, res) => {
 router.put('/me', requireCoachAuth, async (req, res) => {
   const result = await updateCoachProfile(req.coach.id, req.body);
   if (result.error) return res.status(result.status).json({ error: result.error });
-  res.json(result.profile);
+  res.json(avecVues(result.profile));
 });
 
 module.exports = router;

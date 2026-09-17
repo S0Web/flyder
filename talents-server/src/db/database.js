@@ -133,4 +133,31 @@ tryAlter('ALTER TABLE coaches ADD COLUMN disciplines_autre_aqua TEXT');
 tryAlter('ALTER TABLE gyms ADD COLUMN disciplines_autre_fitness TEXT');
 tryAlter('ALTER TABLE gyms ADD COLUMN disciplines_autre_aqua TEXT');
 
+// Une discipline "préférée" parmi celles cochées, mise en avant sur la carte
+// (spécialité). Doit toujours être une valeur présente dans `disciplines`/
+// `disciplines_recherchees` — vérifié côté serveur à chaque enregistrement
+// (voir lib/updateProfile.js), jamais imposé par une contrainte SQL (simple
+// TEXT nullable, comme les colonnes "Autre" ci-dessus).
+tryAlter('ALTER TABLE coaches ADD COLUMN discipline_preferee TEXT');
+tryAlter('ALTER TABLE gyms ADD COLUMN discipline_preferee TEXT');
+
+// ─── Vues de profil (qui a vu qui) ──────────────────────────────────────────
+// Une ligne par (viewer, cible) et par jour : incrémenter à chaque apparition
+// dans une page de résultats de recherche ferait exploser le compteur au
+// moindre réglage de filtre (voir search.js) — dédupliquer au jour près donne
+// un nombre qui reste lisible ("vu par 12 salles") sans fil de discussion ni
+// notification, dans le même esprit que `contact_events`.
+db.run(`
+  CREATE TABLE IF NOT EXISTS profile_views (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    viewer_type TEXT NOT NULL CHECK(viewer_type IN ('gym','coach')),
+    viewer_id   INTEGER NOT NULL,
+    cible_type  TEXT NOT NULL CHECK(cible_type IN ('gym','coach')),
+    cible_id    INTEGER NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_views_lookup ON profile_views (viewer_type, viewer_id, cible_type, cible_id, created_at)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_views_cible ON profile_views (cible_type, cible_id)`);
+
 module.exports = db;

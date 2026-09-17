@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { MapPin, Phone, Mail, ChevronDown, Check, Copy, Zap } from 'lucide-react';
+import { MapPin, Phone, Mail, ChevronDown, Check, Copy, Zap, Star } from 'lucide-react';
 import { api } from '../lib/api';
-import { disciplineLabels } from '../lib/constants';
+import { disciplineGroupes } from '../lib/constants';
 
 const TILES = ['tile-blue', 'tile-coral', 'tile-green', 'tile-amber', 'tile-violet'];
 
@@ -23,9 +23,9 @@ export default function ProfileCard({ type, profile, index = 0 }) {
   }
 
   const isCoach = type === 'coach';
-  const disciplines = disciplineLabels(
+  const { fitness, aqua, preferee } = disciplineGroupes(
     isCoach ? profile.disciplines : profile.disciplines_recherchees,
-    profile.disciplines_autre_fitness, profile.disciplines_autre_aqua
+    profile.disciplines_autre_fitness, profile.disciplines_autre_aqua, profile.discipline_preferee
   );
   const titre = isCoach ? `${profile.prenom} ${profile.nom}` : profile.nom;
   const texte = isCoach ? profile.bio : profile.description;
@@ -63,11 +63,29 @@ export default function ProfileCard({ type, profile, index = 0 }) {
           </div>
         </div>
 
-        {(disciplines.length > 0 || (isCoach && !!profile.disponible_remplacements)) && (
-          <div className="flex flex-wrap gap-1.5">
-            {isCoach && !!profile.disponible_remplacements && <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span>}
-            {disciplines.slice(0, 4).map((d, i) => <span key={i} className="badge bg-white text-brand-ink/75">{d}</span>)}
-            {disciplines.length > 4 && <span className="badge bg-white text-brand-slate">+{disciplines.length - 4}</span>}
+        {(fitness.length > 0 || aqua.length > 0 || preferee || (isCoach && !!profile.disponible_remplacements)) && (
+          <div className="space-y-1.5">
+            {(preferee || (isCoach && !!profile.disponible_remplacements)) && (
+              <div className="flex flex-wrap gap-1.5">
+                {isCoach && !!profile.disponible_remplacements && <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span>}
+                {preferee && <span className="badge bg-[#FFF4DB] text-[#8A5300]"><Star className="h-3 w-3" fill="currentColor" /> {preferee}</span>}
+              </div>
+            )}
+            {/* Fitness et Aqua sur deux lignes distinctes — mélanger les deux
+                rendait la liste illisible dès qu'un profil cochait des
+                disciplines dans les deux volets. Plus de plafond "+N" non plus
+                (retour utilisateur : ça cachait des disciplines qu'on voulait
+                voir) — tout s'affiche, le flex-wrap absorbe la hauteur. */}
+            {fitness.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {fitness.map((d, i) => <span key={i} className="badge bg-white text-brand-ink/75">{d}</span>)}
+              </div>
+            )}
+            {aqua.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {aqua.map((d, i) => <span key={i} className="badge bg-[#E8F5FA] text-[#0C7489]">{d}</span>)}
+              </div>
+            )}
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Camera, Check, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Camera, Check, CheckCircle2, Eye, EyeOff, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { AppHeader, BottomNav } from './AppShell';
@@ -92,6 +92,15 @@ export default function ProfilLayout({ base, titre, checklist, form, onSubmit, s
                 {!actor.photo_url && <p className="text-xs text-brand-slate mt-1">Une photo multiplie les contacts.</p>}
               </div>
             </div>
+
+            {actor.vues > 0 && (
+              <div className="card p-5 flex items-center gap-3">
+                <span className="tile tile-sm bg-white text-brand-blue"><TrendingUp className="h-4 w-4" /></span>
+                <p className="text-sm text-brand-ink/80">
+                  <strong className="font-display text-lg font-bold text-brand-ink">{actor.vues}</strong> vue{actor.vues > 1 ? 's' : ''} de ton profil
+                </p>
+              </div>
+            )}
 
             <div className="card p-5">
               <div className="flex items-end justify-between mb-2">

@@ -72,3 +72,24 @@ export function disciplineLabels(disciplinesCsv, autreFitness, autreAqua) {
     return labelDiscipline(v);
   });
 }
+
+const CATEGORIE_DE = new Map(
+  DISCIPLINE_CATEGORIES.flatMap((c) => c.disciplines.map((d) => [d.value, c.key]))
+);
+
+// Étiquettes groupées par catégorie (fitness/aqua) plutôt qu'en une seule
+// liste plate — sert à afficher les deux volets séparément sur la carte
+// (voir ProfileCard.jsx), avec la discipline préférée mise à part en tête
+// puisqu'elle est déjà présentée différemment (mise en avant).
+export function disciplineGroupes(disciplinesCsv, autreFitness, autreAqua, preferee) {
+  const label = (v) => (v === 'autre_fitness' && autreFitness) ? autreFitness
+    : (v === 'autre_aqua' && autreAqua) ? autreAqua
+    : labelDiscipline(v);
+
+  const fitness = [], aqua = [];
+  for (const v of disciplinesConnues(disciplinesCsv)) {
+    if (v === preferee) continue;
+    (CATEGORIE_DE.get(v) === 'aqua' ? aqua : fitness).push(label(v));
+  }
+  return { fitness, aqua, preferee: preferee ? label(preferee) : null };
+}

@@ -5,6 +5,7 @@ const db = require('../db/database');
 const { hashPassword, verifyPassword } = require('../lib/passwordHash');
 const { requireGymAuth, getToken } = require('../middleware/auth');
 const { updateGymProfile, GYM_FIELDS } = require('../lib/updateProfile');
+const { compterVues } = require('../lib/vues');
 
 const DUREE_SESSION_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,6 +20,7 @@ function issueSession(gymId) {
 }
 
 const PROFIL_PUBLIC_FIELDS = GYM_FIELDS;
+const avecVues = (gym) => gym && { ...gym, vues: compterVues('gym', gym.id) };
 
 // POST /api/gym-auth/signup — aucune vérification d'identité de la salle en
 // MVP, même niveau de confiance minimal que côté coach (voir plan).
@@ -38,7 +40,7 @@ router.post('/signup', (req, res) => {
     [emailNorm, hashPassword(password), clean(nom, 120), emailNorm]
   );
   const token = issueSession(result.lastInsertRowid);
-  res.status(201).json({ token, gym: db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [result.lastInsertRowid]) });
+  res.status(201).json({ token, gym: avecVues(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [result.lastInsertRowid])) });
 });
 
 // POST /api/gym-auth/login
@@ -52,7 +54,7 @@ router.post('/login', (req, res) => {
   }
 
   const token = issueSession(gym.id);
-  res.json({ token, gym: db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [gym.id]) });
+  res.json({ token, gym: avecVues(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [gym.id])) });
 });
 
 // POST /api/gym-auth/logout
@@ -64,7 +66,7 @@ router.post('/logout', requireGymAuth, (req, res) => {
 
 // GET /api/gym-auth/me
 router.get('/me', requireGymAuth, (req, res) => {
-  res.json(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [req.gym.id]));
+  res.json(avecVues(db.get(`SELECT ${PROFIL_PUBLIC_FIELDS} FROM gyms WHERE id = ?`, [req.gym.id])));
 });
 
 // PUT /api/gym-auth/me — mise à jour partielle. Logique partagée avec
@@ -72,7 +74,7 @@ router.get('/me', requireGymAuth, (req, res) => {
 router.put('/me', requireGymAuth, async (req, res) => {
   const result = await updateGymProfile(req.gym.id, req.body);
   if (result.error) return res.status(result.status).json({ error: result.error });
-  res.json(result.profile);
+  res.json(avecVues(result.profile));
 });
 
 module.exports = router;

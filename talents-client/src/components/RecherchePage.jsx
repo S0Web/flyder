@@ -8,6 +8,7 @@ import FilterBar, { FILTER_DEFAULTS, nbFiltresActifs } from './FilterBar';
 import ProfileCard from './ProfileCard';
 import EmptyState from './EmptyState';
 import { CardSkeleton } from './Skeleton';
+import VilleAutocomplete from './VilleAutocomplete';
 
 // Page de recherche partagée. `type` = ce qu'on cherche ('coach' ou 'gym'),
 // `base` = préfixe de route de l'espace connecté. L'origine géographique par
@@ -15,6 +16,11 @@ import { CardSkeleton } from './Skeleton';
 export default function RecherchePage({ type, base, titre, pluriel, singulier }) {
   const { actor } = useAuth();
   const [origine, setOrigine] = useState(actor.lat != null ? { lat: actor.lat, lng: actor.lng } : null);
+  // Ville tapée manuellement comme origine alternative à la géolocalisation —
+  // resynchronisée sur le nom de la ville choisie (voir VilleAutocomplete),
+  // vidée si on repasse par la géolocalisation pour ne pas laisser un nom de
+  // ville qui ne correspond plus à l'origine réellement utilisée.
+  const [villeOrigine, setVilleOrigine] = useState(actor.lat != null ? actor.ville || '' : '');
   const [filters, setFilters] = useState({ ...FILTER_DEFAULTS });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,21 +53,29 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
   function utiliserMaPosition() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setOrigine({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => { setOrigine({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setVilleOrigine(''); },
       () => setError('Impossible de récupérer ta position.')
     );
+  }
+
+  function choisirVilleOrigine(ville, _codePostal, coords) {
+    setVilleOrigine(ville);
+    if (coords) setOrigine({ lat: coords.lat, lng: coords.lng });
   }
 
   const n = results.length;
   const sousTitre = loading ? 'Recherche en cours…'
     : origine ? `${n} ${n > 1 ? pluriel : singulier} dans un rayon de ${filters.rayon_km} km`
-    : `${n} ${n > 1 ? pluriel : singulier} — active ta position pour trier par distance`;
+    : `${n} ${n > 1 ? pluriel : singulier}`;
 
   return (
     <div className="min-h-screen bg-white">
       <AppHeader base={base} eyebrow="Autour de toi" titre={<>{titre.ink} {titre.blue}.</>} sousTitre={sousTitre}>
-        <button onClick={utiliserMaPosition} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2.5 text-sm font-semibold transition">
-          <LocateFixed className="h-4 w-4" /> <span className="hidden sm:inline">Utiliser ma position</span><span className="sm:hidden">Ma position</span>
+        <div className="w-44 sm:w-56">
+          <VilleAutocomplete ville={villeOrigine} placeholder="Ou indique ta ville" onSelect={choisirVilleOrigine} />
+        </div>
+        <button onClick={utiliserMaPosition} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2.5 text-sm font-semibold transition flex-none">
+          <LocateFixed className="h-4 w-4" /> <span className="hidden sm:inline">Utiliser ma position</span><span className="sm:hidden">Position</span>
         </button>
       </AppHeader>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Trash2, Pencil, X, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell } from 'lucide-react';
+import { LogOut, Trash2, Pencil, X, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell, Eye } from 'lucide-react';
 import { adminApi, getAdminKey, setAdminKey, clearAdminKey } from '../lib/adminApi';
 import { disciplineLabels, disciplinesConnues } from '../lib/constants';
 import Wordmark from '../components/Wordmark';
@@ -62,7 +62,7 @@ function LoginForm({ onLoggedIn }) {
 // Cartes plutôt que tableau : la priorité est le mobile (c'est comme ça que
 // cette page est utilisée en pratique), où un tableau large ne montre que 2-3
 // colonnes et cache le statut et les actions — les infos les plus utiles ici.
-function EntityCard({ id, nom, email, ville: v, chips, tarif, extra, complet, actif, onToggle, onEdit, onDelete, dateLabel }) {
+function EntityCard({ id, nom, email, ville: v, chips, tarif, extra, complet, actif, onToggle, onEdit, onDelete, dateLabel, vues }) {
   return (
     <div className={`card p-4 flex flex-col gap-3 transition ${actif ? '' : 'opacity-60'}`}>
       <div className="flex items-start gap-3">
@@ -87,7 +87,10 @@ function EntityCard({ id, nom, email, ville: v, chips, tarif, extra, complet, ac
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-3 border-t border-black/[0.06]">
-        <div className="text-xs text-brand-slate min-w-0"><span className="text-brand-ink font-medium">{tarif}</span> · #{id} · {dateLabel}</div>
+        <div className="text-xs text-brand-slate min-w-0 flex items-center gap-1.5 flex-wrap">
+          <span className="text-brand-ink font-medium">{tarif}</span> · #{id} · {dateLabel}
+          {vues > 0 && <span className="inline-flex items-center gap-0.5"><Eye className="h-3 w-3" /> {vues}</span>}
+        </div>
         <label className="flex items-center gap-2 text-xs font-semibold text-brand-ink/70 flex-none">
           {actif ? 'Actif' : 'Inactif'}
           <button type="button" role="switch" aria-checked={actif} onClick={onToggle} className="switch !h-7 !w-12"><span className="knob !h-5 !w-5" /></button>
@@ -122,6 +125,7 @@ function CoachesCards({ coaches, onToggle, onEdit, onDelete }) {
           onEdit={() => onEdit(c)}
           onDelete={() => onDelete(c)}
           extra={c.disponible_remplacements ? <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span> : null}
+          vues={c.vues}
         />
       ))}
     </CardGrid>
@@ -146,6 +150,7 @@ function GymsCards({ gyms, onToggle, onEdit, onDelete }) {
           onToggle={() => onToggle(g)}
           onEdit={() => onEdit(g)}
           onDelete={() => onDelete(g)}
+          vues={g.vues}
         />
       ))}
     </CardGrid>
@@ -177,6 +182,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
     disciplines: disciplinesConnues(entity.disciplines),
     disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
+    discipline_preferee: entity.discipline_preferee || null,
     tarif_horaire: entity.tarif_horaire ?? '', bio: entity.bio || '',
     telephone: entity.telephone || '', email_public: !!entity.email_public,
     disponible_remplacements: !!entity.disponible_remplacements,
@@ -186,6 +192,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
     disciplines_recherchees: disciplinesConnues(entity.disciplines_recherchees),
     disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
+    discipline_preferee: entity.discipline_preferee || null,
     description: entity.description || '',
     contact_nom: entity.contact_nom || '', contact_email: entity.contact_email || '', contact_telephone: entity.contact_telephone || '',
   }));
@@ -193,7 +200,14 @@ function EditModal({ type, entity, onClose, onSaved }) {
   const [error, setError] = useState(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const toggleDiscipline = (v) => set(disciplinesKey, form[disciplinesKey].includes(v) ? form[disciplinesKey].filter((d) => d !== v) : [...form[disciplinesKey], v]);
+  function toggleDiscipline(v) {
+    const retrait = form[disciplinesKey].includes(v);
+    setForm((f) => ({
+      ...f,
+      [disciplinesKey]: retrait ? f[disciplinesKey].filter((d) => d !== v) : [...f[disciplinesKey], v],
+      discipline_preferee: retrait && f.discipline_preferee === v ? null : f.discipline_preferee,
+    }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -251,7 +265,8 @@ function EditModal({ type, entity, onClose, onSaved }) {
           <Champ label={isCoach ? 'Disciplines' : 'Disciplines recherchées'}>
             <DisciplinePicker selected={form[disciplinesKey]} onToggle={toggleDiscipline} editable
               autreFitness={form.disciplines_autre_fitness} onAutreFitnessChange={(v) => set('disciplines_autre_fitness', v)}
-              autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)} />
+              autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)}
+              preferee={form.discipline_preferee} onPrefereeChange={(v) => set('discipline_preferee', v)} />
           </Champ>
 
           {isCoach ? (
