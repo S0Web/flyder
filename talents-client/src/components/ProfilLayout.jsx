@@ -52,12 +52,12 @@ const PERIODES = [
 
 // Nombre de vues avec sélecteur de période (recalculé côté serveur à chaque
 // clic — un seul aller-retour couvre les quatre fenêtres, voir lib/vues.js).
-// Masquée tant qu'il n'y a rien à montrer (aucune vue jamais enregistrée).
+// Toujours affichée, même à 0 — un profil tout neuf doit voir que le
+// compteur existe, pas se demander s'il a disparu.
 function VuesCard({ vues }) {
   const [periode, setPeriode] = useState('total');
-  if (!vues || !vues.total) return null;
   const active = PERIODES.find((p) => p.key === periode);
-  const n = vues[periode];
+  const n = vues?.[periode] ?? 0;
 
   return (
     <div className="card p-5 space-y-3">
