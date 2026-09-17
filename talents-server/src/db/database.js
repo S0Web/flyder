@@ -133,13 +133,20 @@ tryAlter('ALTER TABLE coaches ADD COLUMN disciplines_autre_aqua TEXT');
 tryAlter('ALTER TABLE gyms ADD COLUMN disciplines_autre_fitness TEXT');
 tryAlter('ALTER TABLE gyms ADD COLUMN disciplines_autre_aqua TEXT');
 
-// Une discipline "préférée" parmi celles cochées, mise en avant sur la carte
-// (spécialité). Doit toujours être une valeur présente dans `disciplines`/
+// Jusqu'à 5 disciplines "préférées" parmi celles cochées (liste CSV, même
+// format que `disciplines`), mises en avant sur la carte (spécialités).
+// Doivent toujours être des valeurs présentes dans `disciplines`/
 // `disciplines_recherchees` — vérifié côté serveur à chaque enregistrement
-// (voir lib/updateProfile.js), jamais imposé par une contrainte SQL (simple
-// TEXT nullable, comme les colonnes "Autre" ci-dessus).
+// (voir lib/updateProfile.js), jamais imposé par une contrainte SQL.
+tryAlter('ALTER TABLE coaches ADD COLUMN disciplines_preferees TEXT');
+tryAlter('ALTER TABLE gyms ADD COLUMN disciplines_preferees TEXT');
+// Ancienne colonne (une seule spécialité) d'une version antérieure de cette
+// même fonctionnalité, remplacée ci-dessus par une liste — reprise ici sans
+// perte pour les quelques profils déjà enregistrés entre les deux.
 tryAlter('ALTER TABLE coaches ADD COLUMN discipline_preferee TEXT');
 tryAlter('ALTER TABLE gyms ADD COLUMN discipline_preferee TEXT');
+db.run(`UPDATE coaches SET disciplines_preferees = discipline_preferee WHERE discipline_preferee IS NOT NULL AND disciplines_preferees IS NULL`);
+db.run(`UPDATE gyms SET disciplines_preferees = discipline_preferee WHERE discipline_preferee IS NOT NULL AND disciplines_preferees IS NULL`);
 
 // ─── Vues de profil (qui a vu qui) ──────────────────────────────────────────
 // Une ligne par (viewer, cible) et par jour : incrémenter à chaque apparition

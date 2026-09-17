@@ -182,7 +182,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
     disciplines: disciplinesConnues(entity.disciplines),
     disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
-    discipline_preferee: entity.discipline_preferee || null,
+    disciplines_preferees: disciplinesConnues(entity.disciplines_preferees),
     tarif_horaire: entity.tarif_horaire ?? '', bio: entity.bio || '',
     telephone: entity.telephone || '', email_public: !!entity.email_public,
     disponible_remplacements: !!entity.disponible_remplacements,
@@ -192,7 +192,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     adresse: entity.adresse || '', code_postal: entity.code_postal || '', ville: entity.ville || '',
     disciplines_recherchees: disciplinesConnues(entity.disciplines_recherchees),
     disciplines_autre_fitness: entity.disciplines_autre_fitness || '', disciplines_autre_aqua: entity.disciplines_autre_aqua || '',
-    discipline_preferee: entity.discipline_preferee || null,
+    disciplines_preferees: disciplinesConnues(entity.disciplines_preferees),
     description: entity.description || '',
     contact_nom: entity.contact_nom || '', contact_email: entity.contact_email || '', contact_telephone: entity.contact_telephone || '',
   }));
@@ -205,7 +205,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
     setForm((f) => ({
       ...f,
       [disciplinesKey]: retrait ? f[disciplinesKey].filter((d) => d !== v) : [...f[disciplinesKey], v],
-      discipline_preferee: retrait && f.discipline_preferee === v ? null : f.discipline_preferee,
+      disciplines_preferees: retrait ? f.disciplines_preferees.filter((p) => p !== v) : f.disciplines_preferees,
     }));
   }
 
@@ -266,7 +266,7 @@ function EditModal({ type, entity, onClose, onSaved }) {
             <DisciplinePicker selected={form[disciplinesKey]} onToggle={toggleDiscipline} editable
               autreFitness={form.disciplines_autre_fitness} onAutreFitnessChange={(v) => set('disciplines_autre_fitness', v)}
               autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)}
-              preferee={form.discipline_preferee} onPrefereeChange={(v) => set('discipline_preferee', v)} />
+              preferees={form.disciplines_preferees} onTogglePreferee={(v) => set('disciplines_preferees', v)} />
           </Champ>
 
           {isCoach ? (

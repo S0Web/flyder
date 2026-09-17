@@ -6,7 +6,7 @@ import { MapPin, Loader2, Check } from 'lucide-react';
 // la place d'"Aulnay-sous-Bois" et de fausser le tri par distance en silence.
 // Appelle directement l'API Adresse du gouvernement français (Base Adresse
 // Nationale, gratuite, CORS ouvert) — mêmes données que le géocodage serveur.
-export default function VilleAutocomplete({ ville, onSelect, placeholder }) {
+export default function VilleAutocomplete({ ville, onSelect, placeholder, compact }) {
   const [query, setQuery] = useState(ville || '');
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function VilleAutocomplete({ ville, onSelect, placeholder }) {
         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-slate pointer-events-none" />
         <input
           type="text"
-          className="field pl-11 pr-9"
+          className={`field pl-11 pr-9 ${compact ? '!h-11 !rounded-full !py-0' : ''}`}
           value={query}
           onChange={handleChange}
           onFocus={() => query.trim().length >= 2 && setOpen(true)}

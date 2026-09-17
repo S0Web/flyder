@@ -71,12 +71,12 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
   return (
     <div className="min-h-screen bg-white">
       <AppHeader base={base} eyebrow="Autour de toi" titre={<>{titre.ink} {titre.blue}.</>} sousTitre={sousTitre}>
-        <div className="w-44 sm:w-56">
-          <VilleAutocomplete ville={villeOrigine} placeholder="Ou indique ta ville" onSelect={choisirVilleOrigine} />
-        </div>
-        <button onClick={utiliserMaPosition} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2.5 text-sm font-semibold transition flex-none">
+        <button onClick={utiliserMaPosition} className="h-11 inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 text-sm font-semibold transition flex-none">
           <LocateFixed className="h-4 w-4" /> <span className="hidden sm:inline">Utiliser ma position</span><span className="sm:hidden">Position</span>
         </button>
+        <div className="w-44 sm:w-56">
+          <VilleAutocomplete ville={villeOrigine} placeholder="Ou indique ta ville" onSelect={choisirVilleOrigine} compact />
+        </div>
       </AppHeader>
 
       <main className="max-w-6xl mx-auto px-5 sm:px-8 py-6 sm:py-8">

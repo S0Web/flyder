@@ -12,15 +12,22 @@ const CODE_POSTAL_RE = /^\d{5}$/;
 const clean = (v, max) => String(v ?? '').trim().slice(0, max);
 
 const COACH_FIELDS =
-  'id, email, nom, prenom, adresse, code_postal, ville, lat, lng, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet, actif, disponible_remplacements';
+  'id, email, nom, prenom, adresse, code_postal, ville, lat, lng, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, disciplines_preferees, tarif_horaire, bio, photo_url, telephone, email_public, profil_complet, actif, disponible_remplacements';
 const GYM_FIELDS =
-  'id, email, nom, adresse, code_postal, ville, lat, lng, disciplines_recherchees, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, description, photo_url, contact_nom, contact_email, contact_telephone, profil_complet, actif';
+  'id, email, nom, adresse, code_postal, ville, lat, lng, disciplines_recherchees, disciplines_autre_fitness, disciplines_autre_aqua, disciplines_preferees, description, photo_url, contact_nom, contact_email, contact_telephone, profil_complet, actif';
 
-// La discipline "préférée" doit toujours être une des disciplines cochées —
-// si elle ne l'est plus (déchochée dans la même requête, ou valeur invalide
-// envoyée), on la vide silencieusement plutôt que de renvoyer une erreur.
-const disciplinePrefereeValide = (valeur, disciplinesCsv) =>
-  valeur && disciplinesCsv.split(',').includes(String(valeur)) ? String(valeur) : null;
+const MAX_DISCIPLINES_PREFEREES = 5;
+
+// Les disciplines "préférées" (jusqu'à 5) doivent toujours faire partie des
+// disciplines cochées — celles qui ne le sont plus (déchochées dans la même
+// requête, ou valeurs invalides envoyées) sont retirées silencieusement
+// plutôt que de faire échouer l'enregistrement.
+function disciplinesPrefereesValides(valeur, disciplinesCsv) {
+  const cochees = new Set(disciplinesCsv.split(',').filter(Boolean));
+  const brut = Array.isArray(valeur) ? valeur : String(valeur ?? '').split(',');
+  const valides = brut.map(String).filter((v) => cochees.has(v)).slice(0, MAX_DISCIPLINES_PREFEREES);
+  return valides.length ? valides.join(',') : null;
+}
 
 async function updateCoachProfile(coachId, b) {
   const current = db.get('SELECT * FROM coaches WHERE id = ?', [coachId]);
@@ -40,9 +47,9 @@ async function updateCoachProfile(coachId, b) {
     : current.disciplines;
   const disciplinesAutreFitness = b.disciplines_autre_fitness !== undefined ? clean(b.disciplines_autre_fitness, 200) : current.disciplines_autre_fitness;
   const disciplinesAutreAqua = b.disciplines_autre_aqua !== undefined ? clean(b.disciplines_autre_aqua, 200) : current.disciplines_autre_aqua;
-  const disciplinePreferee = b.discipline_preferee !== undefined
-    ? disciplinePrefereeValide(b.discipline_preferee, disciplines)
-    : disciplinePrefereeValide(current.discipline_preferee, disciplines);
+  const disciplinesPreferees = b.disciplines_preferees !== undefined
+    ? disciplinesPrefereesValides(b.disciplines_preferees, disciplines)
+    : disciplinesPrefereesValides(current.disciplines_preferees, disciplines);
 
   // La ville vient obligatoirement d'une commune réelle choisie côté client
   // (autocomplétion Base Adresse Nationale) — jamais de saisie libre, pour
@@ -74,8 +81,8 @@ async function updateCoachProfile(coachId, b) {
   const profilComplet = nom && prenom && current.email && ville && disciplines ? 1 : 0;
 
   db.run(
-    `UPDATE coaches SET nom=?, prenom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, discipline_preferee=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, prenom, adresse, codePostal, ville, lat, lng, disciplines, disciplinesAutreFitness, disciplinesAutreAqua, disciplinePreferee, tarifHoraire, bio, telephone, emailPublic, actif, disponibleRemplacements, profilComplet, coachId]
+    `UPDATE coaches SET nom=?, prenom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, disciplines_preferees=?, tarif_horaire=?, bio=?, telephone=?, email_public=?, actif=?, disponible_remplacements=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
+    [nom, prenom, adresse, codePostal, ville, lat, lng, disciplines, disciplinesAutreFitness, disciplinesAutreAqua, disciplinesPreferees, tarifHoraire, bio, telephone, emailPublic, actif, disponibleRemplacements, profilComplet, coachId]
   );
 
   return { profile: db.get(`SELECT ${COACH_FIELDS} FROM coaches WHERE id = ?`, [coachId]) };
@@ -98,9 +105,9 @@ async function updateGymProfile(gymId, b) {
     : current.disciplines_recherchees;
   const disciplinesAutreFitness = b.disciplines_autre_fitness !== undefined ? clean(b.disciplines_autre_fitness, 200) : current.disciplines_autre_fitness;
   const disciplinesAutreAqua = b.disciplines_autre_aqua !== undefined ? clean(b.disciplines_autre_aqua, 200) : current.disciplines_autre_aqua;
-  const disciplinePreferee = b.discipline_preferee !== undefined
-    ? disciplinePrefereeValide(b.discipline_preferee, disciplinesRecherchees)
-    : disciplinePrefereeValide(current.discipline_preferee, disciplinesRecherchees);
+  const disciplinesPreferees = b.disciplines_preferees !== undefined
+    ? disciplinesPrefereesValides(b.disciplines_preferees, disciplinesRecherchees)
+    : disciplinesPrefereesValides(current.disciplines_preferees, disciplinesRecherchees);
 
   if (b.code_postal !== undefined && b.code_postal && !CODE_POSTAL_RE.test(String(b.code_postal).trim())) {
     return { error: 'Code postal invalide (5 chiffres)', status: 400 };
@@ -121,8 +128,8 @@ async function updateGymProfile(gymId, b) {
   const profilComplet = nom && current.email && ville && disciplinesRecherchees ? 1 : 0;
 
   db.run(
-    `UPDATE gyms SET nom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines_recherchees=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, discipline_preferee=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, actif=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
-    [nom, adresse, codePostal, ville, lat, lng, disciplinesRecherchees, disciplinesAutreFitness, disciplinesAutreAqua, disciplinePreferee, description, contactNom, contactEmail, contactTelephone, actif, profilComplet, gymId]
+    `UPDATE gyms SET nom=?, adresse=?, code_postal=?, ville=?, lat=?, lng=?, disciplines_recherchees=?, disciplines_autre_fitness=?, disciplines_autre_aqua=?, disciplines_preferees=?, description=?, contact_nom=?, contact_email=?, contact_telephone=?, actif=?, profil_complet=?, updated_at=datetime('now') WHERE id=?`,
+    [nom, adresse, codePostal, ville, lat, lng, disciplinesRecherchees, disciplinesAutreFitness, disciplinesAutreAqua, disciplinesPreferees, description, contactNom, contactEmail, contactTelephone, actif, profilComplet, gymId]
   );
 
   return { profile: db.get(`SELECT ${GYM_FIELDS} FROM gyms WHERE id = ?`, [gymId]) };

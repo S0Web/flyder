@@ -16,7 +16,7 @@ export default function GymProfil() {
     disciplines_recherchees: disciplinesConnues(actor.disciplines_recherchees),
     disciplines_autre_fitness: actor.disciplines_autre_fitness || '',
     disciplines_autre_aqua: actor.disciplines_autre_aqua || '',
-    discipline_preferee: actor.discipline_preferee || null,
+    disciplines_preferees: disciplinesConnues(actor.disciplines_preferees),
     description: actor.description || '',
     contact_nom: actor.contact_nom || '',
     contact_email: actor.contact_email || '',
@@ -32,7 +32,7 @@ export default function GymProfil() {
     setForm((f) => ({
       ...f,
       disciplines_recherchees: retrait ? f.disciplines_recherchees.filter((d) => d !== v) : [...f.disciplines_recherchees, v],
-      discipline_preferee: retrait && f.discipline_preferee === v ? null : f.discipline_preferee,
+      disciplines_preferees: retrait ? f.disciplines_preferees.filter((p) => p !== v) : f.disciplines_preferees,
     }));
     setSaved(false);
   }
@@ -82,7 +82,7 @@ export default function GymProfil() {
             <DisciplinePicker selected={form.disciplines_recherchees} onToggle={toggle} editable
               autreFitness={form.disciplines_autre_fitness} onAutreFitnessChange={(v) => set('disciplines_autre_fitness', v)}
               autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)}
-              preferee={form.discipline_preferee} onPrefereeChange={(v) => set('discipline_preferee', v)} />
+              preferees={form.disciplines_preferees} onTogglePreferee={(v) => set('disciplines_preferees', v)} />
           </Field>
         </Section>
 

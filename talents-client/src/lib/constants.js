@@ -77,19 +77,23 @@ const CATEGORIE_DE = new Map(
   DISCIPLINE_CATEGORIES.flatMap((c) => c.disciplines.map((d) => [d.value, c.key]))
 );
 
+export const MAX_DISCIPLINES_PREFEREES = 5;
+
 // Étiquettes groupées par catégorie (fitness/aqua) plutôt qu'en une seule
 // liste plate — sert à afficher les deux volets séparément sur la carte
-// (voir ProfileCard.jsx), avec la discipline préférée mise à part en tête
-// puisqu'elle est déjà présentée différemment (mise en avant).
-export function disciplineGroupes(disciplinesCsv, autreFitness, autreAqua, preferee) {
+// (voir ProfileCard.jsx). Chaque entrée garde `preferee` : les spécialités
+// restent à leur place dans leur volet (pas extraites à part), juste mises
+// en avant visuellement par l'appelant.
+export function disciplineGroupes(disciplinesCsv, autreFitness, autreAqua, prefereesCsv) {
   const label = (v) => (v === 'autre_fitness' && autreFitness) ? autreFitness
     : (v === 'autre_aqua' && autreAqua) ? autreAqua
     : labelDiscipline(v);
+  const preferees = new Set((prefereesCsv || '').split(',').filter(Boolean));
 
   const fitness = [], aqua = [];
   for (const v of disciplinesConnues(disciplinesCsv)) {
-    if (v === preferee) continue;
-    (CATEGORIE_DE.get(v) === 'aqua' ? aqua : fitness).push(label(v));
+    const entree = { value: v, label: label(v), preferee: preferees.has(v) };
+    (CATEGORIE_DE.get(v) === 'aqua' ? aqua : fitness).push(entree);
   }
-  return { fitness, aqua, preferee: preferee ? label(preferee) : null };
+  return { fitness, aqua };
 }

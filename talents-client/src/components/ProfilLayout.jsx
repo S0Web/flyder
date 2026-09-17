@@ -43,6 +43,39 @@ function VisibiliteSwitch({ base, actor, updateActor }) {
   );
 }
 
+const PERIODES = [
+  { key: 'hier_aujourdhui', court: 'Hier/auj.', long: 'entre hier et aujourd’hui' },
+  { key: 'jours_7', court: '7 j', long: 'sur les 7 derniers jours' },
+  { key: 'jours_30', court: '30 j', long: 'sur les 30 derniers jours' },
+  { key: 'total', court: 'Total', long: 'au total' },
+];
+
+// Nombre de vues avec sélecteur de période (recalculé côté serveur à chaque
+// clic — un seul aller-retour couvre les quatre fenêtres, voir lib/vues.js).
+// Masquée tant qu'il n'y a rien à montrer (aucune vue jamais enregistrée).
+function VuesCard({ vues }) {
+  const [periode, setPeriode] = useState('total');
+  if (!vues || !vues.total) return null;
+  const active = PERIODES.find((p) => p.key === periode);
+  const n = vues[periode];
+
+  return (
+    <div className="card p-5 space-y-3">
+      <div className="flex items-center gap-3">
+        <span className="tile tile-sm bg-white text-brand-blue"><TrendingUp className="h-4 w-4" /></span>
+        <p className="text-sm text-brand-ink/80 leading-snug">
+          <strong className="font-display text-lg font-bold text-brand-ink">{n}</strong> vue{n > 1 ? 's' : ''} de ton profil <span className="text-brand-slate">{active.long}</span>
+        </p>
+      </div>
+      <div className="seg bg-white w-full">
+        {PERIODES.map((p) => (
+          <button key={p.key} type="button" data-on={periode === p.key} onClick={() => setPeriode(p.key)}>{p.court}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Gabarit commun aux deux pages de profil : colonne gauche collante (photo +
 // jauge de complétion + checklist), colonne droite = le formulaire passé en
 // enfant. La checklist rend concret le "profil_complet" du serveur.
@@ -93,14 +126,7 @@ export default function ProfilLayout({ base, titre, checklist, form, onSubmit, s
               </div>
             </div>
 
-            {actor.vues > 0 && (
-              <div className="card p-5 flex items-center gap-3">
-                <span className="tile tile-sm bg-white text-brand-blue"><TrendingUp className="h-4 w-4" /></span>
-                <p className="text-sm text-brand-ink/80">
-                  <strong className="font-display text-lg font-bold text-brand-ink">{actor.vues}</strong> vue{actor.vues > 1 ? 's' : ''} de ton profil
-                </p>
-              </div>
-            )}
+            <VuesCard vues={actor.vues} />
 
             <div className="card p-5">
               <div className="flex items-end justify-between mb-2">

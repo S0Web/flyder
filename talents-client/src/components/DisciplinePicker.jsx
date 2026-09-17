@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Star } from 'lucide-react';
-import { DISCIPLINE_CATEGORIES } from '../lib/constants';
+import { DISCIPLINE_CATEGORIES, MAX_DISCIPLINES_PREFEREES } from '../lib/constants';
 
 const normalise = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -9,9 +9,9 @@ const normalise = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, ''
 // édition (en mode filtre, "Autre" reste une case comme les autres — une
 // salle filtre juste sur "ce coach a coché autre chose", sans texte à saisir).
 // En mode édition, une case cochée gagne une étoile pour la désigner comme
-// spécialité mise en avant sur la carte — une seule à la fois (cliquer une
-// autre étoile la remplace, recliquer la même l'efface).
-function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, onAutreChange, editable, preferee, onToggleFavorite }) {
+// spécialité mise en avant sur la carte — jusqu'à MAX_DISCIPLINES_PREFEREES
+// à la fois, l'étoile des non-cochées se grise une fois le plafond atteint.
+function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, onAutreChange, editable, preferees, onToggleFavorite, plafondAtteint }) {
   const items = categorie.disciplines.filter(
     (d) => selected.includes(d.value) || !query || normalise(d.label).includes(normalise(query))
   );
@@ -27,6 +27,8 @@ function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, 
       <div className="max-h-52 overflow-y-auto px-4 py-1">
         {items.map((d) => {
           const coche = selected.includes(d.value);
+          const favori = preferees.includes(d.value);
+          const desactivee = plafondAtteint && !favori;
           return (
             <div key={d.value}>
               <div className="flex items-center gap-1 py-2">
@@ -36,10 +38,10 @@ function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, 
                   <span className="text-sm text-brand-ink flex-1 truncate">{d.label}</span>
                 </label>
                 {editable && coche && (
-                  <button type="button" onClick={() => onToggleFavorite(d.value)}
-                    title={preferee === d.value ? 'Retirer comme spécialité' : 'Mettre en avant comme spécialité'}
-                    className={`h-7 w-7 rounded-full flex-none flex items-center justify-center transition ${preferee === d.value ? 'text-[#C77700]' : 'text-brand-slate/50 hover:text-brand-slate'}`}>
-                    <Star className="h-4 w-4" fill={preferee === d.value ? 'currentColor' : 'none'} />
+                  <button type="button" onClick={() => !desactivee && onToggleFavorite(d.value)} disabled={desactivee}
+                    title={favori ? 'Retirer des spécialités' : desactivee ? `Maximum ${MAX_DISCIPLINES_PREFEREES} spécialités` : 'Ajouter comme spécialité'}
+                    className={`h-7 w-7 rounded-full flex-none flex items-center justify-center transition ${favori ? 'text-[#C77700]' : desactivee ? 'text-brand-slate/25 cursor-not-allowed' : 'text-brand-slate/50 hover:text-brand-slate'}`}>
+                    <Star className="h-4 w-4" fill={favori ? 'currentColor' : 'none'} />
                   </button>
                 )}
               </div>
@@ -56,18 +58,23 @@ function DisciplineFieldset({ categorie, selected, onToggle, query, autreTexte, 
 }
 
 // Sélecteur de disciplines, réutilisé pour éditer un profil (avec champ
-// "Autre" libre et étoile "spécialité") et pour filtrer une recherche (cases
-// seulement). Beaucoup de concepts au total (fitness + aqua) : une barre de
-// recherche filtre les deux volets en même temps plutôt que de faire défiler
-// toute la liste.
+// "Autre" libre et étoiles "spécialités") et pour filtrer une recherche
+// (cases seulement). Beaucoup de concepts au total (fitness + aqua) : une
+// barre de recherche filtre les deux volets en même temps plutôt que de
+// faire défiler toute la liste.
 export default function DisciplinePicker({
   selected, onToggle,
   editable = false,
   autreFitness, onAutreFitnessChange,
   autreAqua, onAutreAquaChange,
-  preferee, onPrefereeChange,
+  preferees = [], onTogglePreferee,
 }) {
   const [query, setQuery] = useState('');
+  const plafondAtteint = preferees.length >= MAX_DISCIPLINES_PREFEREES;
+
+  function toggleFavorite(v) {
+    onTogglePreferee?.(preferees.includes(v) ? preferees.filter((p) => p !== v) : [...preferees, v]);
+  }
 
   return (
     <div className="space-y-2.5">
@@ -76,14 +83,15 @@ export default function DisciplinePicker({
         <input className="field field-grey pl-10 py-2.5 text-sm" placeholder="Rechercher une discipline…"
           value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
-      {editable && preferee && (
-        <p className="text-xs text-brand-slate pl-1">⭐ Spécialité mise en avant sur ta carte : clique l'étoile d'une autre discipline pour la changer.</p>
+      {editable && (
+        <p className="text-xs text-brand-slate pl-1">
+          ⭐ Spécialités mises en avant sur ta carte ({preferees.length}/{MAX_DISCIPLINES_PREFEREES}) : clique l'étoile d'une discipline cochée.
+        </p>
       )}
       <div className="space-y-3">
         {DISCIPLINE_CATEGORIES.map((categorie) => (
           <DisciplineFieldset key={categorie.key} categorie={categorie} selected={selected} onToggle={onToggle}
-            query={query} editable={editable} preferee={preferee}
-            onToggleFavorite={(v) => onPrefereeChange?.(preferee === v ? null : v)}
+            query={query} editable={editable} preferees={preferees} onToggleFavorite={toggleFavorite} plafondAtteint={plafondAtteint}
             autreTexte={categorie.key === 'fitness' ? autreFitness : autreAqua}
             onAutreChange={categorie.key === 'fitness' ? onAutreFitnessChange : onAutreAquaChange} />
         ))}

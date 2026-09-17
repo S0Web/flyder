@@ -5,7 +5,7 @@ const db = require('../db/database');
 const { hashPassword, verifyPassword } = require('../lib/passwordHash');
 const { requireGymAuth, getToken } = require('../middleware/auth');
 const { updateGymProfile, GYM_FIELDS } = require('../lib/updateProfile');
-const { compterVues } = require('../lib/vues');
+const { compterVuesPeriodes } = require('../lib/vues');
 
 const DUREE_SESSION_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,7 +20,7 @@ function issueSession(gymId) {
 }
 
 const PROFIL_PUBLIC_FIELDS = GYM_FIELDS;
-const avecVues = (gym) => gym && { ...gym, vues: compterVues('gym', gym.id) };
+const avecVues = (gym) => gym && { ...gym, vues: compterVuesPeriodes('gym', gym.id) };
 
 // POST /api/gym-auth/signup — aucune vérification d'identité de la salle en
 // MVP, même niveau de confiance minimal que côté coach (voir plan).

@@ -17,7 +17,7 @@ export default function CoachProfil() {
     disciplines: disciplinesConnues(actor.disciplines),
     disciplines_autre_fitness: actor.disciplines_autre_fitness || '',
     disciplines_autre_aqua: actor.disciplines_autre_aqua || '',
-    discipline_preferee: actor.discipline_preferee || null,
+    disciplines_preferees: disciplinesConnues(actor.disciplines_preferees),
     tarif_horaire: actor.tarif_horaire ?? '',
     bio: actor.bio || '',
     telephone: actor.telephone || '',
@@ -34,7 +34,7 @@ export default function CoachProfil() {
     setForm((f) => ({
       ...f,
       disciplines: retrait ? f.disciplines.filter((d) => d !== v) : [...f.disciplines, v],
-      discipline_preferee: retrait && f.discipline_preferee === v ? null : f.discipline_preferee,
+      disciplines_preferees: retrait ? f.disciplines_preferees.filter((p) => p !== v) : f.disciplines_preferees,
     }));
     setSaved(false);
   }
@@ -86,7 +86,7 @@ export default function CoachProfil() {
             <DisciplinePicker selected={form.disciplines} onToggle={toggle} editable
               autreFitness={form.disciplines_autre_fitness} onAutreFitnessChange={(v) => set('disciplines_autre_fitness', v)}
               autreAqua={form.disciplines_autre_aqua} onAutreAquaChange={(v) => set('disciplines_autre_aqua', v)}
-              preferee={form.discipline_preferee} onPrefereeChange={(v) => set('discipline_preferee', v)} />
+              preferees={form.disciplines_preferees} onTogglePreferee={(v) => set('disciplines_preferees', v)} />
           </Field>
           <label className="row cursor-pointer bg-white">
             <input type="checkbox" checked={form.disponible_remplacements} onChange={(e) => set('disponible_remplacements', e.target.checked)}

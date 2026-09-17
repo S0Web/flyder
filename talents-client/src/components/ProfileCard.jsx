@@ -5,6 +5,16 @@ import { disciplineGroupes } from '../lib/constants';
 
 const TILES = ['tile-blue', 'tile-coral', 'tile-green', 'tile-amber', 'tile-violet'];
 
+// Blanc pour une discipline normale ; étoile + fond ambré si marquée comme
+// spécialité — reste dans son volet Fitness/Aqua, juste mise en avant.
+function DisciplineBadge({ entree }) {
+  return (
+    <span className={`badge ${entree.preferee ? 'bg-[#FFF4DB] text-[#8A5300]' : 'bg-white text-brand-ink/75'}`}>
+      {entree.preferee && <Star className="h-3 w-3" fill="currentColor" />} {entree.label}
+    </span>
+  );
+}
+
 // Carte unique (pas de tuile de distance séparée à côté — deux formes
 // disjointes lisaient mal, surtout sur mobile) : avatar, nom, ville et
 // distance sur une même ligne. "Contacter" déplie les coordonnées brutes —
@@ -23,9 +33,9 @@ export default function ProfileCard({ type, profile, index = 0 }) {
   }
 
   const isCoach = type === 'coach';
-  const { fitness, aqua, preferee } = disciplineGroupes(
+  const { fitness, aqua } = disciplineGroupes(
     isCoach ? profile.disciplines : profile.disciplines_recherchees,
-    profile.disciplines_autre_fitness, profile.disciplines_autre_aqua, profile.discipline_preferee
+    profile.disciplines_autre_fitness, profile.disciplines_autre_aqua, profile.disciplines_preferees
   );
   const titre = isCoach ? `${profile.prenom} ${profile.nom}` : profile.nom;
   const texte = isCoach ? profile.bio : profile.description;
@@ -63,27 +73,33 @@ export default function ProfileCard({ type, profile, index = 0 }) {
           </div>
         </div>
 
-        {(fitness.length > 0 || aqua.length > 0 || preferee || (isCoach && !!profile.disponible_remplacements)) && (
-          <div className="space-y-1.5">
-            {(preferee || (isCoach && !!profile.disponible_remplacements)) && (
+        {(fitness.length > 0 || aqua.length > 0 || (isCoach && !!profile.disponible_remplacements)) && (
+          <div className="space-y-2">
+            {isCoach && !!profile.disponible_remplacements && (
               <div className="flex flex-wrap gap-1.5">
-                {isCoach && !!profile.disponible_remplacements && <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span>}
-                {preferee && <span className="badge bg-[#FFF4DB] text-[#8A5300]"><Star className="h-3 w-3" fill="currentColor" /> {preferee}</span>}
+                <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span>
               </div>
             )}
-            {/* Fitness et Aqua sur deux lignes distinctes — mélanger les deux
-                rendait la liste illisible dès qu'un profil cochait des
-                disciplines dans les deux volets. Plus de plafond "+N" non plus
-                (retour utilisateur : ça cachait des disciplines qu'on voulait
-                voir) — tout s'affiche, le flex-wrap absorbe la hauteur. */}
+            {/* Fitness et Aqua sur deux lignes distinctes (titre corail /
+                bleu) — mélanger les deux rendait la liste illisible dès qu'un
+                profil cochait des disciplines dans les deux volets. Plus de
+                plafond "+N" non plus (retour utilisateur : ça cachait des
+                disciplines qu'on voulait voir). Une spécialité (étoile) reste
+                à sa place dans son volet plutôt que d'être extraite à part. */}
             {fitness.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {fitness.map((d, i) => <span key={i} className="badge bg-white text-brand-ink/75">{d}</span>)}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-coral mb-1">Fitness</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {fitness.map((d, i) => <DisciplineBadge key={i} entree={d} />)}
+                </div>
               </div>
             )}
             {aqua.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {aqua.map((d, i) => <span key={i} className="badge bg-[#E8F5FA] text-[#0C7489]">{d}</span>)}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-blue mb-1">Aqua</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {aqua.map((d, i) => <DisciplineBadge key={i} entree={d} />)}
+                </div>
               </div>
             )}
           </div>

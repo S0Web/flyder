@@ -5,7 +5,7 @@ const db = require('../db/database');
 const { hashPassword, verifyPassword } = require('../lib/passwordHash');
 const { requireCoachAuth, getToken } = require('../middleware/auth');
 const { updateCoachProfile, COACH_FIELDS } = require('../lib/updateProfile');
-const { compterVues } = require('../lib/vues');
+const { compterVuesPeriodes } = require('../lib/vues');
 
 const DUREE_SESSION_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,7 +25,7 @@ const PROFIL_PUBLIC_FIELDS = COACH_FIELDS;
 // à recalculer et rattacher à chaque réponse contenant le profil complet du
 // titulaire (jamais dans la recherche publique, où c'est l'inverse : c'est
 // cette page qui écrit dans `profile_views`, voir routes/search.js).
-const avecVues = (coach) => coach && { ...coach, vues: compterVues('coach', coach.id) };
+const avecVues = (coach) => coach && { ...coach, vues: compterVuesPeriodes('coach', coach.id) };
 
 // POST /api/coach-auth/signup
 router.post('/signup', (req, res) => {

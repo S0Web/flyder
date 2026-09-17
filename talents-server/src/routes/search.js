@@ -68,7 +68,7 @@ function appliquerDistance(rows, lat, lng, rayonKm) {
 // GET /api/search/coaches?discipline=fitness,boxe&tarif_min=&tarif_max=&remplacements=1&lat=&lng=&rayon_km=
 router.get('/coaches', (req, res) => {
   let rows = db.all(
-    `SELECT id, nom, prenom, ville, lat, lng, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, tarif_horaire, bio, photo_url, disponible_remplacements
+    `SELECT id, nom, prenom, ville, lat, lng, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, disciplines_preferees, tarif_horaire, bio, photo_url, disponible_remplacements
      FROM coaches WHERE profil_complet = 1 AND actif = 1`
   );
 
@@ -97,7 +97,7 @@ router.get('/coaches', (req, res) => {
 // pré-remplir une fiche coach locale à partir d'une "Réf. Talents".
 router.get('/coaches/:id', (req, res) => {
   const coach = db.get(
-    `SELECT id, nom, prenom, ville, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, tarif_horaire, bio, photo_url, disponible_remplacements
+    `SELECT id, nom, prenom, ville, disciplines, disciplines_autre_fitness, disciplines_autre_aqua, disciplines_preferees, tarif_horaire, bio, photo_url, disponible_remplacements
      FROM coaches WHERE id = ? AND profil_complet = 1 AND actif = 1`,
     [Number(req.params.id)]
   );
@@ -108,7 +108,7 @@ router.get('/coaches/:id', (req, res) => {
 // GET /api/search/gyms?discipline=fitness,boxe&lat=&lng=&rayon_km=
 router.get('/gyms', (req, res) => {
   let rows = db.all(
-    `SELECT id, nom, ville, lat, lng, disciplines_recherchees, disciplines_autre_fitness, disciplines_autre_aqua, discipline_preferee, description, photo_url
+    `SELECT id, nom, ville, lat, lng, disciplines_recherchees, disciplines_autre_fitness, disciplines_autre_aqua, disciplines_preferees, description, photo_url
      FROM gyms WHERE profil_complet = 1 AND actif = 1`
   );
 
