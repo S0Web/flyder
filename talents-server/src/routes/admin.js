@@ -1,9 +1,12 @@
 const express = require('express');
 const crypto = require('crypto');
+const path = require('path');
 const router = express.Router();
 const db = require('../db/database');
 const { updateCoachProfile, updateGymProfile, EMAIL_RE } = require('../lib/updateProfile');
 const { carteVues } = require('../lib/vues');
+
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/talents.db');
 
 // Protection minimale : une seule clé partagée (ADMIN_KEY, variable d'env par
 // service), pas de système de comptes — cette interface n'a qu'un seul
@@ -39,6 +42,17 @@ router.post('/login', (req, res) => {
 router.use(requireAdmin);
 
 const sansMotDePasse = ({ password_hash, ...reste }) => reste;
+
+// GET /api/admin/backup — télécharge une copie brute du fichier SQLite (même
+// pattern que server/src/routes/admin.js pour l'app principale). Checkpoint
+// WAL d'abord : en mode WAL, les écritures récentes vivent dans le fichier
+// -wal tant qu'un checkpoint n'a pas eu lieu, une copie brute sans ça serait
+// incomplète.
+router.get('/backup', (req, res) => {
+  db.run('PRAGMA wal_checkpoint(TRUNCATE)');
+  const today = new Date().toISOString().slice(0, 10);
+  res.download(DB_PATH, `talents-${today}.db`);
+});
 
 // GET /api/admin/coaches — liste complète, sans filtre (contrairement à la
 // recherche publique) : profils inactifs ou incomplets inclus, pour pouvoir
