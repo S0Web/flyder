@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 require('./db/database');
 
@@ -56,6 +57,35 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../data/talents.db'
 const uploadsDir = path.join(path.dirname(DB_PATH), 'uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
+
+// GET /api/download-db — permet de récupérer une copie brute du fichier
+// SQLite directement depuis un navigateur (mobile compris), sans SSH ni CLI.
+// Même logique d'auth que /api/admin/login : une clé partagée (ADMIN_KEY),
+// comparée en temps constant pour éviter une fuite d'info via le timing.
+function clesEgales(fournie, attendue) {
+  const a = Buffer.from(String(fournie || ''));
+  const b = Buffer.from(String(attendue));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+app.get('/api/download-db', (req, res) => {
+  const cle = process.env.ADMIN_KEY;
+  if (!cle) return res.status(503).json({ error: 'ADMIN_KEY non configurée côté serveur' });
+  const auth = req.headers.authorization;
+  const fournie = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!clesEgales(fournie, cle)) return res.status(401).json({ error: 'Non autorisé' });
+
+  res.download(DB_PATH, 'talents.db', (err) => {
+    if (err) {
+      console.error('Erreur téléchargement talents.db:', err);
+      if (!res.headersSent) {
+        const status = err.code === 'ENOENT' ? 404 : 500;
+        res.status(status).json({ error: 'Impossible de télécharger la base de données' });
+      }
+    }
+  });
+});
 
 const clientDist = path.join(__dirname, '../public');
 app.use(express.static(clientDist));
