@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-require('./db/database');
+const db = require('./db/database');
 
 const coachAuthRouter = require('./routes/coachAuth');
 const gymAuthRouter = require('./routes/gymAuth');
@@ -62,6 +62,9 @@ app.use('/uploads', express.static(uploadsDir));
 // SQLite directement depuis un navigateur (mobile compris), sans SSH ni CLI.
 // Même logique d'auth que /api/admin/login : une clé partagée (ADMIN_KEY),
 // comparée en temps constant pour éviter une fuite d'info via le timing.
+// La clé peut être fournie en query (?key=...) pour un accès simple depuis un
+// navigateur mobile, ou en header Authorization: Bearer ... comme les autres
+// routes admin.
 function clesEgales(fournie, attendue) {
   const a = Buffer.from(String(fournie || ''));
   const b = Buffer.from(String(attendue));
@@ -73,10 +76,17 @@ app.get('/api/download-db', (req, res) => {
   const cle = process.env.ADMIN_KEY;
   if (!cle) return res.status(503).json({ error: 'ADMIN_KEY non configurée côté serveur' });
   const auth = req.headers.authorization;
-  const fournie = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  const fournieHeader = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  const fournie = fournieHeader || req.query.key;
   if (!clesEgales(fournie, cle)) return res.status(401).json({ error: 'Non autorisé' });
 
-  res.download(DB_PATH, 'talents.db', (err) => {
+  // Checkpoint WAL avant la copie : en mode WAL, les écritures récentes
+  // vivent dans le fichier -wal tant qu'un checkpoint n'a pas eu lieu, une
+  // copie brute sans ça serait incomplète (même pattern que /api/admin/backup).
+  db.run('PRAGMA wal_checkpoint(TRUNCATE)');
+
+  const today = new Date().toISOString().slice(0, 10);
+  res.download(DB_PATH, `talents-${today}.db`, (err) => {
     if (err) {
       console.error('Erreur téléchargement talents.db:', err);
       if (!res.headersSent) {
