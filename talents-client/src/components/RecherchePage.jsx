@@ -106,7 +106,7 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
             {error && <div className="bg-[#FFEDE8] text-brand-coral rounded-2xl px-4 py-3 text-sm font-medium mb-4">{error}</div>}
 
             {loading ? (
-              <div className="grid xl:grid-cols-2 gap-4">
+              <div className="grid xl:grid-cols-2 gap-3 sm:gap-4">
                 {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
               </div>
             ) : n === 0 ? (
@@ -115,7 +115,7 @@ export default function RecherchePage({ type, base, titre, pluriel, singulier })
                 texte="Élargis le rayon ou retire un filtre — et reviens bientôt, l'annuaire se remplit."
                 action={<button onClick={() => setFilters({ ...FILTER_DEFAULTS, rayon_km: 50 })} className="btn-secondary">Chercher à 50 km</button>} />
             ) : (
-              <div className="grid xl:grid-cols-2 gap-4">
+              <div className="grid xl:grid-cols-2 gap-3 sm:gap-4">
                 {results.map((r, i) => <ProfileCard key={r.id} type={type} profile={r} index={i} />)}
               </div>
             )}

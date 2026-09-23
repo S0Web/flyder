@@ -53,9 +53,9 @@ export default function ProfileCard({ type, profile, index = 0 }) {
   const tel = reveal?.telephone || reveal?.contact_telephone;
 
   return (
-    <article className="card card-hover p-4 sm:p-5 flex flex-col gap-3.5 animate-fadeInUp" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
+    <article className="card card-hover p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-3.5 animate-fadeInUp" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
         <div className="flex items-start gap-3">
-          <span className={`tile tile-lg ${tile} overflow-hidden font-display text-xl font-bold flex-none`}>
+          <span className={`tile ${tile} h-12 w-12 rounded-2xl sm:h-14 sm:w-14 sm:rounded-[1.25rem] overflow-hidden font-display text-xl font-bold flex-none`}>
             {profile.photo_url ? <img src={profile.photo_url} alt="" className="h-full w-full object-cover" /> : initiale}
           </span>
           <div className="min-w-0 flex-1">
@@ -74,7 +74,7 @@ export default function ProfileCard({ type, profile, index = 0 }) {
         </div>
 
         {(fitness.length > 0 || aqua.length > 0 || (isCoach && !!profile.disponible_remplacements)) && (
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {isCoach && !!profile.disponible_remplacements && (
               <div className="flex flex-wrap gap-1.5">
                 <span className="badge badge-green"><Zap className="h-3 w-3" /> Remplacements</span>
@@ -88,7 +88,7 @@ export default function ProfileCard({ type, profile, index = 0 }) {
                 à sa place dans son volet plutôt que d'être extraite à part. */}
             {fitness.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-coral mb-1">Fitness</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-coral mb-0.5 sm:mb-1">Fitness</p>
                 <div className="flex flex-wrap gap-1.5">
                   {fitness.map((d, i) => <DisciplineBadge key={i} entree={d} />)}
                 </div>
@@ -96,7 +96,7 @@ export default function ProfileCard({ type, profile, index = 0 }) {
             )}
             {aqua.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-blue mb-1">Aqua</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-brand-blue mb-0.5 sm:mb-1">Aqua</p>
                 <div className="flex flex-wrap gap-1.5">
                   {aqua.map((d, i) => <DisciplineBadge key={i} entree={d} />)}
                 </div>
@@ -107,9 +107,9 @@ export default function ProfileCard({ type, profile, index = 0 }) {
 
         {texte ? (
           <div>
-            <p className={`text-sm text-brand-ink/70 leading-relaxed ${deplie ? '' : 'line-clamp-2'}`}>{texte}</p>
+            <p className={`text-sm text-brand-ink/70 leading-snug sm:leading-relaxed ${deplie ? '' : 'line-clamp-2'}`}>{texte}</p>
             {texte.length > 90 && (
-              <button type="button" onClick={() => setDeplie((d) => !d)} className="mt-1 text-xs font-semibold text-brand-blue inline-flex items-center gap-0.5">
+              <button type="button" onClick={() => setDeplie((d) => !d)} className="mt-0.5 sm:mt-1 text-xs font-semibold text-brand-blue inline-flex items-center gap-0.5">
                 {deplie ? 'Voir moins' : 'Voir plus'} <ChevronDown className={`h-3 w-3 transition ${deplie ? 'rotate-180' : ''}`} />
               </button>
             )}
@@ -145,11 +145,11 @@ export default function ProfileCard({ type, profile, index = 0 }) {
             )}
           </div>
         ) : profile.deja_contacte ? (
-          <button onClick={handleContacter} disabled={busy} className="btn-secondary w-full !py-3">
+          <button onClick={handleContacter} disabled={busy} className="btn-secondary w-full !py-2.5 sm:!py-3">
             <Check className="h-4 w-4 text-[#0F8A5F]" /> {busy ? 'Un instant…' : 'Voir les coordonnées'}
           </button>
         ) : (
-          <button onClick={handleContacter} disabled={busy} className="btn-primary w-full !py-3">
+          <button onClick={handleContacter} disabled={busy} className="btn-primary w-full !py-2.5 sm:!py-3">
             {busy ? 'Un instant…' : 'Contacter'}
           </button>
         )}
