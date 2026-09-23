@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { LogOut, Trash2, Pencil, X, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell, Eye } from 'lucide-react';
+import { LogOut, Trash2, Pencil, X, ShieldCheck, Zap, PhoneCall, Building2, Dumbbell, Eye, Download } from 'lucide-react';
 import { adminApi, getAdminKey, setAdminKey, clearAdminKey } from '../lib/adminApi';
 import { disciplineLabels, disciplinesConnues } from '../lib/constants';
 import Wordmark from '../components/Wordmark';
@@ -397,6 +397,7 @@ function Dashboard() {
   const [contacts, setContacts] = useState(null);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null); // { type: 'coach'|'gym', entity }
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
@@ -404,6 +405,13 @@ function Dashboard() {
       .then(([c, g, ct]) => { setCoaches(c); setGyms(g); setContacts(ct); })
       .catch((err) => setError(err.message));
   }, []);
+
+  async function exportDb() {
+    setExporting(true); setError(null);
+    try { await adminApi.downloadBackup(); }
+    catch (err) { setError(err.message); }
+    finally { setExporting(false); }
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -437,9 +445,15 @@ function Dashboard() {
         <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-4 sm:pt-5 pb-7 sm:pb-9">
           <div className="flex items-center justify-between gap-3">
             <Wordmark tone="light" />
-            <button type="button" onClick={logout} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-3.5 py-2 text-sm font-semibold transition">
-              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Déconnexion</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={exportDb} disabled={exporting} title="Télécharger une copie brute de la base SQLite"
+                className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 disabled:opacity-50 px-3.5 py-2 text-sm font-semibold transition">
+                <Download className="h-4 w-4" /> <span className="hidden sm:inline">{exporting ? 'Export…' : 'Télécharger la base'}</span>
+              </button>
+              <button type="button" onClick={logout} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-3.5 py-2 text-sm font-semibold transition">
+                <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Déconnexion</span>
+              </button>
+            </div>
           </div>
           <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
             <div>

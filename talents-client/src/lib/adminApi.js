@@ -32,6 +32,32 @@ async function req(path, options = {}) {
   return res.json();
 }
 
+// Téléchargement de fichier : différent des autres appels (réponse binaire,
+// pas JSON), donc pas via req(). Déclenche un vrai téléchargement navigateur
+// via un lien <a download> synthétique — un simple <a href="/api/admin/backup">
+// ne marcherait pas, un lien HTML ne peut pas porter l'en-tête Authorization.
+async function downloadBackup() {
+  const key = getAdminKey();
+  const res = await fetch(`${BASE}/admin/backup`, {
+    headers: key ? { Authorization: `Bearer ${key}` } : {},
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  const blob = await res.blob();
+  const dispo = res.headers.get('Content-Disposition') || '';
+  const filename = dispo.match(/filename="?([^"]+)"?/)?.[1] || 'talents.db';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const adminApi = {
   login: (key) => req('/admin/login', { method: 'POST', body: JSON.stringify({ key }) }),
   getCoaches: () => req('/admin/coaches'),
@@ -43,4 +69,5 @@ export const adminApi = {
   deleteCoach: (id) => req(`/admin/coaches/${id}`, { method: 'DELETE' }),
   deleteGym: (id) => req(`/admin/gyms/${id}`, { method: 'DELETE' }),
   getContacts: () => req('/admin/contacts'),
+  downloadBackup,
 };
