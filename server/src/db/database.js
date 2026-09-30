@@ -403,6 +403,10 @@ db.run(`
   )
 `);
 
+// Qui a enregistré le remplacement (trace : qui devait faire le cours, qui l'a fait, pourquoi, par qui).
+tryAlter('ALTER TABLE modifications_ponctuelles ADD COLUMN auteur_id INTEGER REFERENCES app_users(id)');
+db.run('CREATE INDEX IF NOT EXISTS idx_modifs_seance ON modifications_ponctuelles(seance_id)');
+
 // ─── Suppression définitive (soft) : garde la ligne pour l'historique du planning ───
 tryAlter('ALTER TABLE app_users ADD COLUMN supprime INTEGER NOT NULL DEFAULT 0');
 tryAlter('ALTER TABLE coaches   ADD COLUMN supprime INTEGER NOT NULL DEFAULT 0');

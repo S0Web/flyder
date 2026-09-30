@@ -48,27 +48,22 @@ export default function EquipeLayout() {
 
   return (
     <div className="pb-12">
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-5">
-        <h1 className="font-display text-[34px] sm:text-[40px] font-bold text-brand-ink leading-none tracking-tight">Équipe</h1>
-        <div className="font-mono text-[11px] text-gray-500 text-right leading-relaxed">
-          <div className="text-brand-ink">{d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-          <div>semaine {String(semaine).padStart(2, '0')}</div>
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
+        <h1 className="text-xl font-bold text-brand-ink">Équipe</h1>
+        <div className="text-xs text-gray-500 text-right leading-relaxed">
+          <span className="font-medium text-gray-700 first-letter:uppercase">{d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+          <span className="text-gray-400"> · semaine {semaine}</span>
         </div>
       </div>
 
-      <div className="sticky top-14 lg:top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 bg-brand-cream/95 backdrop-blur mb-6">
-        <nav className="flex items-end gap-6 overflow-x-auto no-scrollbar border-b border-brand-ink/15">
+      <div className="sticky top-14 lg:top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-1 bg-brand-cream/95 backdrop-blur mb-6">
+        <nav className="flex gap-1 overflow-x-auto no-scrollbar border-b border-gray-200">
           {onglets.map(o => (
             <NavLink key={o.to} to={o.to} end={o.end}
-              className={({ isActive }) => `relative flex-shrink-0 pt-3 pb-3 text-[15px] transition-colors ${
-                isActive ? 'text-brand-ink font-semibold' : 'text-gray-500 hover:text-brand-ink'
+              className={({ isActive }) => `flex-shrink-0 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                isActive ? 'border-sky-500 text-sky-600' : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}>
-              {({ isActive }) => (
-                <>
-                  {o.label}
-                  {isActive && <span className="absolute left-0 right-0 -bottom-px h-[3px] bg-fitness" />}
-                </>
-              )}
+              {o.label}
             </NavLink>
           ))}
         </nav>
@@ -77,7 +72,7 @@ export default function EquipeLayout() {
       <div key={location.pathname} className="motion-safe:animate-fadeIn">
         {/* Suspense local : les sous-pages sont chargées à la demande, sans faire
             disparaître l'en-tête et les onglets pendant le chargement. */}
-        <Suspense fallback={<p className="py-20 text-center font-mono text-xs text-gray-400">chargement…</p>}>
+        <Suspense fallback={<p className="py-20 text-center text-sm text-gray-400">Chargement…</p>}>
           <Outlet context={{ membres, rafraichirCompteurs: rafraichirPastille, rechargerMembres: chargerMembres }} />
         </Suspense>
       </div>

@@ -30,7 +30,7 @@ export default function MaJournee() {
 
   const basculer = useBasculeTache(() => charger());
 
-  if (!data) return <p className="py-20 text-center font-mono text-xs text-gray-400">chargement…</p>;
+  if (!data) return <p className="py-20 text-center text-xs text-gray-400">chargement…</p>;
 
   const auj = aujourdhuiISO();
   const mesCreneauxAuj = data.mes_creneaux.filter(c => c.date === auj);
@@ -44,37 +44,39 @@ export default function MaJournee() {
 
   return (
     <div className="space-y-8">
-      {/* ── En-tête : le service du jour, écrit en grand ─────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-end">
-        <div>
-          <div className="font-mono text-[11px] text-gray-500">{salutation().toLowerCase()} {user.prenom.toLowerCase()} — ton service aujourd'hui</div>
-          <div className="font-display font-bold text-brand-ink leading-[0.95] tracking-tight mt-2 text-[44px] sm:text-[64px]">
-            {absenceAuj ? (TYPES_ABSENCE[absenceAuj.type]?.label || 'Absent')
-              : travailAuj.length ? travailAuj.map((c, i) => (
-                <span key={i} className="block sm:inline">
-                  {i > 0 && <span className="hidden sm:inline text-gray-300"> / </span>}
-                  {fmtHeure(c.debut)}<span className="text-fitness">→</span>{fmtHeure(c.fin)}
-                </span>
-              ))
-              : <span className="text-gray-300">Repos</span>}
+      {/* ── En-tête : le service du jour ─────────────────────────── */}
+      <Feuille className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+          <div className="min-w-0">
+            <div className="text-sm text-gray-500">{salutation()} {user.prenom} — ton service aujourd'hui</div>
+            <div className="font-display font-bold text-brand-ink leading-none tracking-tight mt-2 text-4xl sm:text-5xl">
+              {absenceAuj ? (TYPES_ABSENCE[absenceAuj.type]?.label || 'Absent')
+                : travailAuj.length ? travailAuj.map((c, i) => (
+                  <span key={i} className="block sm:inline">
+                    {i > 0 && <span className="hidden sm:inline text-gray-300"> / </span>}
+                    {fmtHeure(c.debut)}<span className="text-sky-500">→</span>{fmtHeure(c.fin)}
+                  </span>
+                ))
+                : <span className="text-gray-300">Repos</span>}
+            </div>
+            {f.intitule && <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mt-3">{f.intitule}</div>}
+            {f.objectif && <p className="mt-1 text-sm text-gray-700 max-w-2xl leading-snug">{f.objectif}</p>}
           </div>
-          {f.intitule && <div className="font-mono text-[11px] text-gray-500 mt-3 uppercase tracking-wider">{f.intitule}</div>}
-          {f.objectif && <p className="mt-2 text-base text-brand-ink max-w-2xl leading-snug">{f.objectif}</p>}
-        </div>
 
-        <div className="lg:text-right">
-          {cr?.statut === 'valide' || cr?.statut === 'soumis' ? (
-            <button onClick={() => setPanneauCr(auj)} className="inline-flex flex-col items-start lg:items-end gap-2">
-              <Tampon statut={cr.statut} />
-              <span className="font-mono text-[11px] text-gray-500 underline underline-offset-4">revoir mon bilan</span>
-            </button>
-          ) : (
-            <BoutonCorail onClick={() => setPanneauCr(auj)} className="!px-6 !py-3 !text-base">
-              {cr?.statut === 'brouillon' ? 'Reprendre mon bilan' : cr?.statut === 'a_revoir' ? 'Corriger mon bilan' : 'Faire mon bilan de fin de journée'} →
-            </BoutonCorail>
-          )}
+          <div>
+            {cr?.statut === 'valide' || cr?.statut === 'soumis' ? (
+              <button onClick={() => setPanneauCr(auj)} className="inline-flex flex-col items-start sm:items-end gap-2">
+                <Tampon statut={cr.statut} />
+                <span className="text-xs font-medium text-sky-600 hover:underline underline-offset-2">revoir mon bilan</span>
+              </button>
+            ) : (
+              <BoutonCorail onClick={() => setPanneauCr(auj)}>
+                {cr?.statut === 'brouillon' ? 'Reprendre mon bilan' : cr?.statut === 'a_revoir' ? 'Corriger mon bilan' : 'Faire mon bilan de fin de journée'} →
+              </BoutonCorail>
+            )}
+          </div>
         </div>
-      </section>
+      </Feuille>
 
       <Feuille>
         <Compteurs items={[
@@ -88,17 +90,17 @@ export default function MaJournee() {
 
       {/* ── Ce qui attend : une ligne par alerte, pas d'encadré ─────── */}
       {(data.cr_a_revoir.length > 0 || data.docs_non_consultes > 0 || data.demandes_conges.length > 0) && (
-        <ul className="border-y-2 border-brand-ink divide-y divide-brand-ink/10">
+        <ul className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden divide-y divide-gray-100">
           {data.cr_a_revoir.map(r => (
-            <li key={r.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
-              <span className="font-mono text-[11px] text-fitness w-20">⚑ à revoir</span>
+            <li key={r.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
+              <span className="text-xs font-medium text-red-600 w-24">⚑ à revoir</span>
               <span className="flex-1 min-w-[200px] text-sm text-brand-ink">Bilan du {jjmm(r.date)} — {r.retour_manager}</span>
               <Lien onClick={() => setPanneauCr(r.date)}>corriger</Lien>
             </li>
           ))}
           {data.demandes_conges.map(d => (
-            <li key={d.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
-              <span className="font-mono text-[11px] text-fitness w-20">✎ congé</span>
+            <li key={d.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
+              <span className="text-xs font-medium text-sky-600 w-24">✎ congé</span>
               <span className="flex-1 min-w-[200px] text-sm text-brand-ink">
                 {d.date_debut === d.date_fin ? jjmm(d.date_debut) : `${jjmm(d.date_debut)} → ${jjmm(d.date_fin)}`}
                 {' : '}{d.statut === 'en_attente' ? 'en attente de réponse' : d.statut === 'acceptee' ? 'accepté' : 'refusé'}
@@ -107,8 +109,8 @@ export default function MaJournee() {
             </li>
           ))}
           {data.docs_non_consultes > 0 && (
-            <li className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
-              <span className="font-mono text-[11px] text-fitness w-20">✉ nouveau</span>
+            <li className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
+              <span className="text-xs font-medium text-sky-600 w-24">✉ nouveau</span>
               <span className="flex-1 min-w-[200px] text-sm text-brand-ink">
                 {data.docs_non_consultes === 1 ? 'Un document a été déposé pour toi.' : `${data.docs_non_consultes} documents ont été déposés pour toi.`}
               </span>
@@ -134,8 +136,8 @@ export default function MaJournee() {
               {missionsOuvertes && (
                 <ol className="grid sm:grid-cols-2 gap-x-6 animate-fadeIn">
                   {f.missions.map((m, i) => (
-                    <li key={i} className="flex items-baseline gap-3 py-2 border-b border-brand-ink/[0.08] text-sm text-brand-ink">
-                      <span className="font-mono text-xs font-semibold text-fitness w-5">{String(i + 1).padStart(2, '0')}</span>{m}
+                    <li key={i} className="flex items-baseline gap-3 py-2 border-b border-gray-100 text-sm text-brand-ink">
+                      <span className="text-xs font-semibold text-sky-600 w-5">{String(i + 1).padStart(2, '0')}</span>{m}
                     </li>
                   ))}
                 </ol>
@@ -144,33 +146,33 @@ export default function MaJournee() {
           )}
         </section>
 
-        <section className="space-y-8">
+        <section className="space-y-6">
           {data.transmission.length > 0 && (
             <div>
               <Intertitre>À savoir en arrivant</Intertitre>
-              <ul className="divide-y divide-brand-ink/[0.08] border-y border-brand-ink/10 bg-white">
+              <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl shadow-sm overflow-hidden bg-white">
                 {data.transmission.map(t => (
                   <li key={t.id} className="px-4 py-3">
-                    <div className="font-mono text-[11px] text-gray-500">{t.prenom} · {jourCourt(t.date)}</div>
+                    <div className="text-[11px] text-gray-500">{t.prenom} · {jourCourt(t.date)}</div>
                     {t.priorite_demain && (
-                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="font-mono text-fitness">→</span> {t.priorite_demain}</p>
+                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="text-sky-600">→</span> {t.priorite_demain}</p>
                     )}
                     {t.probleme && (
-                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="font-mono text-fitness">⚑</span> {t.probleme}</p>
+                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="text-red-600">⚑</span> {t.probleme}</p>
                     )}
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          <div>
-            <Intertitre actions={<span className="flex gap-4"><Lien onClick={() => setCongeOuvert(true)}>demander un congé</Lien><Lien as={Link} to="/equipe/planning">planning complet</Lien></span>}>Ma semaine</Intertitre>
+          <Feuille className="p-5">
+            <Intertitre actions={<span className="flex gap-4"><Lien onClick={() => setCongeOuvert(true)}>Demander un congé</Lien><Lien as={Link} to="/equipe/planning">Planning complet</Lien></span>}>Ma semaine</Intertitre>
             <SemaineHoraires creneaux={data.mes_creneaux} />
-          </div>
-          <div>
+          </Feuille>
+          <Feuille className="p-5">
             <Intertitre>Avec moi aujourd'hui</Intertitre>
             <TimelineJour presents={data.collegues} surligner={user.id} />
-          </div>
+          </Feuille>
         </section>
       </div>
 

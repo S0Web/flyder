@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const { alertesComplet } = require('../lib/remplissage');
+const { horaireEnMinutes } = require('../lib/dates');
 
 const SEANCE_SELECT = `
   SELECT
@@ -141,7 +142,7 @@ router.post('/', (req, res) => {
 // PATCH /api/seances/:id — mise à jour partielle
 router.patch('/:id', (req, res) => {
   try {
-    const existing = db.get('SELECT id, pointeur_user_id FROM seances WHERE id = ?', [req.params.id]);
+    const existing = db.get('SELECT id, pointeur_user_id, coach_id FROM seances WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Séance introuvable' });
 
     const body = { ...req.body };
@@ -176,6 +177,17 @@ router.patch('/:id', (req, res) => {
     values.push(req.params.id);
     db.run(`UPDATE seances SET ${updates.join(', ')} WHERE id = ?`, values);
 
+    // Un coach remplacé par un autre depuis le formulaire laisse la même trace qu'un remplacement
+    // explicite (sans motif). Attribuer un coach à une séance qui n'en avait pas n'en est pas un.
+    const nouveauCoach = body.coach_id === '' || body.coach_id === 0 ? null : body.coach_id;
+    if (body.coach_id !== undefined && existing.coach_id && nouveauCoach && Number(nouveauCoach) !== existing.coach_id) {
+      db.run(
+        `INSERT INTO modifications_ponctuelles (seance_id, type, ancien_coach_id, nouveau_coach_id, raison, auteur_id)
+         VALUES (?, 'remplacement_coach', ?, ?, NULL, ?)`,
+        [existing.id, existing.coach_id, Number(nouveauCoach), req.user?.id ?? null]
+      );
+    }
+
     if (req.user) {
       const detail = allowed.filter(k => body[k] !== undefined).map(k => `${k}=${body[k]}`).join(', ');
       db.run('INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?)',
@@ -187,6 +199,100 @@ router.patch('/:id', (req, res) => {
     console.error('PATCH seance error:', e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Remplacement de coach ─────────────────────────────────────────────────────
+
+const SELECT_MODIF = `
+  SELECT mp.id, mp.type, mp.raison, mp.date_modification,
+    mp.ancien_coach_id, TRIM(ca.prenom || ' ' || ca.nom) AS ancien_coach,
+    mp.nouveau_coach_id, TRIM(cn.prenom || ' ' || cn.nom) AS nouveau_coach,
+    TRIM(u.prenom || ' ' || u.nom) AS auteur
+  FROM modifications_ponctuelles mp
+  LEFT JOIN coaches ca ON ca.id = mp.ancien_coach_id
+  LEFT JOIN coaches cn ON cn.id = mp.nouveau_coach_id
+  LEFT JOIN app_users u ON u.id = mp.auteur_id
+`;
+
+const formatHeure = (mins) => `${Math.floor(mins / 60)}h${mins % 60 ? String(mins % 60).padStart(2, '0') : ''}`;
+
+// Autre séance (non annulée) du même jour dont l'horaire chevauche celle-ci, pour ce coach.
+function coursEnConflit(seance, coachId) {
+  const debut = horaireEnMinutes(seance.horaire);
+  if (debut === null) return null;
+  const fin = debut + (seance.duree_minutes || 60);
+  const autres = db.all(
+    `SELECT id, horaire, duree_minutes FROM seances WHERE date = ? AND coach_id = ? AND id != ? AND statut != 'annule'`,
+    [seance.date, coachId, seance.id]
+  );
+  for (const a of autres) {
+    const d = horaireEnMinutes(a.horaire);
+    if (d !== null && d < fin && debut < d + (a.duree_minutes || 60)) return formatHeure(d);
+  }
+  return null;
+}
+
+// GET /api/seances/:id/remplacement — coachs proposés pour remplacer + historique des remplacements.
+// Les coachs déjà pris sur ce créneau sont signalés, ceux qui ont déjà donné ce cours remontent en tête.
+router.get('/:id/remplacement', (req, res) => {
+  const seance = db.get('SELECT * FROM seances WHERE id = ?', [req.params.id]);
+  if (!seance) return res.status(404).json({ error: 'Séance introuvable' });
+  const dejaDonne = new Map(db.all(
+    `SELECT coach_id, COUNT(*) AS n FROM seances
+     WHERE cours_type_id = ? AND coach_id IS NOT NULL AND statut IN ('effectue','paye') GROUP BY coach_id`,
+    [seance.cours_type_id]
+  ).map(r => [r.coach_id, r.n]));
+
+  const candidats = db.all('SELECT id, prenom, nom FROM coaches WHERE actif = 1 AND supprime = 0')
+    .filter(c => c.id !== seance.coach_id)
+    .map(c => ({ ...c, occupe_a: coursEnConflit(seance, c.id), deja_donne: dejaDonne.get(c.id) || 0 }))
+    .sort((a, b) => (a.occupe_a ? 1 : 0) - (b.occupe_a ? 1 : 0) || b.deja_donne - a.deja_donne
+      || a.prenom.localeCompare(b.prenom, 'fr'));
+
+  const historique = db.all(`${SELECT_MODIF} WHERE mp.seance_id = ? ORDER BY mp.date_modification DESC, mp.id DESC`, [seance.id]);
+  res.json({ candidats, historique });
+});
+
+// POST /api/seances/:id/remplacer — { coach_id, raison?, forcer? }
+// Réaffecte la séance à un autre coach (et la remet au programme si elle était annulée), avec trace.
+router.post('/:id/remplacer', (req, res) => {
+  const seance = db.get('SELECT * FROM seances WHERE id = ?', [req.params.id]);
+  if (!seance) return res.status(404).json({ error: 'Séance introuvable' });
+  if (!['programme', 'annule'].includes(seance.statut)) {
+    return res.status(409).json({ error: 'Cette séance est déjà effectuée : modifie le coach depuis sa fiche.' });
+  }
+  const coachId = Number(req.body.coach_id);
+  const coach = Number.isInteger(coachId)
+    ? db.get('SELECT id, prenom, nom FROM coaches WHERE id = ? AND actif = 1 AND supprime = 0', [coachId])
+    : null;
+  if (!coach) return res.status(400).json({ error: 'Choisis un coach actif.' });
+  if (coach.id === seance.coach_id) return res.status(400).json({ error: 'Ce coach est déjà affecté à cette séance.' });
+  const raison = String(req.body.raison || '').trim();
+  if (raison.length > 300) return res.status(400).json({ error: 'Le motif est trop long (300 caractères au plus).' });
+
+  const conflit = coursEnConflit(seance, coach.id);
+  if (conflit && !req.body.forcer) {
+    return res.status(409).json({ error: `${coach.prenom} a déjà un cours à ${conflit} ce jour-là.`, conflit: true });
+  }
+
+  db.run('BEGIN');
+  try {
+    db.run(`UPDATE seances SET coach_id = ?, statut = 'programme' WHERE id = ?`, [coach.id, seance.id]);
+    db.run(
+      `INSERT INTO modifications_ponctuelles (seance_id, type, ancien_coach_id, nouveau_coach_id, raison, auteur_id)
+       VALUES (?, 'remplacement_coach', ?, ?, ?, ?)`,
+      [seance.id, seance.coach_id, coach.id, raison || null, req.user?.id ?? null]
+    );
+    db.run('COMMIT');
+  } catch (e) {
+    db.run('ROLLBACK');
+    throw e;
+  }
+  if (req.user) {
+    db.run('INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, 'remplacement_coach', 'seances', seance.id, `coach ${seance.coach_id ?? '-'} -> ${coach.id}${raison ? ` (${raison})` : ''}`]);
+  }
+  res.json(db.get(`${SEANCE_SELECT} WHERE s.id = ?`, [seance.id]));
 });
 
 // DELETE /api/seances/:id

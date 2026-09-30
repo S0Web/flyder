@@ -4,8 +4,8 @@ import Panneau from './equipe/Panneau';
 import { BoutonEncre, BoutonTrait, champCls, selectCls } from './equipe/kit';
 import { useAuth } from '../context/AuthContext';
 
-const choixCls = (actif) => `font-mono text-xs px-2 py-1.5 rounded-[3px] border transition-colors ${
-  actif ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/20 text-gray-600 hover:border-brand-ink'
+const choixCls = (actif) => `text-xs px-2 py-1.5 rounded-lg border transition-colors ${
+  actif ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
 }`;
 
 export default function UserModal({ user, onSave, onClose }) {
@@ -48,7 +48,7 @@ export default function UserModal({ user, onSave, onClose }) {
     }
   }
 
-  const label = 'block font-mono text-[11px] text-gray-500';
+  const label = 'block text-[11px] text-gray-500';
   return (
     <Panneau
       surtitre={isNew ? 'nouveau membre' : 'informations'}
@@ -64,7 +64,7 @@ export default function UserModal({ user, onSave, onClose }) {
     >
       {(fermer) => (
         <form id="form-utilisateur" onSubmit={(e) => handleSubmit(e, fermer)} className="space-y-6">
-          {error && <p className="font-mono text-xs text-fitness">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="grid grid-cols-2 gap-5">
             <label className="block">
               <span className={label}>prénom *</span>
@@ -91,19 +91,19 @@ export default function UserModal({ user, onSave, onClose }) {
               </div>
               {!isNew && (
                 <label className="flex items-center gap-2 text-sm text-brand-ink cursor-pointer">
-                  <input type="checkbox" checked={!!form.actif} onChange={e => set('actif', e.target.checked ? 1 : 0)} className="rounded-[3px]" />
+                  <input type="checkbox" checked={!!form.actif} onChange={e => set('actif', e.target.checked ? 1 : 0)} className="rounded-lg" />
                   Profil actif
                 </label>
               )}
               <label className="block">
                 <span className={label}>début de contrat</span>
-                <input type="date" value={form.date_debut_contrat} onChange={e => set('date_debut_contrat', e.target.value)} className={`${champCls} font-mono`} />
+                <input type="date" value={form.date_debut_contrat} onChange={e => set('date_debut_contrat', e.target.value)} className={`${champCls}`} />
                 <span className="block text-xs text-gray-400 mt-1">Sert à calculer le cumul de congés payés (2,5 jours acquis par mois).</span>
               </label>
               <label className="block">
                 <span className={label}>heures de contrat par semaine</span>
                 <input type="number" min="0" max="80" step="0.5" inputMode="decimal" placeholder="Ex. 35" value={form.heures_contrat_semaine}
-                  onChange={e => set('heures_contrat_semaine', e.target.value)} className={`${champCls} font-mono`} />
+                  onChange={e => set('heures_contrat_semaine', e.target.value)} className={`${champCls}`} />
                 <span className="block text-xs text-gray-400 mt-1">Facultatif. Sert à comparer les heures planifiées au contrat (Effectif, Planning). Vide : pas de suivi.</span>
               </label>
               <label className="block">

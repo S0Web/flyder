@@ -32,26 +32,22 @@ function Note({ note, onChange, onDelete }) {
   const date = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(2)}`;
 
   return (
-    // Page de carnet : lignes réglées en fond, marge rouge à gauche.
-    <article className="relative flex flex-col bg-white border border-brand-ink/10 rounded-[3px] min-h-[220px]"
-      style={{ backgroundImage: 'repeating-linear-gradient(transparent 0 27px, rgba(61,90,254,0.10) 27px 28px)', backgroundPosition: '0 50px' }}>
-      <span className="absolute top-0 bottom-0 left-9 w-px bg-fitness/40" />
-      <div className="flex items-start gap-2 pl-12 pr-3 pt-3">
+    <article className="flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm min-h-[200px]">
+      <div className="flex items-start gap-2 px-4 pt-3.5">
         <input value={titre} placeholder="Sans titre"
           onChange={e => { setTitre(e.target.value); planifier({ titre: e.target.value, contenu }); }}
           className="flex-1 min-w-0 font-display text-base font-bold text-brand-ink bg-transparent border-0 p-0 focus:outline-none focus:ring-0 placeholder:text-gray-300" />
         <button onClick={async () => onChange(await api.updateNote(note.id, { epingle: !note.epingle }))}
-          className={`font-mono text-[11px] ${note.epingle ? 'text-fitness' : 'text-gray-400 hover:text-brand-ink'}`}>
-          {note.epingle ? '★ épinglée' : '☆'}
+          className={`text-xs font-medium ${note.epingle ? 'text-amber-600' : 'text-gray-400 hover:text-gray-700'}`}>
+          {note.epingle ? '★ Épinglée' : '☆'}
         </button>
       </div>
-      <textarea value={contenu} rows={6} placeholder="…"
+      <textarea value={contenu} rows={6} placeholder="Écris ici…"
         onChange={e => { setContenu(e.target.value); planifier({ titre, contenu: e.target.value }); }}
-        className="flex-1 pl-12 pr-3 pt-2 text-sm text-brand-ink bg-transparent border-0 resize-none focus:outline-none focus:ring-0 placeholder:text-gray-300"
-        style={{ lineHeight: '28px' }} />
-      <div className="flex items-center justify-between pl-12 pr-3 pb-2 font-mono text-[10px] text-gray-400">
-        <span>{enCours ? 'enregistrement…' : date}</span>
-        <button onClick={() => onDelete(note)} className="hover:text-fitness">déchirer la page ✕</button>
+        className="flex-1 px-4 pt-2 text-sm text-brand-ink leading-relaxed bg-transparent border-0 resize-none focus:outline-none focus:ring-0 placeholder:text-gray-300" />
+      <div className="flex items-center justify-between px-4 pb-3 text-xs text-gray-400">
+        <span>{enCours ? 'Enregistrement…' : date}</span>
+        <button onClick={() => onDelete(note)} className="hover:text-red-600">Supprimer</button>
       </div>
     </article>
   );
@@ -82,7 +78,7 @@ export default function NotesPrivees() {
     setNotes(ns => ns.filter(n => n.id !== note.id));
   }
 
-  if (!notes) return <p className="py-10 text-center font-mono text-xs text-gray-400">chargement…</p>;
+  if (!notes) return <p className="py-10 text-center text-xs text-gray-400">chargement…</p>;
 
   return (
     <div>
@@ -90,10 +86,10 @@ export default function NotesPrivees() {
         <p className="text-sm text-gray-600 max-w-lg">
           Ton carnet. <span className="text-brand-ink font-medium">Personne d'autre ne peut le lire</span>, managers compris.
         </p>
-        <BoutonEncre onClick={ajouter}>Nouvelle page</BoutonEncre>
+        <BoutonEncre onClick={ajouter}>Nouvelle note</BoutonEncre>
       </div>
       {notes.length === 0 ? (
-        <Rien>carnet vide</Rien>
+        <Rien>Aucune note pour le moment</Rien>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {trier(notes).map(n => (

@@ -23,7 +23,7 @@ function OngletTaches({ membre, membres }) {
   const charger = useCallback(() => { api.getTaches({ assigne_a: membre.id }).then(setTaches).catch(() => {}); }, [membre.id]);
   useEffect(() => { charger(); }, [charger]);
   const basculer = useBasculeTache(() => charger());
-  if (!taches) return <p className="py-10 text-center font-mono text-xs text-gray-400">chargement…</p>;
+  if (!taches) return <p className="py-10 text-center text-xs text-gray-400">chargement…</p>;
   return (
     <div className="max-w-4xl">
       <div className="mb-6"><AjoutRapide assigneParDefaut={membre.id} onCree={charger} placeholder={`Nouvelle tâche pour ${membre.prenom}…`} /></div>
@@ -45,7 +45,7 @@ function OngletComptesRendus({ membre, estMoi }) {
       .then(l => setListe(l.filter(cr => cr.user_id === membre.id))).catch(() => {});
   }, [membre.id]);
   useEffect(() => { charger(); }, [charger]);
-  if (!liste) return <p className="py-10 text-center font-mono text-xs text-gray-400">chargement…</p>;
+  if (!liste) return <p className="py-10 text-center text-xs text-gray-400">chargement…</p>;
   return (
     <div className="space-y-3 max-w-4xl">
       {liste.length === 0
@@ -61,7 +61,7 @@ function OngletComptesRendus({ membre, estMoi }) {
 
 function Apercu({ membre, resume, fiche, isManager, allerA }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Feuille>
         <Compteurs items={[
           { label: 'jours travaillés · 30 j', valeur: resume.jours_travailles_30j },
@@ -70,23 +70,23 @@ function Apercu({ membre, resume, fiche, isManager, allerA }) {
           { label: 'tâches en retard', valeur: resume.taches_en_retard, ton: resume.taches_en_retard ? 'corail' : undefined },
         ]} />
       </Feuille>
-      <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-8">
-        <section>
+      <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-6 items-start">
+        <Feuille className="p-5">
           <Intertitre actions={<Lien as={Link} to="/equipe/planning">planning de l'équipe</Lien>}>Semaine en cours</Intertitre>
           <SemaineHoraires creneaux={resume.creneaux_semaine} />
-        </section>
-        <section className="space-y-8">
-          <CongesCarte userId={membre.id} peutModifier={isManager} />
-          <div>
+        </Feuille>
+        <div className="space-y-6">
+          <Feuille className="p-5"><CongesCarte userId={membre.id} peutModifier={isManager} /></Feuille>
+          <Feuille className="p-5">
             <Intertitre actions={<Lien onClick={() => allerA('poste')}>fiche complète</Lien>}>Poste</Intertitre>
             {fiche?.objectif ? (
               <>
-                <p className="text-[15px] text-brand-ink leading-snug border-l-2 border-fitness pl-3">{fiche.objectif}</p>
-                <p className="font-mono text-[11px] text-gray-500 mt-2">{fiche.missions.length} missions · {fiche.indicateurs.length} chiffres au bilan</p>
+                <p className="text-sm text-brand-ink leading-snug">{fiche.objectif}</p>
+                <p className="text-xs text-gray-500 mt-2">{fiche.missions.length} missions · {fiche.indicateurs.length} chiffres au bilan</p>
               </>
-            ) : <p className="font-mono text-xs text-gray-400">— fiche de poste à rédiger —</p>}
-          </div>
-        </section>
+            ) : <p className="text-xs text-gray-400">Fiche de poste à rédiger.</p>}
+          </Feuille>
+        </div>
       </div>
     </div>
   );
@@ -129,7 +129,7 @@ export default function FicheMembre() {
   if (membre === false) {
     return <Rien action={<BoutonTrait onClick={() => navigate('/equipe')}>Retour à l'équipe</BoutonTrait>}>fiche introuvable ou accès refusé</Rien>;
   }
-  if (!membre || !resume) return <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>;
+  if (!membre || !resume) return <p className="py-16 text-center text-xs text-gray-400">chargement…</p>;
 
   async function enregistrerInfos(form) {
     await api.updateAppUser(membre.id, form);
@@ -146,29 +146,31 @@ export default function FicheMembre() {
     <div>
       {isManager && <Lien as={Link} to="/equipe/membres" className="inline-block mb-5">← effectif</Lien>}
 
-      {/* ── En-tête : identité en grand, sans bandeau ─────────── */}
-      <header className="flex flex-col sm:flex-row sm:items-end gap-5 pb-6">
-        <Plaque user={membre} size={72} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            {membre.role === 'manager' && <Marque>manager</Marque>}
-            {!membre.actif && <Marque ton="gris">inactif</Marque>}
-            {estMoi && <Marque ton="corail">c'est toi</Marque>}
+      {/* ── En-tête : identité, comme dans Paramètres > Mon profil ─ */}
+      <Feuille className="p-5 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Plaque user={membre} size={56} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-display text-xl font-bold text-brand-ink">{membre.prenom} {membre.nom}</h2>
+              {membre.role === 'manager' && <Marque>manager</Marque>}
+              {!membre.actif && <Marque ton="gris">inactif</Marque>}
+              {estMoi && <Marque ton="bleu">c'est toi</Marque>}
+            </div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mt-1">{fiche?.intitule || 'poste non renseigné'}</div>
+            <div className="text-xs text-gray-400 mt-0.5 flex flex-wrap gap-x-4">
+              {depuis && <span>dans l'équipe depuis {depuis}</span>}
+              {membre.email && <span>{membre.email}</span>}
+            </div>
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-brand-ink leading-none tracking-tight mt-2">{membre.prenom} {membre.nom}</h2>
-          <div className="font-mono text-[11px] text-gray-500 mt-2.5 uppercase tracking-wider">{fiche?.intitule || 'poste non renseigné'}</div>
-          <div className="font-mono text-[11px] text-gray-400 mt-1 flex flex-wrap gap-x-4">
-            {depuis && <span>dans l'équipe depuis {depuis}</span>}
-            {membre.email && <span>{membre.email}</span>}
+          <div className="flex gap-2">
+            {(isManager || estMoi) && <BoutonTrait onClick={() => setEdition(true)}>{estMoi ? 'Mes infos' : 'Modifier'}</BoutonTrait>}
+            {isManager && <BoutonEncre onClick={() => setNouvelleTache(true)}>Assigner une tâche</BoutonEncre>}
           </div>
         </div>
-        <div className="flex gap-2">
-          {(isManager || estMoi) && <BoutonTrait onClick={() => setEdition(true)}>{estMoi ? 'Mes infos' : 'Modifier'}</BoutonTrait>}
-          {isManager && <BoutonEncre onClick={() => setNouvelleTache(true)}>Assigner une tâche</BoutonEncre>}
-        </div>
-      </header>
+      </Feuille>
 
-      <Onglets onglets={onglets} actif={onglet} onChange={allerA} className="mb-8 border-brand-ink/15" />
+      <Onglets onglets={onglets} actif={onglet} onChange={allerA} trait={false} className="mb-6 max-w-full overflow-x-auto" />
 
       <div key={onglet} className="motion-safe:animate-fadeIn">
         {onglet === 'apercu' && <Apercu membre={membre} resume={resume} fiche={fiche} isManager={isManager} allerA={allerA} />}

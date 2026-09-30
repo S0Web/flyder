@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
-import { Intertitre, Marque, BoutonCorail, BoutonEncre, BoutonTrait, Lien, Rien, champCls } from './kit';
+import { Intertitre, Marque, Compte, BoutonCorail, BoutonEncre, BoutonTrait, Lien, Rien, champCls } from './kit';
 import Panneau from './Panneau';
 import { aujourdhuiISO, isoPlusJours, dateDepuisISO, TYPES_ABSENCE } from '../../lib/equipe';
 
@@ -65,7 +65,7 @@ export function DemandeCongePanneau({ onClose, onChange }) {
     }
   }
 
-  const label = 'block font-mono text-[11px] text-gray-500';
+  const label = 'block text-[11px] text-gray-500';
   return (
     <Panneau
       surtitre="congés"
@@ -84,12 +84,12 @@ export function DemandeCongePanneau({ onClose, onChange }) {
             <span className={label}>du</span>
             <input type="date" value={form.date_debut} min={auj}
               onChange={e => setForm(f => ({ ...f, date_debut: e.target.value, date_fin: f.date_fin && f.date_fin >= e.target.value ? f.date_fin : e.target.value }))}
-              className={`${champCls} font-mono`} />
+              className={`${champCls}`} />
           </label>
           <label className="block">
             <span className={label}>au (inclus)</span>
             <input type="date" value={form.date_fin} min={form.date_debut || auj}
-              onChange={e => setForm(f => ({ ...f, date_fin: e.target.value }))} className={`${champCls} font-mono`} />
+              onChange={e => setForm(f => ({ ...f, date_fin: e.target.value }))} className={`${champCls}`} />
           </label>
         </div>
         <label className="block">
@@ -106,22 +106,22 @@ export function DemandeCongePanneau({ onClose, onChange }) {
         <div>
           <Intertitre>Mes demandes</Intertitre>
           {mes === null ? (
-            <p className="font-mono text-xs text-gray-400">chargement…</p>
+            <p className="text-xs text-gray-400">chargement…</p>
           ) : mes.length === 0 ? (
             <Rien>aucune demande</Rien>
           ) : (
-            <ul className="divide-y divide-brand-ink/[0.08] border-y border-brand-ink/10 bg-white">
+            <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl shadow-sm overflow-hidden bg-white">
               {mes.map(d => (
                 <li key={d.id} className="px-4 py-3">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-mono text-sm text-brand-ink">{periode(d)}</span>
+                    <span className="text-sm text-brand-ink">{periode(d)}</span>
                     <Marque ton={STATUT[d.statut].ton}>{STATUT[d.statut].label}</Marque>
-                    {d.statut === 'acceptee' && <span className="font-mono text-[11px] text-gray-500">{d.jours.length} jour{d.jours.length > 1 ? 's' : ''} posé{d.jours.length > 1 ? 's' : ''}</span>}
+                    {d.statut === 'acceptee' && <span className="text-[11px] text-gray-500">{d.jours.length} jour{d.jours.length > 1 ? 's' : ''} posé{d.jours.length > 1 ? 's' : ''}</span>}
                     <span className="flex-1" />
                     {d.statut === 'en_attente' && <Lien onClick={() => annuler(d)}>annuler</Lien>}
                   </div>
                   {d.motif && <p className="text-sm text-gray-600 mt-1">{d.motif}</p>}
-                  {d.retour_manager && <p className="text-sm text-brand-ink mt-1"><span className="font-mono text-[11px] text-gray-500">manager : </span>{d.retour_manager}</p>}
+                  {d.retour_manager && <p className="text-sm text-brand-ink mt-1"><span className="text-[11px] text-gray-500">manager : </span>{d.retour_manager}</p>}
                 </li>
               ))}
             </ul>
@@ -169,29 +169,29 @@ function CarteDemande({ d, onDecide }) {
 
   const apres = d.cp_restant != null ? Math.round((d.cp_restant - choisis.size) * 100) / 100 : null;
   return (
-    <article className="bg-white border border-brand-ink/10 rounded-[3px] px-4 sm:px-5 py-4">
+    <article className="bg-white border border-gray-200 rounded-lg px-4 sm:px-5 py-4">
       <div className="flex items-baseline gap-3 flex-wrap">
         <span className="font-display text-[17px] font-bold text-brand-ink">{d.prenom} {d.nom}</span>
-        <span className="font-mono text-sm text-brand-ink">{periode(d)}</span>
-        <span className="font-mono text-[11px] text-gray-500">
+        <span className="text-sm text-brand-ink">{periode(d)}</span>
+        <span className="text-[11px] text-gray-500">
           {d.cp_restant != null ? `solde ${fmtSolde(d.cp_restant)} j${apres != null ? ` → ${fmtSolde(apres)} j après` : ''}` : 'solde non suivi'}
         </span>
       </div>
       {d.motif && <p className="text-sm text-gray-600 mt-1">{d.motif}</p>}
       {d.collegues_absents.length > 0 && (
-        <p className="font-mono text-[11px] text-fitness mt-2">déjà en congé sur ces dates : {d.collegues_absents.join(', ')}</p>
+        <p className="text-xs text-amber-700 mt-2">déjà en congé sur ces dates : {d.collegues_absents.join(', ')}</p>
       )}
 
       <div className="mt-3">
-        <div className="font-mono text-[11px] text-gray-500 mb-1.5">jours à poser en congé payé ({choisis.size})</div>
+        <div className="text-[11px] text-gray-500 mb-1.5">jours à poser en congé payé ({choisis.size})</div>
         <div className="flex flex-wrap gap-1.5">
           {jours.map(j => {
             const t = typeDuJour[j];
             const on = choisis.has(j);
             return (
               <button key={j} type="button" onClick={() => bascule(j)} aria-pressed={on}
-                className={`font-mono text-[11px] px-2 py-1 rounded-[3px] border text-left transition-colors ${
-                  on ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/25 text-gray-600 hover:border-brand-ink'
+                className={`text-[11px] px-2 py-1 rounded-lg border text-left transition-colors ${
+                  on ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
                 }`}>
                 {dateDepuisISO(j).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}
                 {t && t !== 'travail' && <span className={`block text-[9px] uppercase ${on ? 'text-white/70' : 'text-gray-400'}`}>{TYPES_ABSENCE[t]?.court}</span>}
@@ -202,7 +202,7 @@ function CarteDemande({ d, onDecide }) {
         <p className="text-[11px] text-gray-400 mt-1.5">Accepter remplace le planning de chaque jour retenu par « CP ».</p>
       </div>
 
-      <div className="mt-4 pt-3 border-t-2 border-brand-ink flex flex-wrap items-end gap-3">
+      <div className="mt-4 pt-3 border-t border-gray-200 flex flex-wrap items-end gap-3">
         <input value={retour} onChange={e => setRetour(e.target.value)} placeholder="Un mot en retour (obligatoire pour refuser)"
           className={`${champCls} flex-1 min-w-[200px]`} />
         <BoutonTrait onClick={() => decider('refusee')} disabled={busy} className="!py-1.5">Refuser</BoutonTrait>
@@ -225,7 +225,7 @@ export function DemandesEnAttente({ onChange }) {
   return (
     <section className="mt-6">
       <Intertitre>
-        Demandes de congé <span className="font-mono text-xs font-normal text-fitness ml-1">{String(demandes.length).padStart(2, '0')}</span>
+        Demandes de congé <Compte n={demandes.length} ton="bleu" className="ml-1.5" />
       </Intertitre>
       <div className="space-y-3">
         {demandes.map(d => <CarteDemande key={d.id} d={d} onDecide={() => { charger(); onChange?.(); }} />)}

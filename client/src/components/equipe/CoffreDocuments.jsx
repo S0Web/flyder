@@ -6,7 +6,8 @@ import { parseServerDate } from '../../lib/utils';
 import {
   abonnerDeverrouillage, getExpirationDeverrouillage, enregistrerDeverrouillage, oublierDeverrouillage,
 } from '../../lib/deverrouillage';
-import { Feuille, Rien, BoutonEncre, Marque, selectCls } from './kit';
+import { Lock } from 'lucide-react';
+import { Feuille, Rien, Compte, BoutonEncre, Marque, Lien, champCls, selectCls } from './kit';
 
 const TYPE_LABELS = {
   fiche_paie: 'Fiches de paie',
@@ -69,42 +70,44 @@ function Verrou({ onDeverrouille }) {
     }
   }
 
-  const champ = 'w-full bg-transparent border-0 border-b-2 border-white/30 px-0 py-2 font-mono text-2xl tracking-[0.6em] text-white placeholder:text-white/25 placeholder:tracking-normal placeholder:text-sm focus:outline-none focus:ring-0 focus:border-fitness';
+  const champ = `${champCls} text-lg tracking-[0.5em] placeholder:tracking-normal placeholder:text-sm`;
 
   return (
-    <div className="bg-brand-ink text-white rounded-[3px] overflow-hidden">
-      <div className="grid md:grid-cols-[1fr_320px]">
+    <Feuille className="overflow-hidden">
+      <div className="grid md:grid-cols-[1fr_340px]">
         <div className="p-6 sm:p-8">
-          <div className="font-mono text-[11px] text-fitness">accès protégé</div>
-          <h3 className="font-display text-2xl sm:text-3xl font-bold leading-tight mt-2">Coffre à documents</h3>
-          <p className="text-sm text-brand-cream/65 mt-3 max-w-md leading-relaxed">
+          <span className="h-11 w-11 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
+            <Lock className="h-5 w-5" strokeWidth={2} />
+          </span>
+          <div className="text-xs font-semibold uppercase tracking-wide text-sky-600 mt-4">Accès protégé</div>
+          <h3 className="font-display text-xl font-bold text-brand-ink leading-tight mt-1">Coffre à documents</h3>
+          <p className="text-sm text-gray-600 mt-2 max-w-md leading-relaxed">
             {sansCode
               ? "Tu n'as pas encore de code confidentiel. Choisis-en un : il protège tes documents et ta connexion."
               : 'Fiches de paie, contrat, arrêts de travail.'}
           </p>
-          <p className="font-mono text-[11px] text-brand-cream/40 mt-6">reverrouillage automatique au bout de 10 min</p>
+          <p className="text-xs text-gray-400 mt-5">Reverrouillage automatique au bout de 10 min.</p>
         </div>
-        <form onSubmit={submit} className="p-6 sm:p-8 md:border-l border-t md:border-t-0 border-white/10 flex flex-col justify-center gap-4">
+        <form onSubmit={submit} className="p-6 sm:p-8 md:border-l border-t md:border-t-0 border-gray-200 bg-gray-50 flex flex-col justify-center gap-4">
           <label className="block">
-            <span className="font-mono text-[11px] text-brand-cream/50">{sansCode ? 'nouveau code' : 'code confidentiel'}</span>
+            <span className="block text-xs font-medium text-gray-500 mb-1">{sansCode ? 'Nouveau code' : 'Code confidentiel'}</span>
             <input ref={inputRef} type="password" inputMode="numeric" autoComplete="off" value={code}
               onChange={e => { setCode(e.target.value); setErreur(null); }} placeholder="····" className={champ} />
           </label>
           {sansCode && (
             <label className="block">
-              <span className="font-mono text-[11px] text-brand-cream/50">confirmer</span>
+              <span className="block text-xs font-medium text-gray-500 mb-1">Confirmer</span>
               <input type="password" inputMode="numeric" autoComplete="off" value={confirmation}
                 onChange={e => setConfirmation(e.target.value)} placeholder="····" className={champ} />
             </label>
           )}
-          <div className="h-4 font-mono text-[11px] text-fitness">{erreur}</div>
-          <button type="submit" disabled={busy || !code}
-            className="w-full bg-fitness hover:bg-[#E8461F] disabled:opacity-40 text-white text-sm font-semibold py-2.5 rounded-[3px] transition-colors">
+          <div className="min-h-[16px] text-xs text-red-600">{erreur}</div>
+          <BoutonEncre type="submit" disabled={busy || !code} className="w-full">
             {busy ? 'Vérification…' : sansCode ? 'Créer le code et ouvrir' : 'Ouvrir le coffre'}
-          </button>
+          </BoutonEncre>
         </form>
       </div>
-    </div>
+    </Feuille>
   );
 }
 
@@ -135,21 +138,21 @@ function AjoutDocument({ userId, onAjoute }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-end gap-3 border border-dashed border-brand-ink/25 rounded-[3px] p-3">
+    <form onSubmit={submit} className="flex flex-wrap items-end gap-3 bg-white border border-gray-200 rounded-xl shadow-sm p-4">
       <label className="block">
-        <span className="block font-mono text-[11px] text-gray-500 mb-1">type</span>
+        <span className="block text-xs font-medium text-gray-500 mb-1">Type</span>
         <select value={type} onChange={e => setType(e.target.value)} className={selectCls}>
           {TYPES_ORDONNES.map(t => <option key={t} value={t}>{TYPE_SINGULIER[t]}</option>)}
         </select>
       </label>
       {type === 'fiche_paie' && (
         <label className="block">
-          <span className="block font-mono text-[11px] text-gray-500 mb-1">mois</span>
+          <span className="block text-xs font-medium text-gray-500 mb-1">Mois</span>
           <input type="month" value={periode} onChange={e => setPeriode(e.target.value)} className={selectCls} />
         </label>
       )}
       <label className="block flex-1 min-w-[180px]">
-        <span className="block font-mono text-[11px] text-gray-500 mb-1">fichier (pdf ou image)</span>
+        <span className="block text-xs font-medium text-gray-500 mb-1">Fichier (pdf ou image)</span>
         <input ref={fileRef} type="file" accept=".pdf,image/png,image/jpeg" required className="block text-xs w-full" />
       </label>
       <BoutonEncre type="submit" disabled={busy}>{busy ? 'Envoi…' : 'Déposer'}</BoutonEncre>
@@ -219,27 +222,26 @@ export default function CoffreDocuments({ userId, prenom, onConsulte }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap bg-brand-ink text-white rounded-[3px] px-4 py-2.5">
-        <span className="font-mono text-[11px]"><span className="text-emerald-300">● ouvert</span><span className="text-brand-cream/50"> · se referme dans {restant} min</span></span>
-        <button onClick={oublierDeverrouillage} className="font-mono text-[11px] text-white underline underline-offset-4 decoration-fitness hover:text-fitness">
-          refermer maintenant
+      <div className="flex items-center justify-between gap-3 flex-wrap bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
+        <span className="text-xs"><span className="font-semibold text-green-700">● Coffre ouvert</span><span className="text-green-700/70"> · se referme dans {restant} min</span></span>
+        <button onClick={oublierDeverrouillage} className="text-xs font-medium text-green-800 hover:underline underline-offset-2">
+          Refermer maintenant
         </button>
       </div>
 
       {isManager && <AjoutDocument userId={userId} onAjoute={charger} />}
 
       {docs === null ? (
-        <p className="py-8 text-center font-mono text-xs text-gray-400">chargement…</p>
+        <p className="py-8 text-center text-xs text-gray-400">chargement…</p>
       ) : groupes.length === 0 ? (
         <Feuille><Rien>aucun document pour {estMoi ? 'toi' : prenom}</Rien></Feuille>
       ) : groupes.map(g => (
         <section key={g.type}>
-          <div className="flex items-center gap-3 mb-1">
-            <span className="font-display text-[15px] font-bold text-brand-ink">{TYPE_LABELS[g.type]}</span>
-            <span className="font-mono text-[11px] text-gray-400">{String(g.items.length).padStart(2, '0')}</span>
-            <span className="flex-1 border-b border-dashed border-brand-ink/15" />
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-display text-sm font-bold text-brand-ink">{TYPE_LABELS[g.type]}</span>
+            <Compte n={g.items.length} />
           </div>
-          <div className="bg-white border-y border-brand-ink/10 divide-y divide-brand-ink/[0.07]">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden divide-y divide-gray-100">
             {g.items.map(doc => {
               const nouveau = !doc.vu_le;
               return (
@@ -247,21 +249,19 @@ export default function CoffreDocuments({ userId, prenom, onConsulte }) {
                   <span className={`text-[15px] first-letter:uppercase ${nouveau && estMoi ? 'font-semibold text-brand-ink' : 'text-brand-ink'}`}>
                     {doc.periode ? libellePeriode(doc.periode) : doc.nom_fichier}
                   </span>
-                  <span className="font-mono text-[11px] text-gray-500 order-3 sm:order-none col-span-2 sm:col-span-1">
+                  <span className="text-[11px] text-gray-500 order-3 sm:order-none col-span-2 sm:col-span-1">
                     {/* Accusé de lecture : visible par le manager (et par le salarié pour lui-même). */}
                     {doc.vu_le
                       ? <>consulté le {jourMois(doc.vu_le)}</>
                       : estMoi ? <Marque ton="corail">nouveau</Marque>
-                      : <span className="text-fitness">pas encore consulté</span>}
+                      : <span className="text-amber-600">pas encore consulté</span>}
                     <span className="text-gray-300"> · déposé le {jourMois(doc.date_upload)}</span>
                   </span>
                   <span className="flex items-center gap-4 justify-end">
-                    <button onClick={() => telecharger(doc)} className="font-mono text-[11px] text-brand-ink underline underline-offset-4 decoration-fitness decoration-2 hover:text-fitness">
-                      ouvrir ↓
-                    </button>
+                    <Lien onClick={() => telecharger(doc)}>Ouvrir ↓</Lien>
                     {isManager && (
-                      <button onClick={() => supprimer(doc)} className="font-mono text-[11px] text-gray-400 hover:text-fitness sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        suppr.
+                      <button onClick={() => supprimer(doc)} className="text-xs text-gray-400 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        Supprimer
                       </button>
                     )}
                   </span>

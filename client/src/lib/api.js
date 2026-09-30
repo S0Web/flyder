@@ -190,6 +190,8 @@ export const api = {
   // Séances
   getSeances:      (semaine) => req(`/seances${semaine ? `?semaine=${semaine}` : ''}`),
   createSeance:    (data) => req('/seances', { method: 'POST', body: JSON.stringify(data) }),
+  getRemplacement: (id) => req(`/seances/${id}/remplacement`),
+  remplacerCoach:  (id, data) => req(`/seances/${id}/remplacer`, { method: 'POST', body: JSON.stringify(data) }),
   patchSeance:     (id, data) => req(`/seances/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteSeance:    (id) => req(`/seances/${id}`, { method: 'DELETE' }),
   dupliquerSemaine: (semaine_source, semaine_cible) =>

@@ -26,11 +26,8 @@ function getMonthDays(year, month) {
   return days;
 }
 
-// `sobre` : habillage de l'onglet Équipe (encre et corail) ; par défaut, celui du Planning des cours.
-export default function MiniCalendar({ lundi, onSelectDate, sobre = false }) {
-  const st = sobre
-    ? { cadre: 'bg-white border border-brand-ink/10 rounded-[3px]', semaine: 'bg-brand-ink/10 text-brand-ink', debut: 'bg-brand-ink text-white rounded-full', auj: 'font-bold text-fitness' }
-    : { cadre: 'bg-white border border-gray-200 rounded', semaine: 'bg-sky-100 text-sky-900', debut: 'bg-sky-600 text-white rounded-full', auj: 'font-bold text-sky-600' };
+export default function MiniCalendar({ lundi, onSelectDate }) {
+  const st = { cadre: 'bg-white border border-gray-200 rounded', semaine: 'bg-sky-100 text-sky-900', debut: 'bg-sky-600 text-white rounded-full', auj: 'font-bold text-sky-600' };
   const [display, setDisplay] = useState({ year: lundi.getFullYear(), month: lundi.getMonth() });
 
   useEffect(() => {

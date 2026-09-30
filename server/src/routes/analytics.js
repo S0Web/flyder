@@ -214,9 +214,32 @@ router.get('/', (req, res) => {
     GROUP BY tranche
   `, params);
 
+  // ── Remplacements de coach ─────────────────────────────────────
+  // Par séance de la période (et de la catégorie) : qui a remplacé, qui a été remplacé.
+  const remplacementsBruts = db.all(`
+    SELECT mp.ancien_coach_id, mp.nouveau_coach_id
+    FROM modifications_ponctuelles mp
+    JOIN seances s ON s.id = mp.seance_id JOIN cours_types ct ON ct.id = s.cours_type_id
+    ${WHERE} ${WHERE ? 'AND' : 'WHERE'} mp.type = 'remplacement_coach'
+  `, params);
+  const parCoach = new Map();
+  const ligne = (id) => {
+    if (!parCoach.has(id)) parCoach.set(id, { coach_id: id, a_remplace: 0, a_ete_remplace: 0 });
+    return parCoach.get(id);
+  };
+  for (const r of remplacementsBruts) {
+    if (r.nouveau_coach_id) ligne(r.nouveau_coach_id).a_remplace++;
+    if (r.ancien_coach_id) ligne(r.ancien_coach_id).a_ete_remplace++;
+  }
+  const nomsCoachs = new Map(db.all('SELECT id, TRIM(prenom || \' \' || nom) AS nom FROM coaches').map(c => [c.id, c.nom]));
+  const remplacements = [...parCoach.values()]
+    .map(l => ({ ...l, coach: nomsCoachs.get(l.coach_id) || 'Coach supprimé' }))
+    .sort((a, b) => (b.a_remplace + b.a_ete_remplace) - (a.a_remplace + a.a_ete_remplace));
+  kpi.remplacements = remplacementsBruts.length;
+
   res.json({
     kpi, mensuel, hebdomadaire, mensuelCategorie, parJour, parHeure, heatmap,
-    categories, cours, coachs, distribution, bornes,
+    categories, cours, coachs, distribution, bornes, remplacements,
     alertes_complet: alertesComplet().filter(a => !categorie || a.categorie === categorie),
     debut, fin, categorie,
   });

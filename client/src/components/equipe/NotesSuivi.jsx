@@ -55,21 +55,21 @@ export default function NotesSuivi({ membre }) {
       <form onSubmit={ajouter} className="mb-6 space-y-3">
         <textarea value={texte} onChange={e => setTexte(e.target.value)} rows={3} maxLength={4000}
           placeholder="Point d'entretien, remarque, rappel…"
-          className="w-full bg-white border border-brand-ink/15 rounded-[3px] px-3 py-2.5 text-sm text-brand-ink leading-relaxed focus:outline-none focus:border-brand-ink resize-y" />
+          className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-brand-ink leading-relaxed focus:outline-none focus:border-transparent focus:ring-2 focus:ring-sky-400 resize-y" />
         <div className="flex justify-end">
           <BoutonEncre type="submit" disabled={busy || !texte.trim()}>Ajouter la note</BoutonEncre>
         </div>
       </form>
       {notes === null ? (
-        <p className="font-mono text-xs text-gray-400">chargement…</p>
+        <p className="text-xs text-gray-400">chargement…</p>
       ) : notes.length === 0 ? (
         <Rien>aucune note</Rien>
       ) : (
-        <ol className="border-l-2 border-brand-ink/15 ml-1 space-y-5">
+        <ol className="border-l-2 border-gray-200 ml-1 space-y-5">
           {notes.map(n => (
             <li key={n.id} className="relative pl-4">
-              <span className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-[1px] bg-brand-ink" />
-              <div className="flex items-center gap-3 font-mono text-[11px] text-gray-500">
+              <span className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-sky-500" />
+              <div className="flex items-center gap-3 text-[11px] text-gray-500">
                 <span><span className="text-brand-ink font-semibold">{n.auteur_prenom}</span> · {horodatage(n.created_at)}</span>
                 <Lien onClick={() => supprimer(n)}>supprimer</Lien>
               </div>

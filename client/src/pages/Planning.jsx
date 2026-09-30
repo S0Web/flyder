@@ -583,6 +583,7 @@ export default function Planning() {
           onClose={() => setModal(null)}
           onCoursCreated={(ct) => setCoursTypes(prev => [...prev, ct])}
           onCoursUpdated={(ct) => setCoursTypes(prev => prev.map(c => c.id === ct.id ? ct : c))}
+          onReplaced={() => { loadSeances(); chargerAlertes(); toast.success('Coach remplacé'); }}
           aquaActive={aquaActive}
         />
       )}

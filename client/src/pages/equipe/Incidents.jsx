@@ -13,10 +13,10 @@ function Ligne({ incident: i, onOpen }) {
   const resolu = i.statut === 'resolu';
   return (
     <li onClick={() => onOpen(i)} data-testid="incident"
-      className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-brand-cream/60 transition-colors">
+      className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
       <div className="flex-1 min-w-0">
         <div className={`text-[15px] leading-snug ${resolu ? 'text-gray-400' : 'text-brand-ink'}`}>{i.titre}</div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 font-mono text-[11px] text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px] text-gray-500">
           <Marque ton={TYPES_INCIDENT[i.type].ton}>{TYPES_INCIDENT[i.type].label}</Marque>
           <Marque ton={statut.ton}>{statut.label}</Marque>
           <span>signalé par {i.signale_prenom} · {jjmm(i.date_signalement)}</span>
@@ -30,7 +30,7 @@ function Ligne({ incident: i, onOpen }) {
             <span className="hidden sm:inline text-xs text-gray-500">{i.responsable_prenom}</span>
             <Plaque user={{ id: i.responsable_id, prenom: i.responsable_prenom, nom: i.responsable_nom }} size={22} />
           </>
-        ) : !resolu && <span className="font-mono text-[11px] text-fitness">non attribué</span>}
+        ) : !resolu && <span className="text-[11px] font-medium text-red-600">non attribué</span>}
       </span>
     </li>
   );
@@ -73,8 +73,8 @@ export default function Incidents() {
         <div className="flex gap-1.5">
           {[['', 'tous types'], ...Object.entries(TYPES_INCIDENT).map(([k, t]) => [k, t.label.toLowerCase()])].map(([k, l]) => (
             <button key={k || 'tous'} type="button" onClick={() => setType(k)} aria-pressed={type === k}
-              className={`font-mono text-[11px] px-2 py-1 rounded-[3px] border transition-colors ${
-                type === k ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/20 text-gray-500 hover:border-brand-ink'}`}>{l}</button>
+              className={`text-[11px] px-2 py-1 rounded-lg border transition-colors ${
+                type === k ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-500 hover:border-gray-400'}`}>{l}</button>
           ))}
         </div>
         <div className="flex-1" />
@@ -91,11 +91,11 @@ export default function Incidents() {
       </Feuille>
 
       {incidents === null ? (
-        <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>
+        <p className="py-16 text-center text-xs text-gray-400">chargement…</p>
       ) : filtres.length === 0 ? (
         <Rien>{vue === 'ouverts' ? 'aucun incident ouvert' : 'aucun incident'}</Rien>
       ) : (
-        <ul className="max-w-4xl bg-white border-y border-brand-ink/10 divide-y divide-brand-ink/[0.07]">
+        <ul className="max-w-4xl bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden divide-y divide-gray-100">
           {filtres.map(i => <Ligne key={i.id} incident={i} onOpen={setOuvert} />)}
         </ul>
       )}

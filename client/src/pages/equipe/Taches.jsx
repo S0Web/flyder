@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache, MARQUE_PRIORITE, echeanceCourte } from '../../components/equipe/Taches';
 import ChecklistsPanneau from '../../components/equipe/Checklists';
-import { Feuille, Compteurs, Plaque, BoutonEncre, BoutonTrait, Rien, Onglets, selectCls } from '../../components/equipe/kit';
+import { Feuille, Compteurs, Compte, Plaque, BoutonEncre, BoutonTrait, Rien, Onglets, selectCls } from '../../components/equipe/kit';
 import { STATUTS_TACHE, aujourdhuiISO } from '../../lib/equipe';
 
 const COLONNES = ['a_faire', 'en_cours', 'fait'];
@@ -18,16 +18,16 @@ function Fiche({ tache, onOpen, montrerAssigne }) {
       draggable
       onDragStart={e => { e.dataTransfer.setData('text/plain', String(tache.id)); e.dataTransfer.effectAllowed = 'move'; }}
       onClick={() => onOpen(tache)}
-      className={`relative bg-white border border-brand-ink/10 rounded-[3px] px-3 py-2.5 cursor-grab active:cursor-grabbing hover:border-brand-ink/40 transition-colors ${
-        ech?.retard ? 'border-l-[3px] border-l-fitness' : ''
+      className={`relative bg-white border border-gray-200 rounded-lg px-3 py-2.5 cursor-grab active:cursor-grabbing hover:border-gray-300 transition-colors ${
+        ech?.retard ? 'border-l-[3px] border-l-red-500' : ''
       }`}
     >
       <p className={`text-sm leading-snug ${fait ? 'text-gray-400 line-through' : 'text-brand-ink'}`}>
-        {!fait && MARQUE_PRIORITE[tache.priorite] && <span className="font-mono font-semibold text-fitness mr-1">{MARQUE_PRIORITE[tache.priorite]}</span>}
+        {!fait && MARQUE_PRIORITE[tache.priorite] && <span className="font-semibold text-red-500 mr-1">{MARQUE_PRIORITE[tache.priorite]}</span>}
         {tache.titre}
       </p>
-      <div className="flex items-center gap-3 mt-2 font-mono text-[10px] text-gray-500">
-        {ech && <span className={ech.retard ? 'text-fitness font-semibold' : ''}>{ech.texte}</span>}
+      <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500">
+        {ech && <span className={ech.retard ? 'text-red-600 font-semibold' : ''}>{ech.texte}</span>}
         {tache.moment && <span className="text-sky-700">{tache.moment}</span>}
         {tache.recurrence !== 'aucune' && <span>↻</span>}
         {tache.nb_commentaires > 0 && <span>{tache.nb_commentaires} note{tache.nb_commentaires > 1 ? 's' : ''}</span>}
@@ -51,15 +51,15 @@ function Tableau({ taches, onOpen, onDeplacer, montrerAssigne }) {
             onDragOver={e => { e.preventDefault(); setSurvol(statut); }}
             onDragLeave={() => setSurvol(null)}
             onDrop={e => { e.preventDefault(); setSurvol(null); onDeplacer(Number(e.dataTransfer.getData('text/plain')), statut); }}
-            className={`min-h-[240px] transition-colors ${survol === statut ? 'bg-fitness/[0.06] outline outline-2 outline-dashed outline-fitness/60 outline-offset-4' : ''}`}
+            className={`min-h-[240px] transition-colors ${survol === statut ? 'bg-sky-50 outline outline-2 outline-dashed outline-sky-400 outline-offset-4' : ''}`}
           >
-            <div className="flex items-baseline gap-3 border-b-2 border-brand-ink pb-2 mb-3">
+            <div className="flex items-baseline gap-3 border-b border-gray-200 pb-2 mb-3">
               <span className="font-display text-[15px] font-bold text-brand-ink">{STATUTS_TACHE[statut].label}</span>
-              <span className="font-mono text-[11px] text-gray-400">{String(items.length).padStart(2, '0')}</span>
+              <Compte n={items.length} />
             </div>
             <div className="space-y-2">
               {items.map(t => <Fiche key={t.id} tache={t} onOpen={onOpen} montrerAssigne={montrerAssigne} />)}
-              {!items.length && <p className="font-mono text-[11px] text-gray-300 text-center py-8">glisser une tâche ici</p>}
+              {!items.length && <p className="text-[11px] text-gray-300 text-center py-8">glisser une tâche ici</p>}
             </div>
           </div>
         );
@@ -131,7 +131,7 @@ export default function Taches() {
           </select>
         )}
         <input value={recherche} onChange={e => setRecherche(e.target.value)} placeholder="rechercher…"
-          className="font-mono text-xs bg-transparent border-0 border-b border-brand-ink/25 px-0 py-1.5 w-44 focus:outline-none focus:ring-0 focus:border-fitness" />
+          className="text-sm bg-white border border-gray-300 rounded-lg px-3 py-2 w-44 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent" />
         <div className="flex-1" />
         {isManager && <BoutonTrait onClick={() => setChecklistsOuvertes(true)}>Checklists du service</BoutonTrait>}
         <BoutonEncre onClick={() => setOuverte({})}>Nouvelle tâche</BoutonEncre>
@@ -147,7 +147,7 @@ export default function Taches() {
       </Feuille>
 
       {taches === null ? (
-        <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>
+        <p className="py-16 text-center text-xs text-gray-400">chargement…</p>
       ) : vue === 'tableau' ? (
         <>
           <div className="mb-6 max-w-4xl">

@@ -636,11 +636,41 @@ Troisième lot de l'audit du 30/09/2026, après décisions du propriétaire : le
 - **Boîte à idées.** `IDEES.md` garde les propositions mises en attente : disponibilités et accès des vacataires (après le
   lien Flyder ↔ Flyder Talents), notifications e-mail/push (quand le produit sera vendu à d'autres salles), semaines
   modèles, note de satisfaction. Disciplines configurables : écarté (Aqua = eau, Fitness = tout le reste).
-- **En attente de réponse.** Remplacement de coach depuis une séance sans coach ou annulée, avec trace
-  (`modifications_ponctuelles`, toujours vide) : le propriétaire a demandé une explication avant de décider.
+- **Remplacement de coach.** Demandé à l'entrée 52, fait à l'entrée 53.
 - **Vérifié.** Lint sans erreur (mêmes avertissements qu'avant), build, 94 contrôles d'API sur base vierge (capacité,
   alertes, lien coach, checklists, incidents, droits) et 30 contrôles Chromium (planning, Analyse, récap, fiche, checklists,
   incidents, Ma journée d'un coach salarié) sans erreur JavaScript.
+
+### 53. ✅ Remplacement de coach + charte d'Équipe alignée sur le reste de Flyder
+- **Remplacement de coach avec trace.** `modifications_ponctuelles` (vide jusque-là) sert enfin : colonne `auteur_id`
+  ajoutée. `GET /seances/:id/remplacement` renvoie les coachs proposés (actifs, sans le coach actuel ; ceux qui ont déjà
+  donné ce cours en tête, ceux qui ont un cours qui chevauche ce créneau signalés) et l'historique ; `POST
+  /seances/:id/remplacer` `{ coach_id, raison?, forcer? }` réaffecte la séance, la remet au programme si elle était
+  annulée et écrit la trace (qui devait la faire, qui la fait, motif, auteur, date). Refus : même coach, coach inactif,
+  motif > 300 caractères, séance effectuée ou payée (409), coach déjà pris sur le créneau sauf `forcer` (409, `conflit`).
+  Un changement de coach A → B depuis le formulaire (`PATCH /seances/:id`) laisse la même trace, sans motif ; une
+  première attribution (aucun coach avant) ou un retrait n'en laissent pas. Interface : bloc « Trouver un coach /
+  Remplacer le coach » dans la fiche d'une séance (ouvert d'office si elle est sans coach ou annulée), historique dessous.
+  Analyse : `remplacements` par coach (a remplacé / a été remplacé) dans `GET /analytics` et carte « Qui dépanne le
+  plus souvent ? » ; la suppression d'une séance emporte ses traces.
+- **Charte d'Équipe alignée sur le reste de l'application** (à la demande du propriétaire, avec un clin d'œil à Flyder
+  Talents). L'onglet avait un habillage « carnet de bord » propre (police machine, tampons, filets épais, corail
+  partout) qui le distinguait de Planning, Coachs, Analyse et Paramètres. Il reprend désormais leur langage :
+  cartes blanches arrondies à filet gris, boutons et champs de Paramètres (bleu Flyder, `rounded-lg`), onglets soulignés
+  en bleu, titres Space Grotesk et texte Inter (plus de Plex Mono), avatars ronds, statuts en pilules.
+  De Talents : tuiles d'icônes pastel devant les titres de rubrique, pilules douces pour les étiquettes.
+  **Sémantique des couleurs** : bleu = action et sélection ; rouge = alerte (retard, erreur, problème) ; ambre = à
+  valider ou à surveiller ; vert = validé ou fait. Le corail n'est plus utilisé dans Équipe.
+  Changements du kit (`components/equipe/kit.jsx`) : `Rubrique` prend une icône (`Icon`, `ton`) au lieu d'un numéro ;
+  `Compte` (pastille de comptage) remplace les compteurs « 01 » ; `Tampon` devient une pastille ; `Marque` une pilule ;
+  `Onglets` est souligné par défaut et en segments avec `trait={false}` ; `Compteurs` perd `sombre`. `Panneau` passe
+  en fond blanc (en-tête à filet, pied grisé). Supprimés : le CSS `.tampon`, `MiniCalendar sobre`, le coffre à documents
+  sombre (désormais une carte claire avec cadenas), le carnet à lignes et marge ; la vignette de date des bilans devient une simple vignette grise.
+  Les écrans principaux ont été revus sur captures (manager et salarié, bureau ; mobile pour Ma journée et la Vue d'ensemble).
+- **Vérifié.** Lint sans erreur, build, 27 contrôles d'API (remplacement, conflits, traces, statistiques) et 12 dans
+  Chromium pour le remplacement ; les 94 contrôles d'API et 30 contrôles Chromium de l'entrée 52 repassent après la
+  refonte, sans erreur JavaScript. Les scripts de test doivent tourner en fuseau `Europe/Paris` comme le serveur : en
+  UTC, passé minuit à Paris, ils n'ont plus la même date que lui.
 
 ---
 

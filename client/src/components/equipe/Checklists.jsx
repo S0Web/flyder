@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { PRIORITES, nomComplet } from '../../lib/equipe';
-import { Intertitre, BoutonEncre, BoutonTrait, Lien, champCls, selectCls } from './kit';
+import { Intertitre, Compte, BoutonEncre, BoutonTrait, Lien, champCls, selectCls } from './kit';
 import Panneau from './Panneau';
 
 const MOMENTS = {
@@ -68,7 +68,7 @@ export default function ChecklistsPanneau({ onClose, onChange }) {
   return (
     <Panneau surtitre="équipe" titre="Checklists du service" onClose={onClose} largeur="max-w-xl">
       {!data ? (
-        <p className="py-10 text-center font-mono text-xs text-gray-400">chargement…</p>
+        <p className="py-10 text-center text-xs text-gray-400">chargement…</p>
       ) : (
         <div className="space-y-8">
           <p className="text-sm text-brand-ink leading-snug">
@@ -82,10 +82,10 @@ export default function ChecklistsPanneau({ onClose, onChange }) {
               {Object.entries(MOMENTS).map(([cle, m]) => {
                 const qui = data.responsables[cle];
                 return (
-                  <li key={cle} className="flex flex-wrap items-baseline gap-x-3 font-mono text-xs" data-testid={`resp-${cle}`}>
+                  <li key={cle} className="flex flex-wrap items-baseline gap-x-3 text-xs" data-testid={`resp-${cle}`}>
                     <span className="w-20 text-gray-500">{m.label.toLowerCase()}</span>
                     {qui ? <span className="text-brand-ink">{nomComplet(qui)}</span>
-                         : <span className="text-fitness">personne de planifié sur ce créneau</span>}
+                         : <span className="text-red-600">personne de planifié sur ce créneau</span>}
                   </li>
                 );
               })}
@@ -96,21 +96,21 @@ export default function ChecklistsPanneau({ onClose, onChange }) {
             const items = data.modeles.filter(x => x.moment === cle);
             return (
               <section key={cle} data-testid={`moment-${cle}`}>
-                <Intertitre actions={<span className="font-mono text-[11px] text-gray-400">{String(items.length).padStart(2, '0')}</span>}>
+                <Intertitre actions={<Compte n={items.length} />}>
                   {m.label}
                 </Intertitre>
-                <p className="font-mono text-[11px] text-gray-500 -mt-1.5 mb-3">Confié à {m.regle}.</p>
+                <p className="text-[11px] text-gray-500 -mt-1.5 mb-3">Confié à {m.regle}.</p>
 
                 {items.length > 0 && (
-                  <ul className="bg-white border-y border-brand-ink/10 divide-y divide-brand-ink/[0.07] mb-3">
+                  <ul className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden divide-y divide-gray-100 mb-3">
                     {items.map(x => (
                       <li key={x.id} className={`flex items-start gap-3 px-4 py-2.5 ${x.actif ? '' : 'opacity-50'}`}>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm text-brand-ink leading-snug">
-                            {x.priorite !== 'normale' && <span className="font-mono text-[11px] text-fitness mr-1.5">{PRIORITES[x.priorite].label.toLowerCase()}</span>}
+                            {x.priorite !== 'normale' && <span className="text-[11px] font-medium text-red-600 mr-1.5">{PRIORITES[x.priorite].label.toLowerCase()}</span>}
                             {x.titre}
                           </div>
-                          <div className="font-mono text-[11px] text-gray-500 mt-0.5">
+                          <div className="text-[11px] text-gray-500 mt-0.5">
                             {libelleJours(x.jours)}{!x.actif && ' · en pause'}
                           </div>
                         </div>
@@ -125,31 +125,31 @@ export default function ChecklistsPanneau({ onClose, onChange }) {
                 )}
 
                 {edition && edition.moment === cle ? (
-                  <form onSubmit={enregistrer} className="space-y-4 bg-white border border-brand-ink/15 rounded-[3px] p-4">
+                  <form onSubmit={enregistrer} className="space-y-4 bg-white border border-gray-200 rounded-lg p-4">
                     <label className="block">
-                      <span className="block font-mono text-[11px] text-gray-500">{edition.id ? 'modifier la tâche' : 'nouvelle tâche'}</span>
+                      <span className="block text-[11px] text-gray-500">{edition.id ? 'modifier la tâche' : 'nouvelle tâche'}</span>
                       <input autoFocus required value={edition.titre} onChange={e => setEdition(ed => ({ ...ed, titre: e.target.value }))}
                         placeholder={cle === 'bassin' ? 'Ex. Mesurer le pH et le chlore' : cle === 'fermeture' ? 'Ex. Éteindre les lumières et fermer les portes' : 'Ex. Allumer les lumières'}
                         className={champCls} />
                     </label>
                     <label className="block">
-                      <span className="block font-mono text-[11px] text-gray-500">précisions (facultatif)</span>
+                      <span className="block text-[11px] text-gray-500">précisions (facultatif)</span>
                       <input value={edition.description} onChange={e => setEdition(ed => ({ ...ed, description: e.target.value }))} className={champCls} />
                     </label>
                     <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
                       <label className="block">
-                        <span className="block font-mono text-[11px] text-gray-500 mb-1">priorité</span>
+                        <span className="block text-[11px] text-gray-500 mb-1">priorité</span>
                         <select value={edition.priorite} onChange={e => setEdition(ed => ({ ...ed, priorite: e.target.value }))} className={selectCls}>
                           {Object.entries(PRIORITES).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
                         </select>
                       </label>
                       <div>
-                        <span className="block font-mono text-[11px] text-gray-500 mb-1">jours concernés</span>
+                        <span className="block text-[11px] text-gray-500 mb-1">jours concernés</span>
                         <div className="flex gap-1">
                           {JOURS.map(([n, l]) => (
                             <button type="button" key={n} onClick={() => basculeJour(n)} aria-pressed={edition.jours.includes(n)}
-                              className={`font-mono text-[11px] px-1.5 py-1 rounded-[3px] border transition-colors ${
-                                edition.jours.includes(n) ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/20 text-gray-500 hover:border-brand-ink'}`}>
+                              className={`text-[11px] px-1.5 py-1 rounded-lg border transition-colors ${
+                                edition.jours.includes(n) ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-500 hover:border-gray-400'}`}>
                               {l}
                             </button>
                           ))}

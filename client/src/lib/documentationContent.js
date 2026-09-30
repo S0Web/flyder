@@ -62,6 +62,12 @@ La barre latérale gauche permet de cocher un ou plusieurs cours pour n'afficher
 
 Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coachs actifs. Une séance sans coach assigné, si elle approche (délai réglable dans [Préférences > Alertes](/documentation/parametres-preferences)), est mise en évidence pour ne pas être oubliée.
 
+## Remplacer un coach
+
+Un coach malade ou absent ? Ouvre la fiche de la séance : pour une séance **sans coach** ou **annulée**, le bloc « Trouver un coach pour cette séance » s'ouvre tout seul ; pour une séance qui a un coach, le lien « Remplacer le coach… » l'ouvre. La liste propose les coachs actifs : ceux qui ont déjà donné ce cours sont en tête, et ceux qui ont déjà un cours qui chevauche ce créneau sont signalés (le remplacement reste possible après confirmation). Un motif (malade, congé…) est facultatif. Confirmer enregistre tout de suite le remplacement, remet au programme une séance annulée, et garde une **trace** : qui devait faire le cours, qui le fait, pourquoi, quand et par qui. L'historique s'affiche dans la fiche de la séance. Changer simplement le coach depuis la liste déroulante de la fiche laisse aussi une trace (sans motif). Une séance déjà effectuée ou payée ne se remplace pas de cette façon : modifie son coach depuis sa fiche.
+
+Les remplacements alimentent l'[Analyse des coachs](/documentation/analyse-coachs) : qui dépanne le plus souvent, et combien de fois chacun a été remplacé.
+
 ## Capacité et remplissage
 
 Chaque cours peut avoir une **capacité** (son nombre de places), facultative : elle se saisit dans la fiche d'une séance, sous le choix du cours, et vaut pour toutes les séances de ce cours. Quand elle est connue, l'effectif d'une séance s'affiche sous la forme « 12/20 » (en ambre quand la séance est complète), et l'[Analyse](/documentation/analyse-cours) calcule des taux de remplissage.
@@ -78,7 +84,7 @@ Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes r
 ## Ma journée
 
 - Tes horaires du jour écrits en grand, ton poste et ton objectif principal.
-- Le bouton « Faire mon bilan de fin de journée ». Une fois envoyé, il est remplacé par un tampon « À valider », puis « Validé ».
+- Le bouton « Faire mon bilan de fin de journée ». Une fois envoyé, il est remplacé par une pastille « À valider », puis « Validé ».
 - Tes chiffres : tâches à faire aujourd'hui, en retard, terminées ces 7 derniers jours, congés restants.
 - Les alertes : bilan renvoyé « à revoir », nouveau document déposé pour toi, réponse à une demande de congé.
 - Tes cours, si ton profil est relié à une fiche coach (voir Effectif) : les séances des 7 prochains jours, avec l'heure, le statut et l'effectif. Le planning des cours reste la référence, on n'y modifie rien d'ici.
@@ -312,6 +318,10 @@ Classement par heures réellement effectuées (les annulations ne comptent pas).
 ## Qui remplit le mieux ses séances ?
 
 Effectif moyen par coach (minimum 5 séances pour être comparable). À lire avec prudence : un coach qui n'anime que des cours naturellement moins fréquentés (ex. Pilates vs Zumba) aura logiquement une moyenne plus basse sans que ce soit un problème de qualité d'animation — le type de cours pèse autant que le coach lui-même.
+
+## Qui dépanne le plus souvent ?
+
+Les séances de la période qu'un coach a reprises à un autre (ou à une séance laissée sans coach), via « Remplacer le coach » dans la fiche d'une séance. Le tableau donne aussi, pour chaque coach, combien de fois il a été remplacé : de quoi repérer ceux sur qui on compte, et ceux dont les absences reviennent.
 
 Pour le suivi des heures facturables, voir [Coachs](/documentation/coachs).`,
       },

@@ -243,6 +243,12 @@ export default function Analyse() {
       .map(c => ({ label: c.nom, x: c.effectues, y: c.effectif_moyen, color: CAT_COLOR[c.categorie] })),
     [cours]);
 
+  const remplacements = useMemo(() => data?.remplacements || [], [data]);
+  const topRemplacants = useMemo(
+    () => remplacements.filter(r => r.a_remplace > 0).slice().sort((a, b) => b.a_remplace - a.a_remplace).slice(0, 8)
+      .map(r => ({ label: r.coach, value: r.a_remplace, meta: r })),
+    [remplacements]);
+
   const topCoachsHeures = useMemo(
     () => [...coachs].sort((a, b) => (b.minutes || 0) - (a.minutes || 0)).slice(0, 10)
       .map(c => ({ label: c.coach, value: Math.round((c.minutes || 0) / 60), meta: c })),
@@ -691,6 +697,20 @@ export default function Analyse() {
                 .map(c => ({ label: c.coach, value: c.effectif_moyen, meta: c }))}
               valueFmt={v => fmtDec(v)}
               tipExtra={d => `${fmtInt(d.meta.effectues)} séances assurées`} />
+          </ChartCard>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <ChartCard
+            title="Qui dépanne le plus souvent&nbsp;?"
+            hint="Séances de la période qu'un coach a reprises à un autre, ou à une séance laissée sans coach (bouton « Remplacer le coach » de la fiche d'une séance). Le tableau donne aussi combien de fois chacun a été remplacé."
+            table={{
+              head: ['Coach', 'A remplacé', 'A été remplacé'],
+              rows: remplacements.map(r => [r.coach, fmtInt(r.a_remplace), fmtInt(r.a_ete_remplace)]),
+            }}
+          >
+            <HBarChart data={topRemplacants} valueFmt={v => `${fmtInt(v)} séance${v > 1 ? 's' : ''}`}
+              tipExtra={d => `${fmtInt(d.meta.a_ete_remplace)} fois remplacé`} />
           </ChartCard>
         </div>
 

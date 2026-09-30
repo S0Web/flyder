@@ -20,18 +20,18 @@ export default function MesCours({ cours }) {
       {cours.length === 0 ? (
         <Rien>aucun cours cette semaine</Rien>
       ) : (
-        <ul className="bg-white border-y border-brand-ink/10 divide-y divide-brand-ink/[0.07]">
+        <ul className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden divide-y divide-gray-100">
           {cours.map(c => {
             const statut = STATUTS[c.statut] || STATUTS.programme;
             return (
               <li key={c.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
-                <span className={`font-mono text-[11px] w-24 ${c.date === auj ? 'text-fitness font-semibold' : 'text-gray-500'}`}>
+                <span className={`text-[11px] w-24 ${c.date === auj ? 'text-sky-600 font-semibold' : 'text-gray-500'}`}>
                   {c.date === auj ? "aujourd'hui" : jourCourt(c.date)}
                 </span>
-                <span className="font-mono text-xs tabular-nums text-brand-ink w-28">{plageSeance(c.horaire, c.duree_minutes)}</span>
+                <span className="text-xs tabular-nums text-brand-ink w-28">{plageSeance(c.horaire, c.duree_minutes)}</span>
                 <span className="flex-1 min-w-[140px] text-sm text-brand-ink">{c.cours_nom}</span>
                 {c.nb_presents != null && (
-                  <span className="font-mono text-[11px] text-gray-500 tabular-nums">
+                  <span className="text-[11px] text-gray-500 tabular-nums">
                     {c.nb_presents}{c.capacite ? `/${c.capacite}` : ''} présents
                   </span>
                 )}

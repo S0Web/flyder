@@ -6,10 +6,10 @@ import { TYPES_INCIDENT, STATUTS_INCIDENT, nomComplet } from '../../lib/equipe';
 import { BoutonEncre, BoutonTrait, Lien, champCls, selectCls } from './kit';
 import Panneau from './Panneau';
 
-const choixCls = (actif) => `font-mono text-xs px-2.5 py-1.5 rounded-[3px] border transition-colors ${
-  actif ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/20 text-gray-600 hover:border-brand-ink'
+const choixCls = (actif) => `text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+  actif ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
 }`;
-const label = 'block font-mono text-[11px] text-gray-500';
+const label = 'block text-[11px] text-gray-500';
 const jjmm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
 
 // Création ou suivi d'un incident (bassin, matériel…). Un manager peut tout modifier ; le

@@ -1,89 +1,103 @@
 import { colorForUser } from '../../lib/utils';
 import { dateDepuisISO } from '../../lib/equipe';
 
-// Kit graphique de l'onglet Équipe — esprit « feuille de match / carnet de bord » :
-// la typographie et les filets structurent la page plutôt que des boîtes
-// colorées ; les chiffres, heures et dates sont en police machine (Plex Mono)
-// comme sur un tableau d'affichage ; le corail est l'unique couleur d'accent
-// (action, urgence) ; les statuts sont des tampons, pas des pastilles.
+// Kit graphique de l'onglet Équipe — même langage que le reste de Flyder : cartes blanches
+// arrondies à filet gris, bleu Flyder pour les actions et la sélection, rouge réservé aux
+// alertes, Inter pour le texte et Space Grotesk pour les titres. Clin d'œil à Flyder Talents :
+// tuiles d'icônes pastel devant les titres de rubrique et étiquettes en pilules douces.
 
-// ── Titres de rubrique : « 01  Aujourd'hui ───────── » ───────────────────────
-export function Rubrique({ numero, titre, sous, actions, className = '' }) {
+// ── Titre de rubrique : tuile d'icône pastel + titre + sous-titre ────────────
+const TUILES = {
+  bleu:  'bg-sky-50 text-sky-600',
+  vert:  'bg-[#E6F7EF] text-[#0F8A5F]',
+  ambre: 'bg-[#FFF4DB] text-[#C77700]',
+  corail: 'bg-[#FFEDE8] text-brand-coral',
+  violet: 'bg-[#F0ECFF] text-[#6B4EFF]',
+};
+
+export function Rubrique({ Icon, ton = 'bleu', titre, sous, actions, className = '' }) {
   return (
-    <header className={`mt-10 first:mt-0 mb-4 ${className}`}>
-      <div className="flex items-end gap-3">
-        {numero && <span className="font-mono text-xs text-fitness leading-none pb-1.5">{numero}</span>}
-        <h2 className="font-display text-xl sm:text-2xl font-bold text-brand-ink leading-none tracking-tight">{titre}</h2>
-        <span className="flex-1 border-b border-brand-ink/15 mb-1.5" />
-        {actions}
+    <header className={`mt-8 first:mt-0 mb-3 flex items-start gap-2.5 ${className}`}>
+      {Icon && (
+        <span className={`mt-0.5 h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 ${TUILES[ton]}`}>
+          <Icon className="h-4 w-4" strokeWidth={2} />
+        </span>
+      )}
+      <div className="flex-1 min-w-0">
+        <h2 className="font-display text-base font-bold text-brand-ink leading-tight">{titre}</h2>
+        {sous && <p className="text-xs text-gray-500 mt-0.5 max-w-2xl">{sous}</p>}
       </div>
-      {sous && <p className="mt-2 text-sm text-gray-500 max-w-2xl">{sous}</p>}
+      {actions}
     </header>
   );
 }
 
-// Feuille : surface blanche à angles presque droits, filet discret.
+// Feuille : carte blanche arrondie, filet gris.
 export function Feuille({ children, className = '', as: Tag = 'section', ...props }) {
   return (
-    <Tag {...props} className={`bg-white border border-brand-ink/10 rounded-[3px] ${className}`}>
+    <Tag {...props} className={`bg-white border border-gray-200 rounded-xl shadow-sm ${className}`}>
       {children}
     </Tag>
   );
 }
 
-// Petit libellé en police machine.
+// Petit libellé discret.
 export function Etiquette({ children, className = '' }) {
-  return <span className={`font-mono text-[11px] leading-none text-gray-500 ${className}`}>{children}</span>;
+  return <span className={`text-xs leading-none text-gray-500 ${className}`}>{children}</span>;
 }
 
-// Intitulé de bloc à l'intérieur d'une feuille : texte + filet.
+// Intitulé de bloc à l'intérieur d'une page ou d'une carte : titre + actions à droite.
 export function Intertitre({ children, actions, className = '' }) {
   return (
     <div className={`flex items-center gap-3 mb-3 ${className}`}>
-      <h3 className="font-display text-[15px] font-bold text-brand-ink whitespace-nowrap">{children}</h3>
-      <span className="flex-1 border-b border-dashed border-brand-ink/15" />
+      <h3 className="font-display text-sm font-bold text-brand-ink whitespace-nowrap">{children}</h3>
+      <span className="flex-1" />
       {actions}
     </div>
   );
 }
 
-// ── Tampon de statut ──────────────────────────────────────────────────────────
+// ── Pastille de statut d'un bilan ─────────────────────────────────────────────
 const TAMPONS = {
-  soumis:    { texte: 'À valider', couleur: '#E0461F', angle: '-3deg' },
-  valide:    { texte: 'Validé',    couleur: '#0B7A3E', angle: '-5deg' },
-  a_revoir:  { texte: 'À revoir',  couleur: '#C0262D', angle: '4deg' },
-  brouillon: { texte: 'Brouillon', couleur: '#8B93A7', angle: '-2deg' },
+  soumis:    { texte: 'À valider', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
+  valide:    { texte: 'Validé',    cls: 'bg-green-50 text-green-700 ring-green-200' },
+  a_revoir:  { texte: 'À revoir',  cls: 'bg-red-50 text-red-700 ring-red-200' },
+  brouillon: { texte: 'Brouillon', cls: 'bg-gray-100 text-gray-600 ring-gray-200' },
 };
 
 export function Tampon({ statut, className = '' }) {
   const t = TAMPONS[statut];
   if (!t) return null;
   return (
-    <span className={`tampon ${className}`} style={{ color: t.couleur, '--angle': t.angle }}>{t.texte}</span>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none ring-1 ring-inset whitespace-nowrap ${t.cls} ${className}`}>
+      {t.texte}
+    </span>
   );
 }
 
-// Marque : étiquette cernée d'un trait (jamais un aplat pastel).
+// Marque : étiquette en pilule douce.
 export function Marque({ children, ton = 'encre', className = '' }) {
   const couleurs = {
-    encre: 'text-brand-ink border-brand-ink/40',
-    corail: 'text-fitness border-fitness/60',
-    gris: 'text-gray-500 border-gray-300',
-    bleu: 'text-sky-700 border-sky-400/60',
+    encre: 'bg-gray-100 text-gray-700',
+    corail: 'bg-red-50 text-red-700',
+    gris: 'bg-gray-100 text-gray-500',
+    bleu: 'bg-sky-50 text-sky-700',
+    vert: 'bg-green-50 text-green-700',
+    ambre: 'bg-amber-50 text-amber-700',
   };
   return (
-    <span className={`inline-flex items-center font-mono text-[10px] uppercase leading-none tracking-wider border rounded-[2px] px-1.5 py-[3px] ${couleurs[ton]} ${className}`}>
+    <span className={`inline-flex items-center text-[11px] font-medium leading-none rounded-full px-2 py-1 whitespace-nowrap ${couleurs[ton]} ${className}`}>
       {children}
     </span>
   );
 }
 
-// ── Avatar : plaque carrée façon badge de vestiaire ──────────────────────────
+// ── Avatar rond, aux couleurs du profil (comme dans la barre latérale) ───────
 export function Plaque({ user, size = 28, className = '' }) {
   return (
     <span
-      className={`inline-flex items-center justify-center flex-shrink-0 rounded-[4px] font-mono font-semibold text-white ${className}`}
-      style={{ width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.34)), backgroundColor: colorForUser(user?.id ?? 0) }}
+      className={`inline-flex items-center justify-center flex-shrink-0 rounded-full font-semibold text-white ${className}`}
+      style={{ width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.38)), backgroundColor: colorForUser(user?.id ?? 0) }}
       title={user ? `${user.prenom} ${user.nom || ''}`.trim() : undefined}
     >
       {(user?.prenom?.[0] || '').toUpperCase()}{(user?.nom?.[0] || '').toUpperCase()}
@@ -91,102 +105,124 @@ export function Plaque({ user, size = 28, className = '' }) {
   );
 }
 
-// ── Tableau d'affichage : chiffres séparés par des filets verticaux ──────────
-export function Compteurs({ items, sombre = false, className = '' }) {
+// ── Chiffres clés : libellé en petites capitales, valeur en grand ────────────
+export function Compteurs({ items, className = '' }) {
   return (
     <div className={`grid grid-cols-2 sm:flex sm:flex-wrap ${className}`}>
       {items.map((it, i) => (
         <div key={i}
-          className={`px-4 py-3 sm:flex-1 sm:min-w-[120px] border-b sm:border-b-0 ${i % 2 === 0 ? 'border-r' : ''} sm:border-r last:border-r-0 ${
-            sombre ? 'border-white/10' : 'border-brand-ink/10'
-          }`}>
-          <div className={`font-mono text-[11px] leading-tight ${sombre ? 'text-brand-cream/55' : 'text-gray-500'}`}>{it.label}</div>
-          <div className={`font-mono text-[28px] sm:text-[32px] font-semibold leading-none mt-2 tabular-nums ${
-            it.ton === 'corail' ? 'text-fitness' : it.ton === 'vert' ? (sombre ? 'text-emerald-300' : 'text-[#0B7A3E]') : sombre ? 'text-white' : 'text-brand-ink'
+          className={`px-4 py-3.5 sm:flex-1 sm:min-w-[120px] border-b sm:border-b-0 ${i % 2 === 0 ? 'border-r' : ''} sm:border-r last:border-r-0 border-gray-100`}>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 leading-tight">{it.label}</div>
+          <div className={`font-display text-[28px] font-bold leading-none mt-2 tabular-nums ${
+            it.ton === 'corail' ? 'text-red-600' : it.ton === 'vert' ? 'text-green-600' : 'text-brand-ink'
           }`}>{it.valeur}</div>
-          {it.note && <div className={`text-[11px] mt-1.5 ${sombre ? 'text-brand-cream/45' : 'text-gray-400'}`}>{it.note}</div>}
+          {it.note && <div className="text-[11px] mt-1.5 text-gray-400">{it.note}</div>}
         </div>
       ))}
     </div>
   );
 }
 
-// ── Jauge en cases : 7 cases pleines sur 10, plutôt qu'une barre floue ───────
+// ── Pastille de comptage à côté d'un titre ───────────────────────────────────
+export function Compte({ n, ton = 'gris', className = '' }) {
+  const tons = { gris: 'bg-gray-100 text-gray-600', bleu: 'bg-sky-50 text-sky-700', rouge: 'bg-red-50 text-red-700' };
+  return (
+    <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold tabular-nums align-middle ${tons[ton]} ${className}`}>{n}</span>
+  );
+}
+
+// ── Jauge en cases : 7 cases pleines sur 10 ───────────────────────────────────
 export function Cases({ faits, total, couleur = '#12162B', taille = 8 }) {
   if (!total) return null;
   return (
     <span className="inline-flex gap-[3px] align-middle" aria-label={`${faits} sur ${total}`}>
       {Array.from({ length: total }, (_, i) => (
-        <span key={i} className="rounded-[1px]"
+        <span key={i} className="rounded-sm"
           style={{ width: taille, height: taille, backgroundColor: i < faits ? couleur : 'transparent', boxShadow: i < faits ? 'none' : `inset 0 0 0 1px ${couleur}40` }} />
       ))}
     </span>
   );
 }
 
-// ── Date détachable (éphéméride) ──────────────────────────────────────────────
+// ── Date en vignette ──────────────────────────────────────────────────────────
 export function Ephemeride({ iso, compacte = false }) {
   const d = dateDepuisISO(iso);
   return (
-    <div className={`flex flex-col items-center justify-center text-center flex-shrink-0 border-r border-dashed border-brand-ink/20 ${compacte ? 'w-14 py-2' : 'w-16 sm:w-20 py-3'}`}>
-      <span className="font-mono text-[10px] uppercase text-gray-400 leading-none">{d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</span>
+    <div className={`flex flex-col items-center justify-center text-center flex-shrink-0 bg-gray-50 border-r border-gray-200 ${compacte ? 'w-14 py-2' : 'w-16 sm:w-20 py-3'}`}>
+      <span className="text-[10px] font-semibold uppercase text-gray-500 leading-none">{d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</span>
       <span className={`font-display font-bold text-brand-ink leading-none mt-1 ${compacte ? 'text-2xl' : 'text-3xl'}`}>{d.getDate()}</span>
-      <span className="font-mono text-[10px] uppercase text-fitness leading-none mt-1">{d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '')}</span>
+      <span className="text-[10px] font-semibold uppercase text-sky-600 leading-none mt-1">{d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '')}</span>
     </div>
   );
 }
 
-// ── Boutons ───────────────────────────────────────────────────────────────────
-const btnBase = 'inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2 rounded-[3px] transition-[background-color,transform] active:translate-y-px disabled:opacity-40 disabled:pointer-events-none';
+// ── Boutons (mêmes que dans Paramètres, Coachs, Analyse…) ─────────────────────
+const btnBase = 'inline-flex items-center justify-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-[background-color,transform] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none';
 
+// Action principale : bleu Flyder.
 export function BoutonEncre({ children, className = '', ...props }) {
-  return <button {...props} className={`${btnBase} bg-brand-ink text-white hover:bg-black ${className}`}>{children}</button>;
+  return <button {...props} className={`${btnBase} bg-sky-500 text-white hover:bg-sky-600 ${className}`}>{children}</button>;
 }
 
+// Même action principale (l'ancien bouton corail a disparu avec la charte d'origine).
 export function BoutonCorail({ children, className = '', ...props }) {
-  return <button {...props} className={`${btnBase} bg-fitness text-white hover:bg-[#E8461F] ${className}`}>{children}</button>;
+  return <button {...props} className={`${btnBase} bg-sky-500 text-white hover:bg-sky-600 ${className}`}>{children}</button>;
 }
 
 export function BoutonTrait({ children, className = '', ...props }) {
-  return <button {...props} className={`${btnBase} border border-brand-ink/25 text-brand-ink bg-transparent hover:bg-white ${className}`}>{children}</button>;
+  return <button {...props} className={`${btnBase} border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 ${className}`}>{children}</button>;
 }
 
-// Lien d'action discret, souligné.
+// Lien d'action discret.
 export function Lien({ children, className = '', as: Tag = 'button', ...props }) {
   return (
-    <Tag {...props} className={`font-mono text-[11px] text-brand-ink underline decoration-fitness decoration-2 underline-offset-4 hover:text-fitness ${className}`}>
+    <Tag {...props} className={`text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline underline-offset-2 ${className}`}>
       {children}
     </Tag>
   );
 }
 
-// État vide : une simple ligne, pas d'icône dans une bulle.
+// État vide : une simple ligne.
 export function Rien({ children, action }) {
   return (
     <div className="py-8 px-4 text-center">
-      <p className="font-mono text-xs text-gray-400">— {children} —</p>
+      <p className="text-sm text-gray-400">{children}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
 
-// Onglets soulignés (texte + filet corail sous l'onglet actif).
+// Onglets : soulignés en bleu (navigation), ou en segments (`trait={false}`, bascule de vue / filtre).
 export function Onglets({ onglets, actif, onChange, trait = true, className = '' }) {
+  if (!trait) {
+    return (
+      <div className={`inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 gap-0.5 ${className}`}>
+        {onglets.map(o => (
+          <button key={o.id} onClick={() => onChange(o.id)}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors active:scale-[0.97] ${
+              actif === o.id ? 'bg-white text-sky-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            {o.label}
+            {o.count > 0 && <span className={`tabular-nums text-[10px] px-1.5 rounded-full ${actif === o.id ? 'bg-sky-50 text-sky-700' : 'bg-gray-200/70 text-gray-500'}`}>{o.count}</span>}
+          </button>
+        ))}
+      </div>
+    );
+  }
   return (
-    <nav className={`flex items-end gap-5 overflow-x-auto no-scrollbar ${trait ? 'border-b border-brand-ink/10' : ''} ${className}`}>
+    <nav className={`flex gap-1 overflow-x-auto no-scrollbar border-b border-gray-200 ${className}`}>
       {onglets.map(o => (
         <button key={o.id} onClick={() => onChange(o.id)}
-          className={`relative flex-shrink-0 pb-2.5 pt-1 text-sm transition-colors ${
-            actif === o.id ? 'text-brand-ink font-semibold' : 'text-gray-500 hover:text-brand-ink'
+          className={`relative flex-shrink-0 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            actif === o.id ? 'border-sky-500 text-sky-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}>
           {o.label}
-          {o.count > 0 && <sup className={`ml-0.5 font-mono text-[10px] ${o.alerte ? 'text-fitness' : 'text-gray-400'}`}>{o.count}</sup>}
-          {actif === o.id && <span className="absolute left-0 right-0 -bottom-px h-[3px] bg-fitness" />}
+          {o.count > 0 && <sup className={`ml-0.5 text-[10px] ${o.alerte ? 'text-red-600' : 'text-gray-400'}`}>{o.count}</sup>}
         </button>
       ))}
     </nav>
   );
 }
 
-export const champCls = 'w-full border-0 border-b border-brand-ink/20 bg-transparent px-0 py-1.5 text-sm text-brand-ink placeholder:text-gray-400 focus:outline-none focus:ring-0 focus:border-fitness disabled:text-gray-500';
-export const selectCls = 'border border-brand-ink/20 rounded-[3px] bg-white px-2.5 py-1.5 text-sm text-brand-ink focus:outline-none focus:border-brand-ink';
+export const champCls = 'w-full border border-gray-300 rounded-lg bg-white px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500';
+export const selectCls = 'border border-gray-300 rounded-lg bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500';
