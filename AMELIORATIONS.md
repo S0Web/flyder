@@ -561,6 +561,44 @@ la plage horaire 9h-21h de la modale de séance est **conservée** (aucun cours 
 - **Reste à faire de l'audit** : harmonisation de la charte graphique, capacité par cours et taux de remplissage,
   lien salarié ↔ coach, checklists d'ouverture/fermeture, indicateurs de bilan numériques.
 
+### 51. ✅ Onglet Équipe : améliorations issues de l'audit (charte, bilans, congés, contrats)
+Deuxième lot de l'audit du 30/09/2026, centré sur l'onglet Équipe.
+- **Signaux redondants.** Plus de badge chiffré sur les onglets ni de KPI « bilans à valider » : restent la
+  pastille du menu (bilans à valider + demandes de congé pour un manager) et la liste « À valider ».
+- **Indicateurs de bilan typés** (`nombre`, `oui_non`, `texte`) : éditeur dans la fiche de poste, saisie adaptée
+  dans le bilan (les anciennes fiches, en simples chaînes, sont lues comme `texte`), valeur refusée si elle ne
+  correspond pas au type. La Vue d'ensemble affiche « Chiffres du terrain » : somme des indicateurs `nombre` par
+  membre, cette semaine / semaine précédente / 30 jours (`chiffres` dans `GET /equipe/vue-ensemble`).
+- **Problèmes signalés → suivi.** Colonnes `comptes_rendus.probleme_resolu` et `probleme_tache_id` ; « Problèmes
+  à traiter » (30 jours) avec « créer une tâche » (panneau prérempli, `initial` sur `TachePanneau`) et « marquer
+  résolu » (`POST /equipe/comptes-rendus/:id/probleme`). Un problème relié à une tâche terminée est considéré
+  résolu ; modifié par son auteur, il redevient ouvert.
+- **Cahier de transmission.** « À savoir en arrivant » dans Ma journée : priorité de demain et problème non résolu
+  des bilans d'hier et d'aujourd'hui des collègues actifs. Seuls ces deux champs sont exposés (jamais « ma journée
+  en deux mots ») ; le panneau de bilan le dit explicitement.
+- **Heures de contrat** (`app_users.heures_contrat_semaine`, facultatif, manager) comparées aux heures planifiées
+  dans Effectif et Planning (écart affiché au-delà de 30 min) ; export CSV du récap mensuel (Excel : BOM, `;`,
+  virgule décimale).
+- **Demandes de congé** (table `demandes_conges`, `routes/demandesConges.js`) : le salarié demande depuis Ma
+  journée ; le manager coche les jours à poser (dimanches sans horaire et jours déjà repos/férié/école/arrêt
+  décochés par défaut) et accepte ou refuse avec un retour ; accepter écrit un « CP » par jour retenu. Aide à la
+  décision : solde de CP, planning du demandeur, collègues déjà en congé. Soumis à `requireWriteAccess` comme le
+  reste : hors IP autorisée, un compte salarié est en lecture seule et ne peut pas demander.
+- **Effectif = gestion des utilisateurs.** Activer/désactiver, supprimer (profil inactif), importer les fiches de
+  paie et régénérer la démo (instance Demo-Portfolio) y sont passés ; l'onglet Paramètres > Utilisateurs
+  disparaît (la doc garde l'article `parametres-utilisateurs`, devenu un renvoi).
+- **Notes de suivi** (table `notes_suivi`) : onglet « Suivi » de la fiche, managers uniquement, jamais visibles par
+  la personne concernée (un manager ne lit pas non plus les notes qui le concernent).
+- **Heures d'ouverture de la salle** (Préférences > Planning, 7h-22h par défaut) : bornes des frises « Qui est là »
+  et du planning du personnel. La plage 9h-21h de la saisie des cours reste inchangée.
+- **Charte Équipe partout.** Planning du personnel, frise, récap mensuel, congés payés, `MiniCalendar` (variante
+  `sobre`), `PersonnelCreneauModal` et `UserModal` (désormais des panneaux latéraux) utilisent le kit d'Équipe.
+  Le reste de l'application (Planning des cours, Coachs, Analyse…) garde l'ancienne charte.
+- **Tâches.** Ajout rapide dans la vue Tableau ; statut « en cours » visible sur la case.
+- **Non fait, à décider.** Le Carnet privé est conservé : le retirer masquerait des notes que des salariés ont pu
+  écrire. Reste aussi la charte des autres onglets, la capacité par cours, le lien salarié ↔ coach et les
+  checklists d'ouverture/fermeture.
+
 ---
 
 ## Idées écartées (ne pas implémenter sans demande explicite)

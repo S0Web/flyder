@@ -26,7 +26,11 @@ function getMonthDays(year, month) {
   return days;
 }
 
-export default function MiniCalendar({ lundi, onSelectDate }) {
+// `sobre` : habillage de l'onglet Équipe (encre et corail) ; par défaut, celui du Planning des cours.
+export default function MiniCalendar({ lundi, onSelectDate, sobre = false }) {
+  const st = sobre
+    ? { cadre: 'bg-white border border-brand-ink/10 rounded-[3px]', semaine: 'bg-brand-ink/10 text-brand-ink', debut: 'bg-brand-ink text-white rounded-full', auj: 'font-bold text-fitness' }
+    : { cadre: 'bg-white border border-gray-200 rounded', semaine: 'bg-sky-100 text-sky-900', debut: 'bg-sky-600 text-white rounded-full', auj: 'font-bold text-sky-600' };
   const [display, setDisplay] = useState({ year: lundi.getFullYear(), month: lundi.getMonth() });
 
   useEffect(() => {
@@ -56,7 +60,7 @@ export default function MiniCalendar({ lundi, onSelectDate }) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded select-none">
+    <div className={`${st.cadre} select-none`}>
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
         <button onClick={prev} className="text-gray-400 hover:text-gray-700 text-lg leading-none px-1">‹</button>
         <span className="text-xs font-semibold text-gray-700 capitalize">{monthLabel}</span>
@@ -81,18 +85,18 @@ export default function MiniCalendar({ lundi, onSelectDate }) {
           if (!current) cls += 'text-gray-300 ';
 
           if (inWeek) {
-            cls += 'bg-sky-100 text-sky-900 ';
+            cls += `${st.semaine} `;
             if (isFirst) cls += 'rounded-l-full ';
             if (isLast)  cls += 'rounded-r-full ';
           } else if (isToday) {
-            cls += 'font-bold text-sky-600 rounded-full hover:bg-gray-100 ';
+            cls += `${st.auj} rounded-full hover:bg-gray-100 `;
           } else {
             cls += (current ? 'text-gray-700 hover:bg-gray-100 ' : 'text-gray-300 hover:bg-gray-50 ') + 'rounded-full ';
           }
 
           return (
             <button key={i} onClick={() => onSelectDate(date)} className={cls}>
-              <span className={`inline-flex items-center justify-center w-6 h-6 ${isFirst ? 'bg-sky-600 text-white rounded-full' : ''}`}>
+              <span className={`inline-flex items-center justify-center w-6 h-6 ${isFirst ? st.debut : ''}`}>
                 {date.getDate()}
               </span>
             </button>

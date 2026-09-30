@@ -1,20 +1,4 @@
-// Documentation Flyder — contenu statique, identique pour toutes les salles
-// (contrairement à Formation, propre à chaque salle et éditable depuis
-// l'appli). Se modifie ici, dans le code, pas depuis une interface.
-//
-// Chaque article a un id stable (utilisé dans l'URL /documentation/:id et
-// dans les liens internes entre articles) — ne jamais le changer une fois
-// publié, sous peine de casser des liens partagés ou mis en favori.
-
-export const DOC_CATEGORIES = [
-  {
-    id: 'prise-en-main',
-    titre: 'Prise en main',
-    articles: [
-      {
-        id: 'prise-en-main',
-        titre: 'Se connecter et se repérer',
-        contenu: `## Se connecter
+import{r as e}from"./rolldown-runtime-QTnfLwEv.js";import{n as t,t as n}from"./jsx-runtime-CIxEorsV.js";import{n as r,r as i,t as a}from"./search-BZ8u1Ria.js";import{B as o,H as s,I as c,v as l}from"./index-CoeBkdlM.js";import{n as u}from"./markdown-DMGfxa9w.js";var d=e(t(),1),f=[{id:`prise-en-main`,titre:`Prise en main`,articles:[{id:`prise-en-main`,titre:`Se connecter et se repérer`,contenu:`## Se connecter
 
 Flyder n'utilise pas d'identifiant/mot de passe classique. Au lancement, l'écran "Qui utilise Flyder aujourd'hui ?" affiche la liste des profils de la salle sous forme de pastilles avec initiale. Il suffit de cliquer sur son profil pour entrer.
 
@@ -24,18 +8,7 @@ Aucun nouveau profil ne peut être créé depuis cet écran : la création se fa
 
 ## Repères de navigation
 
-Le menu latéral donne accès à toutes les sections de l'application. Certaines entrées ne sont visibles que pour un profil manager (précisé article par article dans cette documentation). Un badge peut apparaître sur [Support](/documentation/support) ou [Nouveautés](/documentation/nouveautes) pour signaler du contenu non lu.`,
-      },
-    ],
-  },
-  {
-    id: 'planning',
-    titre: 'Planning',
-    articles: [
-      {
-        id: 'planning',
-        titre: 'Planning des cours',
-        contenu: `Le Planning est la page d'accueil de Flyder : il affiche le programme des cours de la semaine.
+Le menu latéral donne accès à toutes les sections de l'application. Certaines entrées ne sont visibles que pour un profil manager (précisé article par article dans cette documentation). Un badge peut apparaître sur [Support](/documentation/support) ou [Nouveautés](/documentation/nouveautes) pour signaler du contenu non lu.`}]},{id:`planning`,titre:`Planning`,articles:[{id:`planning`,titre:`Planning des cours`,contenu:`Le Planning est la page d'accueil de Flyder : il affiche le programme des cours de la semaine.
 
 ## Lire la vue grille
 
@@ -60,12 +33,7 @@ La barre latérale gauche permet de cocher un ou plusieurs cours pour n'afficher
 
 ## Assigner un coach
 
-Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coachs actifs. Une séance sans coach assigné, si elle approche (délai réglable dans [Préférences > Alertes](/documentation/parametres-preferences)), est mise en évidence pour ne pas être oubliée.`,
-      },
-      {
-        id: 'planning-personnel',
-        titre: 'Équipe',
-        contenu: `L'onglet Équipe regroupe tout ce qui concerne le personnel de la salle : planning, tâches, bilans de fin de journée et fiches individuelles. Il remplace l'ancien « Planning personnel ». Un manager y trouve une vue d'ensemble de l'équipe ; chaque salarié y voit sa journée, ses tâches et sa propre fiche.
+Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coachs actifs. Une séance sans coach assigné, si elle approche (délai réglable dans [Préférences > Alertes](/documentation/parametres-preferences)), est mise en évidence pour ne pas être oubliée.`},{id:`planning-personnel`,titre:`Équipe`,contenu:`L'onglet Équipe regroupe tout ce qui concerne le personnel de la salle : planning, tâches, bilans de fin de journée et fiches individuelles. Il remplace l'ancien « Planning personnel ». Un manager y trouve une vue d'ensemble de l'équipe ; chaque salarié y voit sa journée, ses tâches et sa propre fiche.
 
 Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes rendus, Effectif. Onglets d'un salarié : Ma journée, Planning, Mes tâches, Mes comptes rendus, Ma fiche. Un point rouge sur « Équipe » dans le menu signale ce qui attend : bilans à valider et demandes de congé pour un manager ; tâche en retard, bilan à revoir ou nouveau document pour un salarié.
 
@@ -145,18 +113,7 @@ Un salarié ne voit que ses propres documents ; les nouveaux sont marqués « no
 
 Le solde de CP s'affiche dans Ma journée, sur la fiche de chacun et dans la barre latérale du planning. Le détail (acquis, ajustement, pris, restant) est sur la fiche ; l'ajustement manuel du cumul est réservé au manager.
 
-Pour poser un congé, le salarié utilise « demander un congé » dans Ma journée (une période, un motif facultatif) et suit sa demande au même endroit ; il peut l'annuler tant qu'elle n'est pas traitée. Le manager répond depuis la Vue d'ensemble. Les comptes en lecture seule (hors de la salle) ne peuvent pas envoyer de demande.`,
-      },
-    ],
-  },
-  {
-    id: 'coachs-annuaire',
-    titre: 'Coachs & Annuaire',
-    articles: [
-      {
-        id: 'coachs',
-        titre: 'Coachs',
-        contenu: `L'onglet Coachs centralise le suivi des heures effectuées par chaque coach, sur les 13 derniers mois — utile en fin de mois pour vérifier ce qui est dû avant de régler une facture.
+Pour poser un congé, le salarié utilise « demander un congé » dans Ma journée (une période, un motif facultatif) et suit sa demande au même endroit ; il peut l'annuler tant qu'elle n'est pas traitée. Le manager répond depuis la Vue d'ensemble. Les comptes en lecture seule (hors de la salle) ne peuvent pas envoyer de demande.`}]},{id:`coachs-annuaire`,titre:`Coachs & Annuaire`,articles:[{id:`coachs`,titre:`Coachs`,contenu:`L'onglet Coachs centralise le suivi des heures effectuées par chaque coach, sur les 13 derniers mois — utile en fin de mois pour vérifier ce qui est dû avant de régler une facture.
 
 ## Lire le tableau
 
@@ -170,12 +127,7 @@ Cliquer sur un nombre d'heures ouvre la liste des séances correspondantes (cour
 
 Cliquer sur le nom d'un coach ouvre ses statistiques (cours donnés, heures, effectif moyen sur 30 jours / depuis septembre / tout temps), avec un accès "Modifier les informations" pour éditer sa fiche : coordonnées, discipline(s) enseignée(s), et informations de facturation (adresse, SIRET, tarif horaire — facultatives, utilisées uniquement pour l'export PDF). C'est aussi depuis cette fiche que sont gérés les documents du coach (contrats, etc., visible en Manager) et qu'on peut désactiver ou réactiver un coach.
 
-Pour l'analyse détaillée de la performance des coachs (charge, remplissage), voir [Analyse > Les coachs](/documentation/analyse-coachs).`,
-      },
-      {
-        id: 'annuaire',
-        titre: 'Annuaire',
-        contenu: `L'Annuaire regroupe tous les contacts utiles de la salle, classés par catégorie : Coachs, Prestataires, Employés, Responsables. Un même contact peut apparaître dans plusieurs catégories (ex. un coach qui est aussi salarié).
+Pour l'analyse détaillée de la performance des coachs (charge, remplissage), voir [Analyse > Les coachs](/documentation/analyse-coachs).`},{id:`annuaire`,titre:`Annuaire`,contenu:`L'Annuaire regroupe tous les contacts utiles de la salle, classés par catégorie : Coachs, Prestataires, Employés, Responsables. Un même contact peut apparaître dans plusieurs catégories (ex. un coach qui est aussi salarié).
 
 ## Rechercher et filtrer
 
@@ -187,18 +139,7 @@ Le bouton "Nouveau contact" permet d'ajouter un Prestataire, Employé ou Respons
 
 ## Modifier ou supprimer
 
-Cliquer sur un contact ouvre sa fiche pour modification. La suppression est disponible depuis cette même fiche (sauf pour les coachs, gérés depuis Coachs).`,
-      },
-    ],
-  },
-  {
-    id: 'analyse',
-    titre: 'Analyse',
-    articles: [
-      {
-        id: 'analyse',
-        titre: "Comprendre l'onglet Analyse",
-        contenu: `C'est la section la plus dense de Flyder, et souvent la moins bien comprise au départ — parce qu'à première vue, ça ressemble à des jolis graphiques décoratifs. Ce n'en sont pas : chaque graphique répond à une question concrète que se pose n'importe quel gérant de salle, et sert à prendre une vraie décision (ouvrir un créneau, en fermer un, revoir un tarif de coach, questionner un cours qui s'essouffle).
+Cliquer sur un contact ouvre sa fiche pour modification. La suppression est disponible depuis cette même fiche (sauf pour les coachs, gérés depuis Coachs).`}]},{id:`analyse`,titre:`Analyse`,articles:[{id:`analyse`,titre:`Comprendre l'onglet Analyse`,contenu:`C'est la section la plus dense de Flyder, et souvent la moins bien comprise au départ — parce qu'à première vue, ça ressemble à des jolis graphiques décoratifs. Ce n'en sont pas : chaque graphique répond à une question concrète que se pose n'importe quel gérant de salle, et sert à prendre une vraie décision (ouvrir un créneau, en fermer un, revoir un tarif de coach, questionner un cours qui s'essouffle).
 
 Cette documentation détaille chaque partie de l'onglet dans un article séparé : [L'essentiel](/documentation/analyse-essentiel), [Évolution dans le temps](/documentation/analyse-evolution), [Fréquentation](/documentation/analyse-frequentation), [Les cours](/documentation/analyse-cours), [Les coachs](/documentation/analyse-coachs), [Fiabilité du planning](/documentation/analyse-qualite).
 
@@ -208,23 +149,13 @@ En haut de page, trois modes : **Année scolaire** (septembre → août, la faç
 
 Si les cours Aqua sont activés, un filtre Aqua/Fitness/Tous est disponible à côté du sélecteur de période.
 
-Un menu de navigation rapide (à droite, sur grand écran) permet de sauter directement à une section de la page.`,
-      },
-      {
-        id: 'analyse-essentiel',
-        titre: "Analyse — L'essentiel",
-        contenu: `Cinq chiffres-clés en haut de la page [Analyse](/documentation/analyse) : séances effectuées, participants, heures de cours, effectif moyen par séance, et taux d'annulation — chacun avec sa variation par rapport à la période précédente et une mini-courbe des 12 derniers mois.
+Un menu de navigation rapide (à droite, sur grand écran) permet de sauter directement à une section de la page.`},{id:`analyse-essentiel`,titre:`Analyse — L'essentiel`,contenu:`Cinq chiffres-clés en haut de la page [Analyse](/documentation/analyse) : séances effectuées, participants, heures de cours, effectif moyen par séance, et taux d'annulation — chacun avec sa variation par rapport à la période précédente et une mini-courbe des 12 derniers mois.
 
 ## Pourquoi les regarder
 
 C'est le tableau de bord "santé" de l'activité. Une hausse régulière des participants avec un effectif moyen stable = la salle grandit sainement (plus de cours, pas juste plus de monde entassé). Une hausse des annulations, elle, doit alerter même si le reste va bien — c'est souvent le premier signal d'un problème (coach en difficulté, créneau mal choisi, cours qui ne plaît plus). Voir aussi [Fiabilité du planning](/documentation/analyse-qualite).
 
-Quatre chiffres complémentaires en dessous (cours au catalogue, coachs actifs, séances programmées, séances sans coach) donnent une photo rapide de la structure de l'offre — "séances sans coach" en particulier mérite d'être à zéro en permanence.`,
-      },
-      {
-        id: 'analyse-evolution',
-        titre: 'Analyse — Évolution dans le temps',
-        contenu: `## Comment la fréquentation évolue-t-elle ?
+Quatre chiffres complémentaires en dessous (cours au catalogue, coachs actifs, séances programmées, séances sans coach) donnent une photo rapide de la structure de l'offre — "séances sans coach" en particulier mérite d'être à zéro en permanence.`},{id:`analyse-evolution`,titre:`Analyse — Évolution dans le temps`,contenu:`## Comment la fréquentation évolue-t-elle ?
 
 Une courbe mensuelle, avec un sélecteur pour choisir la mesure suivie (séances, participants, heures, ou effectif moyen). Une courbe qui monte régulièrement = activité en croissance ; des creux marqués correspondent le plus souvent aux vacances scolaires — pas la peine de s'inquiéter d'une baisse en février si elle se reproduit chaque année à la même période.
 
@@ -234,12 +165,7 @@ Une courbe mensuelle, avec un sélecteur pour choisir la mesure suivie (séances
 
 ## Pourquoi ça compte
 
-Un seul chiffre ("plus de monde qu'avant") peut cacher une tendance négative en train de démarrer. La courbe mensuelle est ce qui permet de la voir venir plusieurs mois avant qu'elle ne devienne un vrai problème.`,
-      },
-      {
-        id: 'analyse-frequentation',
-        titre: 'Analyse — Quand la salle tourne-t-elle',
-        contenu: `## La carte des créneaux
+Un seul chiffre ("plus de monde qu'avant") peut cacher une tendance négative en train de démarrer. La courbe mensuelle est ce qui permet de la voir venir plusieurs mois avant qu'elle ne devienne un vrai problème.`},{id:`analyse-frequentation`,titre:`Analyse — Quand la salle tourne-t-elle`,contenu:`## La carte des créneaux
 
 Une grille jour × heure où chaque case est colorée selon son remplissage. C'est la vue la plus utile de toute la page [Analyse](/documentation/analyse) pour une question très concrète : quels créneaux mériteraient d'être questionnés ? Une case pâle ou vide, ce n'est pas anodin — soit le créneau existe mais ne remplit pas (candidat à déplacer ou remplacer par un autre cours), soit il n'existe pas encore alors qu'un créneau voisin cartonne (candidat à ouvrir).
 
@@ -253,12 +179,7 @@ Répartition des séances par tranche de participants. Un effectif moyen de 10 p
 
 ## Aqua / Fitness — la part de chacun
 
-(si Aqua actif) Répartition globale des participants entre les deux univers sur la période.`,
-      },
-      {
-        id: 'analyse-cours',
-        titre: 'Analyse — Les cours',
-        contenu: `## Les cours qui rassemblent le plus
+(si Aqua actif) Répartition globale des participants entre les deux univers sur la période.`},{id:`analyse-cours`,titre:`Analyse — Les cours`,contenu:`## Les cours qui rassemblent le plus
 
 Classement des cours par total de participants sur la période.
 
@@ -268,12 +189,7 @@ Un nuage de points : chaque point est un cours, sa position horizontale indique 
 
 ## Pourquoi ce graphique change la donne
 
-Sans lui, la tentation naturelle est de se fier à l'instinct ("je sens que ce cours marche bien") — ce graphique remplace l'instinct par un fait vérifiable, et révèle souvent des surprises (un cours qu'on pensait secondaire mais qui affiche complet à chaque fois).`,
-      },
-      {
-        id: 'analyse-coachs',
-        titre: 'Analyse — Les coachs',
-        contenu: `## Qui assure le plus d'heures ?
+Sans lui, la tentation naturelle est de se fier à l'instinct ("je sens que ce cours marche bien") — ce graphique remplace l'instinct par un fait vérifiable, et révèle souvent des surprises (un cours qu'on pensait secondaire mais qui affiche complet à chaque fois).`},{id:`analyse-coachs`,titre:`Analyse — Les coachs`,contenu:`## Qui assure le plus d'heures ?
 
 Classement par heures réellement effectuées (les annulations ne comptent pas). Utile pour équilibrer la charge de travail entre coachs, ou repérer une dépendance excessive à une seule personne.
 
@@ -281,12 +197,7 @@ Classement par heures réellement effectuées (les annulations ne comptent pas).
 
 Effectif moyen par coach (minimum 5 séances pour être comparable). À lire avec prudence : un coach qui n'anime que des cours naturellement moins fréquentés (ex. Pilates vs Zumba) aura logiquement une moyenne plus basse sans que ce soit un problème de qualité d'animation — le type de cours pèse autant que le coach lui-même.
 
-Pour le suivi des heures facturables, voir [Coachs](/documentation/coachs).`,
-      },
-      {
-        id: 'analyse-qualite',
-        titre: 'Analyse — Fiabilité du planning',
-        contenu: `## Le taux d'annulation se dégrade-t-il ?
+Pour le suivi des heures facturables, voir [Coachs](/documentation/coachs).`},{id:`analyse-qualite`,titre:`Analyse — Fiabilité du planning`,contenu:`## Le taux d'annulation se dégrade-t-il ?
 
 Part des séances annulées, mois par mois. Une barre isolée peut être un aléa (météo, travaux, un coach malade) et ne mérite pas d'inquiétude particulière ; c'est la tendance sur plusieurs mois qui compte vraiment.
 
@@ -296,18 +207,7 @@ Classement en pourcentage de leurs propres séances programmées (pas en volume 
 
 ## Pourquoi cette section est facilement ignorée, à tort
 
-Une salle qui ne regarde que la fréquentation peut sembler en bonne santé tout en ayant un problème d'annulations qui grignote la confiance des adhérents. C'est un signal précoce, à vérifier régulièrement même quand tout semble bien aller par ailleurs.`,
-      },
-    ],
-  },
-  {
-    id: 'support-nouveautes',
-    titre: 'Support & Nouveautés',
-    articles: [
-      {
-        id: 'support',
-        titre: 'Support',
-        contenu: `Un espace d'échange en tickets avec l'équipe Flyder — pour signaler un bug, poser une question, ou faire une suggestion.
+Une salle qui ne regarde que la fréquentation peut sembler en bonne santé tout en ayant un problème d'annulations qui grignote la confiance des adhérents. C'est un signal précoce, à vérifier régulièrement même quand tout semble bien aller par ailleurs.`}]},{id:`support-nouveautes`,titre:`Support & Nouveautés`,articles:[{id:`support`,titre:`Support`,contenu:`Un espace d'échange en tickets avec l'équipe Flyder — pour signaler un bug, poser une question, ou faire une suggestion.
 
 ## Ouvrir un ticket
 
@@ -315,38 +215,7 @@ Un nouveau message crée un ticket. Les échanges suivants s'ajoutent au même f
 
 ## Suivre une réponse
 
-Un badge apparaît dans le menu quand une réponse est arrivée sur un ticket. Ouvrir l'onglet Support marque les nouveaux messages comme lus.`,
-      },
-      {
-        id: 'nouveautes',
-        titre: 'Nouveautés',
-        contenu: `Le fil des annonces de l'équipe Flyder : nouvelles fonctionnalités, améliorations, corrections notables. Comme pour [Support](/documentation/support), un badge signale du contenu non encore consulté.`,
-      },
-    ],
-  },
-  {
-    id: 'parametres',
-    titre: 'Paramètres',
-    articles: [
-      {
-        id: 'parametres-profil',
-        titre: 'Mon profil',
-        contenu: `Visible par tout le monde. Affiche l'identité du profil connecté (nom, email, rôle) avec deux actions : modifier ses informations, ou ouvrir sa fiche complète (documents personnels, congés payés — voir [Équipe](/documentation/planning-personnel)).`,
-      },
-      {
-        id: 'parametres-utilisateurs',
-        titre: 'Utilisateurs (Manager)',
-        contenu: `La gestion des utilisateurs a déménagé dans l'onglet [Équipe > Effectif](/documentation/planning-personnel) : création d'un profil, activation et désactivation, suppression définitive, import des fiches de paie, heures de contrat et date de début de contrat. Chaque ligne ouvre la fiche du membre : fiche de poste, tâches, comptes rendus, documents confidentiels, congés payés et notes de suivi.`,
-      },
-      {
-        id: 'parametres-historique',
-        titre: 'Historique (Manager)',
-        contenu: `Le journal d'audit : qui a fait quoi et quand (connexions, créations de profil, modifications de séances, de planning personnel...). Filtrable par action, par utilisateur, et par période — utile pour retracer un changement inattendu ou vérifier qui a modifié quoi.`,
-      },
-      {
-        id: 'parametres-preferences',
-        titre: 'Préférences (Manager)',
-        contenu: `## Infos de la salle
+Un badge apparaît dans le menu quand une réponse est arrivée sur un ticket. Ouvrir l'onglet Support marque les nouveaux messages comme lus.`},{id:`nouveautes`,titre:`Nouveautés`,contenu:`Le fil des annonces de l'équipe Flyder : nouvelles fonctionnalités, améliorations, corrections notables. Comme pour [Support](/documentation/support), un badge signale du contenu non encore consulté.`}]},{id:`parametres`,titre:`Paramètres`,articles:[{id:`parametres-profil`,titre:`Mon profil`,contenu:`Visible par tout le monde. Affiche l'identité du profil connecté (nom, email, rôle) avec deux actions : modifier ses informations, ou ouvrir sa fiche complète (documents personnels, congés payés — voir [Équipe](/documentation/planning-personnel)).`},{id:`parametres-utilisateurs`,titre:`Utilisateurs (Manager)`,contenu:`La gestion des utilisateurs a déménagé dans l'onglet [Équipe > Effectif](/documentation/planning-personnel) : création d'un profil, activation et désactivation, suppression définitive, import des fiches de paie, heures de contrat et date de début de contrat. Chaque ligne ouvre la fiche du membre : fiche de poste, tâches, comptes rendus, documents confidentiels, congés payés et notes de suivi.`},{id:`parametres-historique`,titre:`Historique (Manager)`,contenu:`Le journal d'audit : qui a fait quoi et quand (connexions, créations de profil, modifications de séances, de planning personnel...). Filtrable par action, par utilisateur, et par période — utile pour retracer un changement inattendu ou vérifier qui a modifié quoi.`},{id:`parametres-preferences`,titre:`Préférences (Manager)`,contenu:`## Infos de la salle
 
 Nom affiché (barre latérale, écran de connexion) et adresse de facturation (reprise sur les exports PDF).
 
@@ -364,82 +233,15 @@ Le délai (en jours) avant qu'une séance sans coach assigné soit mise en évid
 
 ## Sauvegarde & Restauration
 
-Télécharger une copie brute de la base de données actuelle, ou en importer une pour remplacer intégralement les données en place. L'import est une opération irréversible (une sauvegarde de sécurité est prise automatiquement côté serveur juste avant, par précaution) — une sauvegarde récente (moins de 15 minutes) est exigée avant de pouvoir choisir un fichier à importer.`,
-      },
-    ],
-  },
-  {
-    id: 'aide',
-    titre: 'Rôles & assistance',
-    articles: [
-      {
-        id: 'roles-permissions',
-        titre: 'Rôles & permissions',
-        contenu: `Flyder distingue deux rôles :
+Télécharger une copie brute de la base de données actuelle, ou en importer une pour remplacer intégralement les données en place. L'import est une opération irréversible (une sauvegarde de sécurité est prise automatiquement côté serveur juste avant, par précaution) — une sauvegarde récente (moins de 15 minutes) est exigée avant de pouvoir choisir un fichier à importer.`}]},{id:`aide`,titre:`Rôles & assistance`,articles:[{id:`roles-permissions`,titre:`Rôles & permissions`,contenu:`Flyder distingue deux rôles :
 
 - **Manager** — accès complet : Utilisateurs, Historique, Préférences, création/désactivation de profils, gestion des documents des coachs et employés, permissions illimitées peu importe le lieu de connexion.
 - **Utilisateur** — accès au Planning, à l'onglet Équipe (sa journée, le planning du personnel, ses tâches et sa fiche), Coachs, Analyse, Formation, Documentation, Support, Nouveautés, et à son propre profil. L'Annuaire n'est visible que depuis une adresse IP autorisée. Les permissions d'écriture dépendent elles aussi de l'adresse IP : restreintes depuis une IP autorisée par un manager (typiquement le Wi-Fi de la salle), lecture seule depuis n'importe où ailleurs.
 
-Cette distinction protège les réglages sensibles (facturation, congés, sécurité) tout en laissant le personnel de terrain utiliser l'outil au quotidien sans dépendre d'un manager pour chaque action.`,
-      },
-      {
-        id: 'en-cas-de-souci',
-        titre: 'En cas de souci',
-        contenu: `## Écran "Abonnement inactif"
+Cette distinction protège les réglages sensibles (facturation, congés, sécurité) tout en laissant le personnel de terrain utiliser l'outil au quotidien sans dépendre d'un manager pour chaque action.`},{id:`en-cas-de-souci`,titre:`En cas de souci`,contenu:`## Écran "Abonnement inactif"
 
 Si cet écran apparaît à la connexion, l'abonnement Flyder de la salle n'est plus actif et l'accès à l'application est suspendu. Il faut contacter le manager de la salle pour régulariser la situation.
 
 ## Qui contacter
 
-Pour toute question, bug ou suggestion sur l'usage quotidien de l'outil : passer par [Support](/documentation/support) directement depuis l'application. Pour un problème d'accès plus profond (l'écran ci-dessus, un abonnement, une question contractuelle) : contacter directement l'éditeur de Flyder.`,
-      },
-    ],
-  },
-];
-
-// Index à plat, pratique pour la recherche et la résolution directe par id.
-export const DOC_ARTICLES = DOC_CATEGORIES.flatMap(cat =>
-  cat.articles.map(a => ({ ...a, categorieId: cat.id, categorieTitre: cat.titre }))
-);
-
-// Insensible aux accents et à la casse — une recherche "annulation" doit
-// aussi trouver "Annulé", "s'annulent", etc.
-function normalize(s) {
-  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
-// Débarrasse le markdown de sa syntaxe pour un extrait lisible dans les
-// résultats de recherche (pas de #, *, liens bruts...).
-function toPlainText(markdown) {
-  return (markdown || '')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [texte](lien) -> texte
-    .replace(/^[ \t]*[-*][ \t]+/gm, '') // puces de liste en début de ligne
-    .replace(/[#*_`>]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-// Recherche plein texte sur titre + contenu de tous les articles. Les
-// correspondances de titre remontent en premier ; chaque résultat porte un
-// extrait centré sur la première occurrence trouvée dans le texte.
-export function searchDocArticles(query) {
-  const q = normalize(query).trim();
-  if (!q) return [];
-  return DOC_ARTICLES
-    .map(article => {
-      const plain = toPlainText(article.contenu);
-      const titreMatch = normalize(article.titre).includes(q);
-      const normPlain = normalize(plain);
-      const idx = normPlain.indexOf(q);
-      if (!titreMatch && idx === -1) return null;
-      let snippet = null;
-      if (idx !== -1) {
-        const start = Math.max(0, idx - 50);
-        const end = Math.min(plain.length, idx + q.length + 70);
-        snippet = (start > 0 ? '…' : '') + plain.slice(start, end).trim() + (end < plain.length ? '…' : '');
-      }
-      return { ...article, snippet, titreMatch };
-    })
-    .filter(Boolean)
-    .sort((a, b) => (b.titreMatch ? 1 : 0) - (a.titreMatch ? 1 : 0));
-}
+Pour toute question, bug ou suggestion sur l'usage quotidien de l'outil : passer par [Support](/documentation/support) directement depuis l'application. Pour un problème d'accès plus profond (l'écran ci-dessus, un abonnement, une question contractuelle) : contacter directement l'éditeur de Flyder.`}]}],p=f.flatMap(e=>e.articles.map(t=>({...t,categorieId:e.id,categorieTitre:e.titre})));function m(e){return(e||``).normalize(`NFD`).replace(/[̀-ͯ]/g,``).toLowerCase()}function h(e){return(e||``).replace(/\[([^\]]+)\]\([^)]+\)/g,`$1`).replace(/^[ \t]*[-*][ \t]+/gm,``).replace(/[#*_`>]/g,` `).replace(/\s+/g,` `).trim()}function g(e){let t=m(e).trim();return t?p.map(e=>{let n=h(e.contenu),r=m(e.titre).includes(t),i=m(n).indexOf(t);if(!r&&i===-1)return null;let a=null;if(i!==-1){let e=Math.max(0,i-50),r=Math.min(n.length,i+t.length+70);a=(e>0?`…`:``)+n.slice(e,r).trim()+(r<n.length?`…`:``)}return{...e,snippet:a,titreMatch:r}}).filter(Boolean).sort((e,t)=>!!t.titreMatch-+!!e.titreMatch):[]}var _=n();function v(e,t){return e||`Ouvrir cet article.`}function y({query:e,onChange:t,resultsCount:n}){let r=(0,d.useRef)(null);return(0,_.jsxs)(`div`,{className:`relative`,children:[(0,_.jsx)(a,{className:`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none`}),(0,_.jsx)(`input`,{ref:r,value:e,onChange:e=>t(e.target.value),placeholder:`Chercher dans la documentation…`,className:`w-full border border-gray-300 rounded-lg pl-9 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400`}),e&&(0,_.jsx)(`button`,{onClick:()=>{t(``),r.current?.focus()},"aria-label":`Effacer la recherche`,className:`absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600`,children:(0,_.jsx)(l,{className:`h-4 w-4`})}),e&&(0,_.jsxs)(`p`,{className:`text-[11px] text-gray-400 mt-1.5 px-0.5`,children:[n,` résultat`,n===1?``:`s`,` pour « `,e,` »`]})]})}function b({activeId:e}){return(0,_.jsx)(`nav`,{className:`space-y-4`,children:f.map(t=>(0,_.jsxs)(`div`,{children:[(0,_.jsx)(`div`,{className:`text-[11px] font-bold uppercase tracking-wide text-gray-400 px-2 mb-1`,children:t.titre}),(0,_.jsx)(`div`,{className:`space-y-0.5`,children:t.articles.map(t=>(0,_.jsx)(c,{to:`/documentation/${t.id}`,className:`block px-2 py-1.5 rounded-lg text-sm transition-colors ${t.id===e?`bg-sky-50 text-sky-700 font-medium`:`text-gray-600 hover:bg-gray-50`}`,children:t.titre},t.id))})]},t.id))})}function x({results:e,activeId:t,query:n}){return e.length===0?(0,_.jsxs)(`p`,{className:`text-sm text-gray-400 italic px-2 py-4`,children:[`Aucun article ne correspond à « `,n,` ».`]}):(0,_.jsx)(`div`,{className:`space-y-1`,children:e.map(e=>(0,_.jsxs)(c,{to:`/documentation/${e.id}`,className:`block px-3 py-2.5 rounded-lg transition-colors border ${e.id===t?`bg-sky-50 border-sky-200`:`bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50`}`,children:[(0,_.jsxs)(`div`,{className:`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5`,children:[(0,_.jsx)(r,{className:`h-3 w-3`}),` `,e.categorieTitre]}),(0,_.jsx)(`div`,{className:`text-sm font-semibold text-gray-800`,children:e.titre}),(0,_.jsx)(`div`,{className:`text-xs text-gray-500 mt-0.5 line-clamp-2`,children:v(e.snippet)})]},e.id))})}function S(){let{articleId:e}=s(),t=o(),[n,r]=(0,d.useState)(``);(0,d.useEffect)(()=>{e||t(`/documentation/${p[0].id}`,{replace:!0})},[e,t]);let a=(0,d.useMemo)(()=>p.find(t=>t.id===e),[e]),c=(0,d.useMemo)(()=>n?g(n):[],[n]);function l(e){let n=e.target.closest(`a`);if(!n)return;let r=n.getAttribute(`href`)||``;r.startsWith(`/documentation/`)&&(e.preventDefault(),t(r))}return(0,_.jsxs)(`div`,{className:`space-y-4`,children:[(0,_.jsxs)(`div`,{children:[(0,_.jsx)(`h1`,{className:`text-lg font-bold text-gray-800`,children:`Documentation`}),(0,_.jsx)(`p`,{className:`text-xs text-gray-400 mt-0.5`,children:`Comment utiliser Flyder — pour toute question sur votre outil de gestion de salle.`})]}),(0,_.jsxs)(`div`,{className:`grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5`,children:[(0,_.jsxs)(`div`,{className:`lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto lg:sticky lg:top-6 space-y-3`,children:[(0,_.jsx)(y,{query:n,onChange:r,resultsCount:c.length}),n?(0,_.jsx)(x,{results:c,activeId:e,query:n}):(0,_.jsx)(b,{activeId:e})]}),(0,_.jsx)(`div`,{className:`bg-white rounded-xl border border-gray-200 p-6 min-h-[20rem]`,children:a?(0,_.jsxs)(_.Fragment,{children:[(0,_.jsx)(`h2`,{className:`text-xl font-bold text-gray-800 mb-4`,children:a.titre}),(0,_.jsx)(`div`,{className:`formation-content`,onClick:l,dangerouslySetInnerHTML:{__html:u(a.contenu)}})]}):(0,_.jsxs)(`div`,{className:`text-center py-10 text-gray-400 text-sm`,children:[(0,_.jsx)(i,{className:`h-8 w-8 mx-auto mb-2 text-gray-300`}),`Article introuvable.`]})})]})]})}export{S as default};

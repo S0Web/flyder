@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, BarChart3, StickyNote } from 'lucide-react';
+import { Plus, StickyNote } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -8,71 +8,36 @@ import {
   semaineSuivante, semainePrecedente, colorForUser,
 } from '../lib/utils';
 import MiniCalendar from '../components/MiniCalendar';
-import { Onglets } from '../components/equipe/kit';
 import PersonnelCreneauModal from '../components/PersonnelCreneauModal';
+import { Onglets, Feuille, Intertitre, Plaque, BoutonTrait, Rien } from '../components/equipe/kit';
+import { TYPES_ABSENCE, fmtHeure, fmtDuree, ecartContrat, minutesCreneau } from '../lib/equipe';
+import { useHorairesSalle, graduations } from '../lib/useHorairesSalle';
 
-const TYPE_CONFIG = {
-  cp:     { label: 'CP',     bg: '#fef3c7', text: '#92400e' },
-  ecole:  { label: 'École',  bg: '#d1fae5', text: '#065f46' },
-  ferie:  { label: 'Férié',  bg: '#f3e8ff', text: '#6b21a8' },
-  arret:  { label: 'Arrêt',  bg: '#fee2e2', text: '#991b1b' },
-  absent: { label: 'Absent', bg: '#ef4444', text: '#ffffff' },
-  repos:  { label: 'Repos',  bg: '#f3f4f6', text: '#6b7280' },
-};
+const heures = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h + m / 60; };
 
-function fmtTime(hhmm) {
-  if (!hhmm) return '';
-  const [h, m] = hhmm.split(':');
-  const hh = parseInt(h, 10);
-  return m === '00' ? `${hh}h` : `${hh}h${m}`;
-}
-
-function toMinutes(hhmm) {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function fmtHeures(totalMinutes) {
-  if (!totalMinutes) return '—';
-  const h = totalMinutes / 60;
-  return (Number.isInteger(h) ? String(h) : h.toFixed(1).replace('.', ',')) + 'h';
-}
-
-function toHours(hhmm) {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h + m / 60;
-}
-
-// Vue Gantt : une ligne par jour, une barre colorée par créneau de travail (heure
-// réelle, initiales de l'employé) sur un axe horaire fixe — pour voir d'un coup d'œil
-// qui est présent et quand. Uniquement le travail (pas les absences) ; cliquer une
-// barre ouvre la même fiche que le tableau au-dessus.
-const AXE_DEBUT = 7.5;
-const AXE_FIN = 22;
-const AXE_TICKS = [8, 10, 12, 14, 16, 18, 20, 22];
-
-function pctAxe(h) {
-  return Math.max(0, Math.min(100, ((h - AXE_DEBUT) / (AXE_FIN - AXE_DEBUT)) * 100));
-}
-
+// Frise de la semaine : une ligne par jour, une barre colorée par créneau de travail
+// (heure réelle, initiales de l'employé) sur un axe borné par les heures d'ouverture de la
+// salle (Préférences) — pour voir d'un coup d'œil qui est présent et quand. Travail
+// uniquement (pas les absences) ; cliquer une barre ouvre la même fiche que le tableau.
 function PersonnelTimeline({ semaine, creneaux, today, onOpenCell }) {
+  const { debut: DEBUT, fin: FIN } = useHorairesSalle();
+  const ticks = graduations(DEBUT, FIN);
+  const pct = (h) => Math.max(0, Math.min(100, ((h - DEBUT) / (FIN - DEBUT)) * 100));
+
   return (
-    <div className="mt-4 border border-gray-300 rounded-xl bg-white shadow-sm overflow-hidden">
-      {/* Axe des heures */}
-      <div className="flex border-b-2 border-gray-300 bg-gray-50">
+    <Feuille className="mt-6 overflow-hidden">
+      <div className="flex border-b border-brand-ink/15 bg-brand-cream/60">
         <div className="w-16 sm:w-24 flex-shrink-0" />
-        <div className="relative flex-1 h-7 mr-8 sm:mr-12">
-          {AXE_TICKS.map(h => (
-            <span key={h} className="absolute top-1.5 text-[10px] text-gray-400 -translate-x-1/2" style={{ left: `${pctAxe(h)}%` }}>
-              {h}h
-            </span>
+        <div className="relative flex-1 h-7 mr-10 sm:mr-14">
+          {ticks.map(h => (
+            <span key={h} className="absolute top-2 font-mono text-[10px] text-gray-400 -translate-x-1/2" style={{ left: `${pct(h)}%` }}>{h}</span>
           ))}
         </div>
       </div>
 
-      {semaine.map((date, i) => {
+      {semaine.map(date => {
         const iso = toISO(date);
-        const isToday = iso === today;
+        const estAuj = iso === today;
         const parJour = new Map();
         creneaux
           .filter(c => c.date === iso && c.type === 'travail' && c.debut && c.fin)
@@ -81,37 +46,30 @@ function PersonnelTimeline({ semaine, creneaux, today, onOpenCell }) {
             parJour.get(c.employe_id).segments.push(c);
           });
         const lignes = [...parJour.values()].sort((a, b) => a.emp.prenom.localeCompare(b.emp.prenom));
-        const rowBg = isToday ? 'bg-sky-50' : (i % 2 === 0 ? 'bg-white' : 'bg-gray-50/70');
 
         return (
-          <div key={iso} className={`flex border-b-2 border-gray-200 last:border-b-0 ${rowBg}`}>
-            <div className={`w-16 sm:w-24 flex-shrink-0 px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium capitalize truncate ${isToday ? 'text-sky-600' : 'text-gray-500'}`}>
-              {date.toLocaleDateString('fr-FR', { weekday: 'long' })}
+          <div key={iso} className={`flex border-b border-brand-ink/10 last:border-b-0 ${estAuj ? 'bg-fitness/[0.05]' : ''}`}>
+            <div className={`w-16 sm:w-24 flex-shrink-0 px-2 sm:px-3 py-2 font-mono text-[11px] uppercase ${estAuj ? 'text-fitness font-semibold' : 'text-gray-500'}`}>
+              {date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}
+              <span className="ml-1.5 text-brand-ink">{date.getDate()}</span>
             </div>
-            <div className="relative flex-1 py-2 pl-2 mr-8 sm:mr-12 space-y-2.5">
+            <div className="relative flex-1 py-2 pl-2 mr-10 sm:mr-14 space-y-2">
               {lignes.length === 0 && <div className="h-5" />}
               {lignes.map(({ emp, segments }) => (
                 <div key={emp.id} className="relative h-5">
                   {segments.map(seg => {
-                    const start = toHours(seg.debut), end = toHours(seg.fin);
-                    const left = pctAxe(start), width = Math.max(pctAxe(end) - left, 2);
+                    const left = pct(heures(seg.debut)), width = Math.max(pct(heures(seg.fin)) - left, 2);
                     return (
                       <button
                         key={seg.id}
                         onClick={() => onOpenCell(emp, iso)}
-                        title={`${emp.prenom} ${emp.nom} : ${fmtTime(seg.debut)} - ${fmtTime(seg.fin)}`}
-                        className="absolute inset-y-0 rounded hover:opacity-90 transition-opacity flex items-center pl-1.5"
+                        title={`${emp.prenom} ${emp.nom || ''} : ${fmtHeure(seg.debut)} – ${fmtHeure(seg.fin)}`}
+                        className="absolute inset-y-0 rounded-[2px] hover:opacity-90 transition-opacity flex items-center pl-1.5"
                         style={{ left: `${left}%`, width: `${width}%`, backgroundColor: colorForUser(emp.id) }}
                       >
-                        <span className="absolute right-full top-1/2 -translate-y-1/2 pr-1 text-[10px] font-medium text-gray-500 whitespace-nowrap tabular-nums">
-                          {fmtTime(seg.debut)}
-                        </span>
-                        <span className="text-white text-[10px] font-bold whitespace-nowrap">
-                          {emp.prenom?.[0]}{emp.nom?.[0]}
-                        </span>
-                        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-1 text-[10px] font-medium text-gray-500 whitespace-nowrap tabular-nums">
-                          {fmtTime(seg.fin)}
-                        </span>
+                        <span className="absolute right-full top-1/2 -translate-y-1/2 pr-1 font-mono text-[10px] text-gray-500 whitespace-nowrap tabular-nums">{fmtHeure(seg.debut)}</span>
+                        <span className="font-mono text-white text-[10px] font-semibold whitespace-nowrap">{emp.prenom?.[0]}{emp.nom?.[0]}</span>
+                        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-1 font-mono text-[10px] text-gray-500 whitespace-nowrap tabular-nums">{fmtHeure(seg.fin)}</span>
                       </button>
                     );
                   })}
@@ -121,40 +79,37 @@ function PersonnelTimeline({ semaine, creneaux, today, onOpenCell }) {
           </div>
         );
       })}
-    </div>
+    </Feuille>
   );
 }
 
 function CpSummary() {
   const [cp, setCp] = useState([]);
-
   useEffect(() => { api.getCpSummary().then(setCp).catch(() => {}); }, []);
 
   return (
-    <div className="mt-3 bg-white border border-gray-200 rounded-lg overflow-hidden text-xs">
-      <div className="px-3 py-2 border-b border-gray-100">
-        <span className="font-semibold text-gray-500 text-[11px] uppercase tracking-wide">Congés payés</span>
-      </div>
+    <div className="mt-6">
+      <Intertitre>Congés payés</Intertitre>
       {cp.length === 0 ? (
-        <p className="text-gray-400 italic px-3 py-2">Aucun profil.</p>
+        <p className="font-mono text-[11px] text-gray-400">— aucun suivi —</p>
       ) : (
         <table className="w-full border-collapse">
           <thead>
-            <tr className="text-gray-400 text-[10px] uppercase tracking-wide">
-              <th className="text-left font-medium px-3 py-1">Nom</th>
-              <th className="text-right font-medium px-1.5 py-1" title="CP pris ce mois">Mois</th>
-              <th className="text-right font-medium px-1.5 py-1" title="CP pris cette année">Année</th>
-              <th className="text-right font-medium px-3 py-1" title="CP restants">Restant</th>
+            <tr className="font-mono text-[10px] text-gray-400 border-b border-brand-ink/15">
+              <th className="text-left font-normal pb-1.5">nom</th>
+              <th className="text-right font-normal pb-1.5" title="CP pris ce mois">mois</th>
+              <th className="text-right font-normal pb-1.5 pl-2" title="CP pris cette année">année</th>
+              <th className="text-right font-normal pb-1.5 pl-2" title="CP restants">reste</th>
             </tr>
           </thead>
           <tbody>
             {cp.map(c => (
-              <tr key={c.id} className="border-t border-gray-50">
-                <td className="px-3 py-1 text-gray-600 truncate max-w-[90px]">{c.prenom}</td>
-                <td className="px-1.5 py-1 text-right text-gray-600 tabular-nums">{c.prisMois}</td>
-                <td className="px-1.5 py-1 text-right text-gray-600 tabular-nums">{c.prisAnnee}</td>
-                <td className={`px-3 py-1 text-right font-semibold tabular-nums ${c.restant < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {c.restant}
+              <tr key={c.id} className="border-b border-brand-ink/[0.07]">
+                <td className="py-1.5 text-sm text-brand-ink truncate max-w-[84px]">{c.prenom}</td>
+                <td className="py-1.5 text-right font-mono text-xs tabular-nums text-gray-500">{c.prisMois}</td>
+                <td className="py-1.5 pl-2 text-right font-mono text-xs tabular-nums text-gray-500">{c.prisAnnee}</td>
+                <td className={`py-1.5 pl-2 text-right font-mono text-sm font-semibold tabular-nums ${c.restant < 0 ? 'text-fitness' : 'text-brand-ink'}`}>
+                  {String(c.restant).replace('.', ',')}
                 </td>
               </tr>
             ))}
@@ -186,52 +141,75 @@ function getLast12Months() {
 function fmtH(val) {
   if (!val && val !== 0) return '—';
   const r = Math.round(val * 100) / 100;
-  return (r % 1 === 0 ? String(r) : r.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')) + 'h';
+  return (r % 1 === 0 ? String(r) : r.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')).replace('.', ',') + 'h';
+}
+
+// Export pour la paie : un fichier CSV lisible par Excel (séparateur « ; », virgule décimale,
+// accents préservés) avec les heures de chaque mois, le total et les CP sur 12 mois.
+function exporterCsv(recap, months) {
+  const nb = (n) => String(Math.round((n || 0) * 100) / 100).replace('.', ',');
+  const entete = ['Employé', ...months.map(m => `${MOIS_COURTS[m.slice(5, 7)]} ${m.slice(0, 4)}`), 'Total heures', 'CP (12 mois)'];
+  const lignes = recap.employes.map(e => [
+    `${e.prenom} ${e.nom || ''}`.trim(),
+    ...months.map(m => (e.mois[m] ? nb(e.mois[m]) : '')),
+    nb(e.total),
+    String(e.cpTotal || 0),
+  ]);
+  const esc = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = '﻿' + [entete, ...lignes].map(l => l.map(esc).join(';')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `heures-personnel-${months[months.length - 1]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function RecapMensuel() {
   const [recap, setRecap] = useState(null);
   const { months, debut, fin } = useMemo(getLast12Months, []);
-  const currentMois = months[months.length - 1];
+  const moisCourant = months[months.length - 1];
 
   useEffect(() => { api.getPersonnelRecap(debut, fin).then(setRecap).catch(() => {}); }, [debut, fin]);
 
-  if (!recap) return <div className="text-center py-8 text-gray-400 text-sm">Chargement…</div>;
+  if (!recap) return <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>;
 
+  const entete = 'font-mono text-[10px] text-gray-400 font-normal pb-2';
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-x-auto">
-      <table className="w-full border-collapse text-xs min-w-[760px]">
-        <thead>
-          <tr>
-            <th className="sticky left-0 z-10 bg-gray-50 border-b border-gray-200 px-3 py-2 text-left font-semibold text-gray-500" style={{ minWidth: 140 }}>Employé</th>
-            {months.map(m => (
-              <th key={m} className="border-b border-gray-200 px-2 py-2 text-center font-semibold text-gray-500"
-                style={m === currentMois ? { color: '#0369a1', backgroundColor: '#eef9fd' } : {}}>
-                {MOIS_COURTS[m.slice(5, 7)]}
-              </th>
-            ))}
-            <th className="border-b border-gray-200 px-3 py-2 text-center font-bold text-sky-700">Total</th>
-            <th className="border-b border-gray-200 px-3 py-2 text-center font-semibold text-amber-700">CP (12 mois)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recap.employes.map((e, i) => (
-            <tr key={e.id} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#f9fafb' }} className={e.actif ? '' : 'opacity-40'}>
-              <td className="sticky left-0 z-10 px-3 py-1.5 font-medium text-gray-700" style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                {e.prenom} {e.nom}
-              </td>
+    <div>
+      <div className="flex justify-end mb-3">
+        <BoutonTrait onClick={() => exporterCsv(recap, months)} disabled={recap.employes.length === 0}>Exporter en CSV</BoutonTrait>
+      </div>
+      <Feuille className="overflow-x-auto p-4">
+        <table className="w-full border-collapse min-w-[760px]">
+          <thead>
+            <tr className="border-b-2 border-brand-ink">
+              <th className={`${entete} text-left sticky left-0 bg-white`} style={{ minWidth: 140 }}>employé</th>
               {months.map(m => (
-                <td key={m} className="px-2 py-1.5 text-center tabular-nums text-gray-600"
-                  style={m === currentMois ? { backgroundColor: '#eef9fd' } : {}}>
-                  {e.mois[m] ? fmtH(e.mois[m]) : '—'}
-                </td>
+                <th key={m} className={`${entete} text-center ${m === moisCourant ? '!text-fitness' : ''}`}>{MOIS_COURTS[m.slice(5, 7)]}</th>
               ))}
-              <td className="px-3 py-1.5 text-center font-bold text-sky-700 tabular-nums">{fmtH(e.total)}</td>
-              <td className="px-3 py-1.5 text-center text-amber-700 tabular-nums">{e.cpTotal || '—'}</td>
+              <th className={`${entete} text-center text-brand-ink`}>total</th>
+              <th className={`${entete} text-center`}>CP · 12 mois</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {recap.employes.map(e => (
+              <tr key={e.id} className={`border-b border-brand-ink/[0.08] ${e.actif ? '' : 'opacity-40'}`}>
+                <td className="py-2 pr-3 text-sm text-brand-ink sticky left-0 bg-white">{e.prenom} {e.nom}</td>
+                {months.map(m => (
+                  <td key={m} className={`py-2 text-center font-mono text-xs tabular-nums text-gray-600 ${m === moisCourant ? 'bg-fitness/[0.06]' : ''}`}>
+                    {e.mois[m] ? fmtH(e.mois[m]) : '—'}
+                  </td>
+                ))}
+                <td className="py-2 text-center font-mono text-sm font-semibold tabular-nums text-brand-ink">{fmtH(e.total)}</td>
+                <td className="py-2 text-center font-mono text-xs tabular-nums text-gray-600">{e.cpTotal || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Feuille>
     </div>
   );
 }
@@ -244,10 +222,10 @@ export default function PlanningPersonnel() {
   const [lundi, setLundi]     = useState(() => getLundi());
   const [profils, setProfils] = useState([]);
   const [creneaux, setCreneaux] = useState([]);
+  const [contrats, setContrats] = useState(() => new Map()); // id -> heures de contrat (manager)
   const [loading, setLoading] = useState(true);
   const [cellModal, setCellModal] = useState(null); // { employe, date }
   const [dupliquer, setDupliquer] = useState(false);
-  const [dupliquerMsg, setDupliquerMsg] = useState(null);
   const [vue, setVue] = useState('semaine'); // 'semaine' | 'recap'
   // Chacun voit le planning de toute l'équipe (qui travaille avec moi, qui me
   // relaie) mais peut n'afficher que ses propres horaires.
@@ -262,8 +240,7 @@ export default function PlanningPersonnel() {
   const loadCreneaux = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.getPersonnelCreneaux(toISO(lundi));
-      setCreneaux(data);
+      setCreneaux(await api.getPersonnelCreneaux(toISO(lundi)));
     } finally {
       setLoading(false);
     }
@@ -271,6 +248,9 @@ export default function PlanningPersonnel() {
 
   useEffect(() => { loadProfils(); }, [loadProfils]);
   useEffect(() => { loadCreneaux(); }, [loadCreneaux]);
+  useEffect(() => {
+    if (isManager) api.getMembres().then(ms => setContrats(new Map(ms.map(m => [m.id, m.heures_contrat_semaine])))).catch(() => {});
+  }, [isManager]);
 
   async function handleSaveCreneau(payload) {
     try {
@@ -286,18 +266,13 @@ export default function PlanningPersonnel() {
   async function handleDupliquer() {
     if (!confirm('Copier le planning de la semaine précédente vers cette semaine ?\n\n(Les jours déjà renseignés ne sont pas touchés.)')) return;
     setDupliquer(true);
-    setDupliquerMsg(null);
     try {
-      const source = toISO(semainePrecedente(lundi));
-      const { copies, ignores } = await api.dupliquerSemainePersonnel(source, toISO(lundi));
+      const { copies, ignores } = await api.dupliquerSemainePersonnel(toISO(semainePrecedente(lundi)), toISO(lundi));
       await loadCreneaux();
-      setDupliquerMsg(
-        copies === 0
-          ? 'Rien à copier (semaine précédente vide ou déjà tout renseigné).'
-          : `${copies} jour(s) copié(s)${ignores ? `, ${ignores} déjà renseigné(s) conservé(s)` : ''}.`
-      );
+      if (copies === 0) toast.info('Rien à copier (semaine précédente vide ou déjà tout renseigné).');
+      else toast.success(`${copies} jour(s) copié(s)${ignores ? `, ${ignores} déjà renseigné(s) conservé(s)` : ''}.`);
     } catch (e) {
-      setDupliquerMsg('Erreur : ' + e.message);
+      toast.error('Erreur : ' + e.message);
     } finally {
       setDupliquer(false);
     }
@@ -318,165 +293,150 @@ export default function PlanningPersonnel() {
     return qui === 'moi' ? tous.filter(p => p.id === user?.id) : tous;
   }, [profils, creneaux, qui, user?.id]);
 
+  const titreSemaine = `${semaine[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} – ${semaine[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  const entete = 'font-mono text-[10px] text-gray-400 font-normal';
+
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-6">
       <aside className="hidden lg:block w-64 flex-shrink-0">
-        <MiniCalendar lundi={lundi} onSelectDate={(d) => setLundi(getLundi(d))} />
+        <MiniCalendar sobre lundi={lundi} onSelectDate={(d) => setLundi(getLundi(d))} />
         <CpSummary />
       </aside>
 
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3 mb-5">
           <Onglets trait={false} actif={qui} onChange={setQui} onglets={[
             { id: 'equipe', label: "Toute l'équipe" },
             { id: 'moi', label: 'Mes horaires' },
           ]} />
-          <span className="w-px h-6 bg-gray-200 mx-1 hidden sm:block" />
-          <button onClick={() => setLundi(semainePrecedente(lundi))} aria-label="Semaine précédente"
-            className="px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">←</button>
-          <button onClick={() => setLundi(getLundi())}
-            className="px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">Auj.</button>
-          <button onClick={() => setLundi(semaineSuivante(lundi))} aria-label="Semaine suivante"
-            className="px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">→</button>
-          <span className="ml-1 text-sm font-semibold text-gray-700">
-            {semaine[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
-            {' – '}
-            {semaine[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </span>
-          <div className="w-full sm:w-auto sm:ml-auto flex flex-wrap gap-2">
+          <div className="flex items-center gap-1.5">
+            <BoutonTrait onClick={() => setLundi(semainePrecedente(lundi))} aria-label="Semaine précédente" className="!px-2.5 !py-1.5">←</BoutonTrait>
+            <BoutonTrait onClick={() => setLundi(getLundi())} className="!px-2.5 !py-1.5">Auj.</BoutonTrait>
+            <BoutonTrait onClick={() => setLundi(semaineSuivante(lundi))} aria-label="Semaine suivante" className="!px-2.5 !py-1.5">→</BoutonTrait>
+          </div>
+          <span className="font-display text-lg font-bold text-brand-ink leading-none pb-1.5">{titreSemaine}</span>
+          <div className="flex-1" />
+          <div className="flex flex-wrap gap-2">
             {vue === 'semaine' && (
-              <button onClick={handleDupliquer} disabled={dupliquer}
-                title="Copie tous les jours de la semaine précédente qui ne sont pas déjà renseignés cette semaine"
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded disabled:opacity-50">
-                {dupliquer ? 'Duplication…' : '⧉ Dupliquer la semaine précédente'}
-              </button>
+              <BoutonTrait onClick={handleDupliquer} disabled={dupliquer}
+                title="Copie tous les jours de la semaine précédente qui ne sont pas déjà renseignés cette semaine">
+                {dupliquer ? 'Duplication…' : 'Dupliquer la semaine précédente'}
+              </BoutonTrait>
             )}
             {isManager && (
-              <button onClick={() => setVue(v => v === 'semaine' ? 'recap' : 'semaine')}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">
-                {vue === 'semaine' ? <><BarChart3 className="h-4 w-4" /> Récap mensuel</> : '← Retour à la semaine'}
-              </button>
+              <BoutonTrait onClick={() => setVue(v => v === 'semaine' ? 'recap' : 'semaine')}>
+                {vue === 'semaine' ? 'Récap mensuel' : '← Retour à la semaine'}
+              </BoutonTrait>
             )}
           </div>
         </div>
-        {dupliquerMsg && vue === 'semaine' && (
-          <p className="text-xs text-gray-400 -mt-2 mb-3">{dupliquerMsg}</p>
-        )}
 
         {vue === 'recap' && isManager ? (
           <RecapMensuel />
         ) : loading ? (
-          <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>
+          <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-gray-400 py-10 text-center">Aucun profil — ajoute un membre depuis Équipe &gt; Effectif.</p>
+          <Rien>aucun profil — ajoute un membre depuis Équipe &gt; Effectif</Rien>
         ) : (
           <>
-          <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-x-auto">
-            <table className="w-full border-collapse table-fixed text-sm min-w-[800px]">
-              <colgroup>
-                <col style={{ width: '44px' }} />
-                <col style={{ width: '132px' }} />
-                {semaine.map((_, i) => <col key={i} />)}
-                <col style={{ width: '68px' }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th className="sticky left-0 z-10 bg-gray-50 border-b border-gray-200 rounded-tl-xl" />
-                  <th className="z-20 bg-gray-50 border-b border-gray-200 p-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-                    Employé
-                  </th>
-                  {semaine.map((date) => {
-                    const iso = toISO(date);
-                    const isToday = iso === today;
+            <Feuille className="overflow-x-auto">
+              <table className="w-full border-collapse table-fixed min-w-[820px]">
+                <colgroup>
+                  <col style={{ width: '150px' }} />
+                  {semaine.map((_, i) => <col key={i} />)}
+                  <col style={{ width: '96px' }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b-2 border-brand-ink">
+                    <th className={`${entete} text-left px-3 py-2 sticky left-0 bg-white`}>employé</th>
+                    {semaine.map(date => {
+                      const estAuj = toISO(date) === today;
+                      return (
+                        <th key={toISO(date)} className={`py-2 text-center ${estAuj ? 'bg-fitness/[0.06]' : ''}`}>
+                          <div className={`font-mono text-[10px] uppercase font-normal ${estAuj ? 'text-fitness' : 'text-gray-400'}`}>
+                            {date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}
+                          </div>
+                          <div className={`font-display text-lg font-bold leading-none mt-0.5 ${estAuj ? 'text-fitness' : 'text-brand-ink'}`}>{date.getDate()}</div>
+                        </th>
+                      );
+                    })}
+                    <th className={`${entete} text-center py-2`}>total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(emp => {
+                    const empCreneaux = creneaux.filter(c => c.employe_id === emp.id);
+                    const totalMinutes = empCreneaux.filter(c => c.type === 'travail').reduce((s, c) => s + minutesCreneau(c), 0);
+                    const contrat = isManager ? contrats.get(emp.id) : null;
+                    const ecart = contrat && totalMinutes > 0 ? ecartContrat(totalMinutes, contrat) : null;
+
                     return (
-                      <th key={iso} className={`z-20 border-b border-gray-200 p-1.5 text-center ${isToday ? 'bg-sky-50' : 'bg-gray-50'}`}>
-                        <div className={`text-[10px] font-semibold uppercase tracking-wide ${isToday ? 'text-sky-500' : 'text-gray-400'}`}>
-                          {date.toLocaleDateString('fr-FR', { weekday: 'short' })}
-                        </div>
-                        <div className={`text-sm font-bold leading-none mt-0.5 ${isToday ? 'text-sky-700' : 'text-gray-600'}`}>
-                          {date.getDate()}
-                        </div>
-                      </th>
+                      <tr key={emp.id} className="group/row border-b border-brand-ink/10 hover:bg-brand-cream/50 transition-colors">
+                        <td className="px-3 py-2 sticky left-0 bg-white group-hover/row:bg-brand-cream/50 transition-colors">
+                          <span className="flex items-center gap-2.5 min-w-0">
+                            <Plaque user={emp} size={26} />
+                            <span className="text-sm text-brand-ink truncate">{emp.prenom} {emp.nom}</span>
+                          </span>
+                        </td>
+                        {semaine.map(date => {
+                          const iso = toISO(date);
+                          const cellCreneaux = empCreneaux.filter(c => c.date === iso).sort((a, b) => a.ordre - b.ordre);
+                          const absence = cellCreneaux.length > 0 && cellCreneaux[0].type !== 'travail' ? cellCreneaux[0].type : null;
+                          const note = cellCreneaux.map(c => c.notes).filter(Boolean).join(' · ');
+
+                          return (
+                            <td key={iso} onClick={() => setCellModal({ employe: emp, date: iso })}
+                              className="group/cell p-1 min-w-[100px] h-14 cursor-pointer align-middle">
+                              <div className={`relative h-full w-full rounded-[3px] flex flex-col items-center justify-center gap-0.5 ${
+                                absence ? 'hachures' : iso === today ? 'bg-fitness/[0.06]' : ''
+                              }`}>
+                                {note && (
+                                  <span title={note} aria-label="Note" className="absolute top-0.5 right-1 text-gray-500 cursor-help">
+                                    <StickyNote className="h-3 w-3" />
+                                  </span>
+                                )}
+                                {cellCreneaux.length === 0 && (
+                                  <Plus className="h-3.5 w-3.5 text-gray-300 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
+                                )}
+                                {absence && (
+                                  <span className={`font-mono text-[11px] uppercase tracking-wide ${['arret', 'absent'].includes(absence) ? 'text-fitness font-semibold' : 'text-brand-ink'}`}>
+                                    {TYPES_ABSENCE[absence]?.court || absence}
+                                  </span>
+                                )}
+                                {!absence && cellCreneaux.map(c => (
+                                  <div key={c.id} className="font-mono text-[12px] text-brand-ink tabular-nums text-center leading-snug">
+                                    {fmtHeure(c.debut)}–{fmtHeure(c.fin)}
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          );
+                        })}
+                        <td className="text-center px-1">
+                          <div className="font-mono text-sm font-semibold tabular-nums text-brand-ink">{totalMinutes ? fmtDuree(totalMinutes) : '—'}</div>
+                          {contrat ? (
+                            <div className="font-mono text-[10px] text-gray-400 leading-tight">
+                              / {fmtDuree(contrat * 60)}
+                              {ecart != null && Math.abs(ecart) >= 30 && (
+                                <span className={`ml-1 ${ecart > 0 ? 'text-fitness' : 'text-gray-500'}`} title={ecart > 0 ? 'Planifié au-delà du contrat' : 'Planifié en dessous du contrat'}>
+                                  {ecart > 0 ? '+' : '−'}{fmtDuree(Math.abs(ecart))}
+                                </span>
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
                     );
                   })}
-                  <th className="z-20 bg-sky-50 border-b border-gray-200 rounded-tr-xl p-2 text-center text-[11px] font-bold text-sky-700 uppercase tracking-wide">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {rows.map(emp => {
-                  const empCreneaux = creneaux.filter(c => c.employe_id === emp.id);
-                  const travail = empCreneaux.filter(c => c.type === 'travail');
-                  const totalMinutes = travail.reduce((sum, c) => sum + (toMinutes(c.fin) - toMinutes(c.debut)), 0);
-
-                  return (
-                    <tr key={emp.id} className="group/row hover:bg-gray-50/60 transition-colors">
-                      <td className="sticky left-0 z-10 bg-white group-hover/row:bg-gray-50/60 pl-3 align-middle transition-colors">
-                        <span
-                          className="h-6 w-6 flex-shrink-0 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                          style={{ backgroundColor: colorForUser(emp.id) }}
-                        >
-                          {emp.prenom?.[0]}{emp.nom?.[0]}
-                        </span>
-                      </td>
-                      <td className="bg-white group-hover/row:bg-gray-50/60 border-r border-gray-100 pr-3 py-2 align-middle transition-colors">
-                        <span className="font-medium text-gray-700 truncate block">{emp.prenom} {emp.nom}</span>
-                      </td>
-                      {semaine.map(date => {
-                        const iso = toISO(date);
-                        const cellCreneaux = empCreneaux
-                          .filter(c => c.date === iso)
-                          .sort((a, b) => a.ordre - b.ordre);
-                        const isAbsence = cellCreneaux.length > 0 && cellCreneaux[0].type !== 'travail';
-                        const typeCfg = isAbsence ? TYPE_CONFIG[cellCreneaux[0].type] : null;
-
-                        const noteText = cellCreneaux.map(c => c.notes).filter(Boolean).join(' · ');
-
-                        return (
-                          <td key={iso} onClick={() => setCellModal({ employe: emp, date: iso })}
-                            className="group/cell p-1 min-w-[100px] h-14 cursor-pointer align-middle">
-                            <div
-                              className="relative h-full w-full rounded-lg flex flex-col items-center justify-center gap-1 transition-colors"
-                              style={{ backgroundColor: typeCfg ? typeCfg.bg : 'transparent' }}
-                            >
-                              {noteText && (
-                                <span title={noteText} aria-label="Note" className="absolute top-0.5 right-1 text-gray-500 cursor-help">
-                                  <StickyNote className="h-3 w-3" />
-                                </span>
-                              )}
-                              {cellCreneaux.length === 0 && (
-                                <Plus className="h-3.5 w-3.5 text-gray-300 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
-                              )}
-                              {typeCfg && (
-                                <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: typeCfg.text }}>
-                                  {typeCfg.label}
-                                </span>
-                              )}
-                              {!isAbsence && cellCreneaux.map(c => (
-                                <div key={c.id} className="text-[13px] font-semibold text-gray-600 tabular-nums text-center leading-snug">
-                                  {fmtTime(c.debut)} - {fmtTime(c.fin)}
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                        );
-                      })}
-                      <td className="text-center text-sm font-bold text-sky-700 bg-sky-50/60 tabular-nums">
-                        {fmtHeures(totalMinutes)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <PersonnelTimeline
-            semaine={semaine}
-            creneaux={qui === 'moi' ? creneaux.filter(c => c.employe_id === user?.id) : creneaux}
-            today={today}
-            onOpenCell={(emp, iso) => setCellModal({ employe: emp, date: iso })}
-          />
+                </tbody>
+              </table>
+            </Feuille>
+            <PersonnelTimeline
+              semaine={semaine}
+              creneaux={qui === 'moi' ? creneaux.filter(c => c.employe_id === user?.id) : creneaux}
+              today={today}
+              onOpenCell={(emp, iso) => setCellModal({ employe: emp, date: iso })}
+            />
           </>
         )}
       </div>
