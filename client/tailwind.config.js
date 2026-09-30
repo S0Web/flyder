@@ -59,6 +59,9 @@ export default {
         // simple fondu, pour donner une direction au changement plutôt qu'un
         // "ça apparaît" sec.
         pageIn:     { from: { opacity: 0, transform: 'translateX(10px)' },                to: { opacity: 1, transform: 'translateX(0)' } },
+        // Panneau latéral (détail d'une tâche, d'un compte rendu...).
+        drawerIn:   { from: { transform: 'translateX(100%)' },                            to: { transform: 'translateX(0)' } },
+        drawerOut:  { from: { transform: 'translateX(0)' },                               to: { transform: 'translateX(100%)' } },
       },
       animation: {
         fadeIn:     'fadeIn 0.15s ease-out',
@@ -74,6 +77,8 @@ export default {
         modalOut:   'modalOut 0.13s ease-in forwards',
         pop:        'pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
         pageIn:     'pageIn 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+        drawerIn:   'drawerIn 0.24s cubic-bezier(0.16, 1, 0.3, 1)',
+        drawerOut:  'drawerOut 0.16s ease-in forwards',
       },
     },
   },

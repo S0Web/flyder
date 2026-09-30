@@ -1,20 +1,32 @@
+import { getJetonDeverrouillage, oublierDeverrouillage } from './deverrouillage';
+
 const BASE = '/api';
 
 function getToken() {
   return localStorage.getItem('fm_token');
 }
 
+// Erreur « documents verrouillés » (423) : le jeton de déverrouillage a expiré
+// ou n'existe pas encore — l'interface affiche alors l'écran de saisie du code.
+export class VerrouilleError extends Error {}
+
 async function req(path, options = {}) {
   const token = getToken();
+  const { headers: extraHeaders, ...rest } = options;
   const res = await fetch(`${BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...extraHeaders,
     },
-    ...options,
+    ...rest,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
+    if (res.status === 423) {
+      oublierDeverrouillage();
+      throw new VerrouilleError(err.error);
+    }
     if (res.status === 401 && path !== '/auth/select') {
       localStorage.removeItem('fm_token');
       if (window.location.pathname !== '/login') window.location.assign('/login');
@@ -29,13 +41,17 @@ async function req(path, options = {}) {
 
 // Télécharge un fichier depuis une route protégée par token (les documents salariés/coachs
 // ne sont pas servis en statique comme les images Formation — il faut passer l'Authorization).
-async function telechargerFichierProtege(path, nomFichier) {
+async function telechargerFichierProtege(path, nomFichier, extraHeaders = {}) {
   const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extraHeaders },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
+    if (res.status === 423) {
+      oublierDeverrouillage();
+      throw new VerrouilleError(err.error);
+    }
     throw new Error(err.error || res.statusText);
   }
   const blob = await res.blob();
@@ -47,6 +63,16 @@ async function telechargerFichierProtege(path, nomFichier) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+function qs(params) {
+  const s = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+  return s ? `?${s}` : '';
+}
+
+function enteteDeverrouillage() {
+  const jeton = getJetonDeverrouillage();
+  return jeton ? { 'X-Unlock-Token': jeton } : {};
 }
 
 export const api = {
@@ -76,11 +102,34 @@ export const api = {
     return req(`/app-users/audit${qs ? `?${qs}` : ''}`);
   },
 
+  // Déverrouillage des documents RH (ressaisie du code)
+  deverrouiller: (code) => req('/auth/deverrouiller', { method: 'POST', body: JSON.stringify({ code }) }),
+
   // Tâches
-  getTasks:    (semaine, user_id) => req(`/tasks?semaine=${semaine || ''}${user_id ? `&user_id=${user_id}` : ''}`),
-  createTask:  (data) => req('/tasks', { method: 'POST', body: JSON.stringify(data) }),
-  patchTask:   (id, data) => req(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteTask:  (id) => req(`/tasks/${id}`, { method: 'DELETE' }),
+  getTaches:    (params = {}) => req(`/taches${qs(params)}`),
+  createTache:  (data) => req('/taches', { method: 'POST', body: JSON.stringify(data) }),
+  patchTache:   (id, data) => req(`/taches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTache:  (id) => req(`/taches/${id}`, { method: 'DELETE' }),
+  getTacheCommentaires: (id) => req(`/taches/${id}/commentaires`),
+  addTacheCommentaire:  (id, contenu) => req(`/taches/${id}/commentaires`, { method: 'POST', body: JSON.stringify({ contenu }) }),
+
+  // Équipe
+  getVueEnsemble:   () => req('/equipe/vue-ensemble'),
+  getMaJournee:     () => req('/equipe/ma-journee'),
+  getMembres:       () => req('/equipe/membres'),
+  getMembreResume:  (id) => req(`/equipe/membres/${id}/resume`),
+  getEquipePastille: () => req('/equipe/pastille'),
+  getFichePoste:    (userId) => req(`/equipe/fiches-poste/${userId}`),
+  saveFichePoste:   (userId, data) => req(`/equipe/fiches-poste/${userId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  getComptesRendus: (params = {}) => req(`/equipe/comptes-rendus${qs(params)}`),
+  getMonCompteRendu: (date) => req(`/equipe/comptes-rendus/moi/${date}`),
+  saveMonCompteRendu: (date, data) => req(`/equipe/comptes-rendus/moi/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deciderCompteRendu: (id, decision, retour) =>
+    req(`/equipe/comptes-rendus/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision, retour }) }),
+  getNotes:    () => req('/equipe/notes'),
+  createNote:  (data) => req('/equipe/notes', { method: 'POST', body: JSON.stringify(data) }),
+  updateNote:  (id, data) => req(`/equipe/notes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteNote:  (id) => req(`/equipe/notes/${id}`, { method: 'DELETE' }),
 
   // Coaches
   getCoachesRecap: (params = {}) => {
@@ -177,7 +226,7 @@ export const api = {
   },
 
   // Documents salariés (fiches de paie, contrat, arrêt maladie, autre)
-  getEmployeDocuments: (userId) => req(`/employe-documents/${userId}`),
+  getEmployeDocuments: (userId) => req(`/employe-documents/${userId}`, { headers: enteteDeverrouillage() }),
   uploadEmployeDocument: async (userId, file, type, periode) => {
     const token = getToken();
     const body = new FormData();
@@ -196,7 +245,8 @@ export const api = {
     return res.json();
   },
   deleteEmployeDocument: (id) => req(`/employe-documents/${id}`, { method: 'DELETE' }),
-  downloadEmployeDocument: (id, nomFichier) => telechargerFichierProtege(`/employe-documents/file/${id}`, nomFichier),
+  downloadEmployeDocument: (id, nomFichier) =>
+    telechargerFichierProtege(`/employe-documents/file/${id}`, nomFichier, enteteDeverrouillage()),
 
   // Import groupé des fiches de paie
   analyserFichesDePaie: async (file) => {

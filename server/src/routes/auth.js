@@ -5,6 +5,7 @@ const db      = require('../db/database');
 const { requireAuth, getToken } = require('../middleware/auth');
 const { hashCode, verifyCode } = require('../lib/codeHash');
 const { isPrivileged } = require('../middleware/ipAccess');
+const { creerJeton } = require('../lib/deverrouillage');
 
 function expiresAtMorning(hour = 6) {
   const d = new Date();
@@ -235,6 +236,27 @@ router.post('/forget-code', (req, res) => {
 
   db.run('UPDATE app_users SET code_hash = NULL WHERE id = ?', [user.id]);
   res.json({ ok: true });
+});
+
+// POST /api/auth/deverrouiller — ressaisie du code du profil connecté pour ouvrir
+// les documents RH (voir lib/deverrouillage.js). Même anti-bruteforce que /select.
+// Un profil sans code ne peut pas déverrouiller : il doit d'abord en définir un.
+router.post('/deverrouiller', requireAuth, (req, res) => {
+  const user = db.get('SELECT id, code_hash FROM app_users WHERE id = ?', [req.user.id]);
+  if (!user.code_hash) return res.status(409).json({ error: 'sans_code' });
+
+  const restantMs = blocageRestantMs(user.id);
+  if (restantMs > 0) {
+    return res.status(429).json({ error: `Trop de tentatives échouées. Réessaie dans ${Math.ceil(restantMs / 60000)} min.` });
+  }
+  // 403 et non 401 : côté client, un 401 signifie « session expirée » et renvoie
+  // à l'écran de connexion — un simple code erroné ne doit pas déconnecter.
+  if (!req.body.code || !verifyCode(String(req.body.code), user.code_hash)) {
+    enregistrerEchec(user.id);
+    return res.status(403).json({ error: 'Code incorrect' });
+  }
+  reinitialiserTentatives(user.id);
+  res.json(creerJeton(user.id));
 });
 
 // POST /api/auth/logout — met fin à la session (= changer de profil côté client)

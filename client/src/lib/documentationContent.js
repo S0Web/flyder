@@ -64,28 +64,40 @@ Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coa
       },
       {
         id: 'planning-personnel',
-        titre: 'Planning personnel',
-        contenu: `Le Planning personnel gère les horaires de travail du personnel (coachs et employés), semaine par semaine — à ne pas confondre avec le [Planning des cours](/documentation/planning) : ici, on renseigne qui travaille quand, pas quel cours a lieu quand.
+        titre: 'Équipe',
+        contenu: `L'onglet Équipe regroupe tout ce qui concerne le personnel de la salle : planning, tâches, comptes rendus de fin de journée et fiches individuelles. Le manager y trouve une vue d'ensemble ; chaque salarié y voit sa journée et sa propre fiche.
 
-## Renseigner un créneau
+## Vue d'ensemble (Manager)
 
-Cliquer sur une case (employé × jour) ouvre une fenêtre pour indiquer soit un horaire de travail (début/fin), soit une absence (CP, école, férié, arrêt, repos). Une case peut contenir plusieurs créneaux de travail dans la même journée (ex. matin et soir séparés).
+Qui est là aujourd'hui (avec un repère sur l'heure actuelle), les comptes rendus à valider, le suivi des bilans jour par jour sur 14 jours (croisé avec le planning : un oubli sur un jour travaillé apparaît en pointillés rouges), l'avancement des tâches, la charge de chacun, les problèmes signalés et les absences à venir.
 
-## Vue chronologique
+## Ma journée
 
-Sous le tableau, une frise visuelle ("qui est là et quand") représente chaque créneau de travail sous forme de barre positionnée sur un axe horaire — un coup d'œil suffit pour voir qui est présent à un instant donné.
+Mes horaires du jour et de la semaine, mes tâches, qui travaille avec moi aujourd'hui, et le bouton pour faire mon bilan de fin de journée. Les alertes importantes (bilan à revoir, nouveau document) s'affichent en haut.
 
-## Dupliquer une semaine
+## Planning
 
-Comme pour le Planning des cours, un bouton permet de copier les jours déjà renseignés de la semaine précédente, sans toucher à ce qui est déjà rempli cette semaine.
+Le planning du personnel, semaine par semaine — à ne pas confondre avec le [Planning des cours](/documentation/planning). Tout le monde voit le planning de toute l'équipe (pour savoir qui relaie qui) ; le filtre « Mes horaires » n'affiche que les siens. Cliquer sur une case (employé × jour) permet d'indiquer un horaire de travail ou une absence (CP, école, férié, arrêt, repos), plusieurs créneaux par jour possibles. La frise sous le tableau montre qui est là et quand ; « Dupliquer la semaine précédente » recopie les jours encore vides ; le « Récap mensuel » (Manager) totalise les heures sur 12 mois.
 
-## Récap mensuel (Manager)
+## Tâches
 
-Un bouton "Récap mensuel" affiche, par employé, le nombre d'heures travaillées mois par mois sur les 12 derniers mois, avec un total et le solde de congés payés.
+Chaque tâche a une échéance, une priorité, un statut (à faire, en cours, terminée), une description et un fil de commentaires. Une tâche peut être récurrente (tous les jours, toutes les semaines, tous les mois) : quand elle est terminée, la suivante est créée automatiquement. Le manager assigne des tâches à tout le monde ; un salarié peut s'en créer lui-même — la mention « créée par… » indique toujours l'auteur. Vue Liste (regroupée par échéance) ou Tableau (glisser-déposer entre les colonnes).
+
+## Comptes rendus de fin de journée
+
+Avant de partir, chacun coche les missions de sa fiche de poste réalisées dans la journée, renseigne ses chiffres (prospects contactés, adhérents accompagnés…), sa priorité du lendemain et un éventuel problème à signaler, puis l'envoie. Le manager le valide, ou le renvoie « à revoir » avec un commentaire. Un compte rendu reste modifiable tant qu'il n'est pas validé (7 jours maximum).
+
+## Fiche d'un membre
+
+Aperçu (chiffres clés, horaires, congés payés), fiche de poste (objectif, missions du quotidien, indicateurs du bilan — rédigée par un manager), tâches, comptes rendus, documents et, sur sa propre fiche uniquement, des notes privées que personne d'autre ne peut lire, managers compris.
+
+## Documents confidentiels
+
+Fiches de paie, contrat, arrêts maladie : même connecté, il faut ressaisir son code confidentiel pour les ouvrir, et l'accès se reverrouille au bout de 10 minutes. Un salarié ne voit que ses propres documents. Le manager voit si chaque document a été consulté par son destinataire (accusé de lecture).
 
 ## Congés payés
 
-La barre latérale affiche un résumé des CP pris ce mois-ci, cette année, et le solde restant pour chaque profil. Le détail et l'ajustement manuel se font depuis la [fiche individuelle de l'employé](/documentation/parametres-utilisateurs).`,
+Le solde de CP s'affiche sur la fiche de chacun et dans la barre latérale du planning ; l'ajustement manuel du cumul se fait depuis la fiche (Manager).`,
       },
     ],
   },
@@ -282,7 +294,7 @@ Un badge apparaît dans le menu quand une réponse est arrivée sur un ticket. O
 - **Importer les fiches de paie** — import en masse de documents pour plusieurs employés à la fois.
 - **Activer / désactiver** — cliquer sur le badge de statut. Un profil désactivé n'apparaît plus sur l'écran de connexion mais reste visible dans l'historique (plannings passés, etc.).
 - **Supprimer définitivement** — uniquement possible sur un profil déjà désactivé (sauf le sien).
-- **Ouvrir la fiche** — donne accès à la fiche complète de l'employé : documents (fiche de paie, contrat, arrêt maladie, autre), détail et ajustement manuel des congés payés, modification des informations.`,
+- **Ouvrir la fiche** — ouvre la fiche du membre dans l'onglet [Équipe](/documentation/planning-personnel) : fiche de poste, tâches, comptes rendus, documents confidentiels, congés payés.`,
       },
       {
         id: 'parametres-historique',
@@ -324,7 +336,7 @@ Télécharger une copie brute de la base de données actuelle, ou en importer un
         contenu: `Flyder distingue deux rôles :
 
 - **Manager** — accès complet : Utilisateurs, Historique, Préférences, création/désactivation de profils, gestion des documents des coachs et employés, permissions illimitées peu importe le lieu de connexion.
-- **Utilisateur** — accès au Planning, Planning personnel, Coachs, Annuaire, Analyse, Support, Nouveautés, et à son propre profil. Les permissions d'écriture dépendent de l'adresse IP : restreintes depuis une IP autorisée par un manager (typiquement le Wi-Fi de la salle), lecture seule depuis n'importe où ailleurs.
+- **Utilisateur** — accès au Planning, à l'onglet Équipe (sa journée, le planning du personnel, ses tâches et sa fiche), Coachs, Annuaire, Analyse, Support, Nouveautés, et à son propre profil. Les permissions d'écriture dépendent de l'adresse IP : restreintes depuis une IP autorisée par un manager (typiquement le Wi-Fi de la salle), lecture seule depuis n'importe où ailleurs.
 
 Cette distinction protège les réglages sensibles (facturation, congés, sécurité) tout en laissant le personnel de terrain utiliser l'outil au quotidien sans dépendre d'un manager pour chaque action.`,
       },

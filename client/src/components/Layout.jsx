@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Settings as GearIcon, Menu as MenuIcon, X as XIcon, Megaphone, LifeBuoy,
-  CalendarDays, CalendarRange, ClipboardList, BarChart3, BookUser, GraduationCap, HelpCircle,
-  Users, ExternalLink,
+  CalendarDays, ClipboardList, BarChart3, BookUser, GraduationCap, HelpCircle,
+  Users, UsersRound, ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfig } from '../context/ConfigContext';
 import { useTicketsUnreadCount } from '../lib/useTicketsUnreadCount';
 import { useChangelogUnread } from '../lib/useChangelogUnread';
+import { useEquipePastille } from '../lib/useEquipePastille';
 import { useIdleLogout } from '../lib/useIdleLogout';
 import { colorForUser } from '../lib/utils';
 import ChangelogPopup from './ChangelogPopup';
@@ -18,7 +19,7 @@ const ALL_LINKS = [
   { to: '/',                   label: 'Planning des cours',  icon: CalendarDays,  end: true },
   { to: '/recapitulatif',      label: 'Récapitulatif',       icon: ClipboardList },
   { to: '/analyse',            label: 'Analyse',             icon: BarChart3 },
-  { to: '/planning-personnel', label: 'Planning personnel',  icon: CalendarRange },
+  { to: '/equipe',             label: 'Équipe',              icon: UsersRound },
   { to: '/annuaire',           label: 'Annuaire',            icon: BookUser },
   { to: '/formation',          label: 'Formation',           icon: GraduationCap },
   { to: '/documentation',      label: 'Documentation',       icon: HelpCircle },
@@ -88,7 +89,7 @@ function NavItem({ to, label, icon: Icon, end, onClick, badge, highlight, extern
   );
 }
 
-function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, ticketsNonLu, changelogNonLu }) {
+function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, ticketsNonLu, changelogNonLu, equipeCount }) {
   return (
     <>
       <div className="flex flex-col items-start gap-1.5 px-4 py-3 border-b border-white/10 flex-shrink-0">
@@ -97,7 +98,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, tick
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {links.map(l => <NavItem key={l.to} {...l} onClick={onNavigate} />)}
+        {links.map(l => <NavItem key={l.to} {...l} onClick={onNavigate} badge={l.to === '/equipe' && equipeCount > 0} />)}
       </nav>
 
       {user && (
@@ -123,6 +124,7 @@ export default function Layout({ children }) {
   const { salleNom, abonnementAvertissement, abonnementJoursRestants } = useConfig();
   const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
   const { count: changelogNonLus } = useChangelogUnread(!!user);
+  const { count: equipeCount } = useEquipePastille(!!user);
   useIdleLogout(!!user);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
@@ -135,7 +137,7 @@ export default function Layout({ children }) {
 
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex lg:flex-col w-60 flex-shrink-0 bg-brand-ink sticky top-0 h-screen shadow-md">
-        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} ticketsNonLu={ticketsNonLus > 0} changelogNonLu={changelogNonLus > 0} />
+        <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} ticketsNonLu={ticketsNonLus > 0} changelogNonLu={changelogNonLus > 0} equipeCount={equipeCount} />
       </aside>
 
       {/* Barre + tiroir mobile */}
@@ -156,7 +158,7 @@ export default function Layout({ children }) {
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
           <aside className="relative w-64 bg-brand-ink flex flex-col h-full shadow-xl">
-            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} ticketsNonLu={ticketsNonLus > 0} changelogNonLu={changelogNonLus > 0} />
+            <SidebarContent links={links} salleNom={salleNom} user={user} switchProfile={switchProfile} onNavigate={() => setMenuOpen(false)} ticketsNonLu={ticketsNonLus > 0} changelogNonLu={changelogNonLus > 0} equipeCount={equipeCount} />
           </aside>
         </div>
       )}
@@ -174,7 +176,9 @@ export default function Layout({ children }) {
           </div>
         )}
         <main className={`flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 ${!restricted && !abonnementAvertissement ? 'mt-14 lg:mt-0' : ''}`}>
-          <div key={location.pathname} className="motion-safe:animate-pageIn">
+          {/* Les sous-pages d'Équipe gardent leur en-tête et leurs onglets en place :
+              seule la page change (animée dans EquipeLayout), pas tout l'écran. */}
+          <div key={location.pathname.startsWith('/equipe') ? '/equipe' : location.pathname} className="motion-safe:animate-pageIn">
             {children}
           </div>
         </main>

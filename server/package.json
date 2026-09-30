@@ -7,7 +7,8 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "seed": "node src/db/seed.js",
-    "seed:personnel": "node src/db/seedPersonnel.js"
+    "seed:personnel": "node src/db/seedPersonnel.js",
+    "seed:equipe": "node src/db/seedEquipeDemo.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1114.0",

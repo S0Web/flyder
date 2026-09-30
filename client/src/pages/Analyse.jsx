@@ -4,6 +4,7 @@ import {
   Sparkles, TrendingUp, Clock, Dumbbell, Users, ShieldAlert,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { Segmented, SectionTitle } from '../components/ui';
 import { usePreferences } from '../lib/usePreferences';
 import {
   getAcademicYear, periodeLabel, previousPeriodRange, sameRangeLastYear, fmtDateFr, ANNEES_DISPONIBLES,
@@ -41,39 +42,6 @@ const METRIQUES = [
   { key: 'heures',        label: 'Heures',        fmt: fmtInt, get: m => Math.round((m.minutes || 0) / 60) },
   { key: 'effectif_moyen',label: 'Effectif moyen',fmt: v => fmtDec(v), get: m => m.effectif_moyen },
 ];
-
-function SectionTitle({ id, Icon, children, sub }) {
-  return (
-    <div id={id} className="scroll-mt-24 flex items-start gap-2.5 mt-8 mb-3 first:mt-0">
-      <span className="mt-0.5 h-7 w-7 rounded-lg bg-sky-50 flex items-center justify-center flex-shrink-0">
-        <Icon className="h-4 w-4 text-sky-600" strokeWidth={2} />
-      </span>
-      <div>
-        <h2 className="text-base font-bold text-brand-ink leading-tight">{children}</h2>
-        {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-function Segmented({ value, onChange, options, size = 'sm' }) {
-  return (
-    <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
-      {options.map(o => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          className={`inline-flex items-center gap-1.5 rounded-md font-medium transition-colors active:scale-[0.97] ${
-            size === 'sm' ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-sm'
-          } ${value === o.value ? 'bg-white text-sky-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          {o.Icon && <o.Icon size={14} />}
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export default function Analyse() {
   const { prefs } = usePreferences();

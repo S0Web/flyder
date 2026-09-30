@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
+import { oublierDeverrouillage } from '../lib/deverrouillage';
 
 const AuthContext = createContext(null);
 
@@ -18,6 +19,7 @@ export function AuthProvider({ children }) {
       }).catch(() => {});
     }
     localStorage.removeItem(TOKEN_KEY);
+    oublierDeverrouillage();
     setToken(null);
     setUser(null);
   }, [token]);

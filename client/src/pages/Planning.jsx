@@ -10,7 +10,6 @@ import { usePreferences } from '../lib/usePreferences';
 import SeanceCard from '../components/SeanceCard';
 import SeanceModal from '../components/SeanceModal';
 import MiniCalendar from '../components/MiniCalendar';
-import TaskWidget from '../components/TaskWidget';
 import HeadcountPopover from '../components/HeadcountPopover';
 import PointeurBadge from '../components/PointeurBadge';
 import { nextStatut } from '../lib/statutCycle';
@@ -468,9 +467,6 @@ export default function Planning() {
           {annules > 0 && <div className="flex justify-between text-red-600"><span>Annulés</span><span className="font-bold">{annules}</span></div>}
         </div>
 
-        <div className="mt-3">
-          <TaskWidget lundi={lundi} />
-        </div>
       </aside>
 
       {/* ── Contenu ──────────────────────────────────────────────────── */}

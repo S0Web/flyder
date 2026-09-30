@@ -8,6 +8,7 @@ import {
   semaineSuivante, semainePrecedente, colorForUser,
 } from '../lib/utils';
 import MiniCalendar from '../components/MiniCalendar';
+import { Onglets } from '../components/equipe/kit';
 import PersonnelCreneauModal from '../components/PersonnelCreneauModal';
 
 const TYPE_CONFIG = {
@@ -248,6 +249,9 @@ export default function PlanningPersonnel() {
   const [dupliquer, setDupliquer] = useState(false);
   const [dupliquerMsg, setDupliquerMsg] = useState(null);
   const [vue, setVue] = useState('semaine'); // 'semaine' | 'recap'
+  // Chacun voit le planning de toute l'équipe (qui travaille avec moi, qui me
+  // relaie) mais peut n'afficher que ses propres horaires.
+  const [qui, setQui] = useState('equipe'); // 'equipe' | 'moi'
 
   const semaine = getSemaine(lundi);
 
@@ -310,8 +314,9 @@ export default function PlanningPersonnel() {
         extras.set(c.employe_id, { id: c.employe_id, prenom: c.prenom, nom: c.nom });
       }
     });
-    return [...profils, ...extras.values()].sort((a, b) => a.prenom.localeCompare(b.prenom));
-  }, [profils, creneaux]);
+    const tous = [...profils, ...extras.values()].sort((a, b) => a.prenom.localeCompare(b.prenom));
+    return qui === 'moi' ? tous.filter(p => p.id === user?.id) : tous;
+  }, [profils, creneaux, qui, user?.id]);
 
   return (
     <div className="flex gap-4">
@@ -322,7 +327,11 @@ export default function PlanningPersonnel() {
 
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <h1 className="text-lg font-bold text-gray-800 mr-2">Planning personnel</h1>
+          <Onglets trait={false} actif={qui} onChange={setQui} onglets={[
+            { id: 'equipe', label: "Toute l'équipe" },
+            { id: 'moi', label: 'Mes horaires' },
+          ]} />
+          <span className="w-px h-6 bg-gray-200 mx-1 hidden sm:block" />
           <button onClick={() => setLundi(semainePrecedente(lundi))} aria-label="Semaine précédente"
             className="px-2.5 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded">←</button>
           <button onClick={() => setLundi(getLundi())}
@@ -359,7 +368,7 @@ export default function PlanningPersonnel() {
         ) : loading ? (
           <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-gray-400 py-10 text-center">Aucun profil — ajoute-en un depuis Paramètres &gt; Utilisateurs.</p>
+          <p className="text-sm text-gray-400 py-10 text-center">Aucun profil — ajoute un membre depuis Équipe &gt; Membres.</p>
         ) : (
           <>
           <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-x-auto">
@@ -464,7 +473,7 @@ export default function PlanningPersonnel() {
           </div>
           <PersonnelTimeline
             semaine={semaine}
-            creneaux={creneaux}
+            creneaux={qui === 'moi' ? creneaux.filter(c => c.employe_id === user?.id) : creneaux}
             today={today}
             onOpenCell={(emp, iso) => setCellModal({ employe: emp, date: iso })}
           />

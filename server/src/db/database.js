@@ -607,4 +607,130 @@ tryAlter('ALTER TABLE formation_articles ADD COLUMN categorie_id INTEGER REFEREN
   }
 })();
 
+// ─── Équipe : fiche de poste, tâches, comptes rendus, notes privées ─────────
+
+// Fiche de poste d'un salarié : intitulé, objectif principal, missions du
+// quotidien et indicateurs du bilan de fin de journée. Listes stockées en JSON
+// (tableaux de chaînes) : elles sont toujours lues/écrites d'un bloc, jamais
+// interrogées élément par élément.
+db.run(`
+  CREATE TABLE IF NOT EXISTS fiches_poste (
+    user_id     INTEGER PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
+    intitule    TEXT NOT NULL DEFAULT '',
+    objectif    TEXT NOT NULL DEFAULT '',
+    missions    TEXT NOT NULL DEFAULT '[]',
+    indicateurs TEXT NOT NULL DEFAULT '[]',
+    rappel      TEXT NOT NULL DEFAULT '',
+    updated_by  INTEGER REFERENCES app_users(id),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Tâches datées (remplacent l'ancienne table "tasks" rattachée à une semaine).
+// Une tâche récurrente génère sa prochaine occurrence quand elle est terminée
+// (occurrence_suivante_id empêche d'en créer deux si on la décoche/recoche).
+db.run(`
+  CREATE TABLE IF NOT EXISTS taches (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    titre                 TEXT NOT NULL,
+    description           TEXT NOT NULL DEFAULT '',
+    assigne_a             INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    cree_par              INTEGER NOT NULL REFERENCES app_users(id),
+    echeance              TEXT,
+    priorite              TEXT NOT NULL DEFAULT 'normale' CHECK(priorite IN ('basse','normale','haute','urgente')),
+    statut                TEXT NOT NULL DEFAULT 'a_faire' CHECK(statut IN ('a_faire','en_cours','fait')),
+    recurrence            TEXT NOT NULL DEFAULT 'aucune' CHECK(recurrence IN ('aucune','quotidienne','hebdomadaire','mensuelle')),
+    occurrence_suivante_id INTEGER,
+    fait_le               TEXT,
+    fait_par              INTEGER REFERENCES app_users(id),
+    created_at            TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at            TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+db.run('CREATE INDEX IF NOT EXISTS idx_taches_assigne ON taches(assigne_a, statut)');
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS tache_commentaires (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    tache_id   INTEGER NOT NULL REFERENCES taches(id) ON DELETE CASCADE,
+    auteur_id  INTEGER NOT NULL REFERENCES app_users(id),
+    contenu    TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Reprise des anciennes tâches hebdomadaires : échéance = dimanche de leur semaine ISO.
+;(function migrateTasksVersTaches() {
+  try {
+    if (db.get("SELECT 1 FROM import_markers WHERE nom = 'migration_tasks_taches'")) return;
+    const anciennes = db.all('SELECT * FROM tasks');
+    db.run('BEGIN');
+    for (const t of anciennes) {
+      const m = /^(\d{4})-W(\d{2})$/.exec(t.semaine || '');
+      let echeance = null;
+      if (m) {
+        // Le 4 janvier est toujours en semaine 1 (norme ISO 8601).
+        const jan4 = new Date(Date.UTC(Number(m[1]), 0, 4));
+        const lundiS1 = new Date(jan4);
+        lundiS1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() || 7) - 1));
+        const dimanche = new Date(lundiS1);
+        dimanche.setUTCDate(lundiS1.getUTCDate() + (Number(m[2]) - 1) * 7 + 6);
+        echeance = dimanche.toISOString().slice(0, 10);
+      }
+      db.run(
+        `INSERT INTO taches (titre, assigne_a, cree_par, echeance, statut, fait_le, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [t.titre, t.user_id, t.created_by, echeance, t.done ? 'fait' : 'a_faire', t.done ? t.created_at : null, t.created_at]
+      );
+    }
+    db.run("INSERT INTO import_markers (nom, importe_le) VALUES ('migration_tasks_taches', datetime('now'))");
+    db.run('COMMIT');
+    if (anciennes.length) console.log(`✅ Migration : ${anciennes.length} tâche(s) reprise(s) dans "taches"`);
+  } catch (e) {
+    try { db.run('ROLLBACK'); } catch (_) {}
+    console.error('migrateTasksVersTaches error:', e.message);
+  }
+})();
+
+// Compte rendu de fin de journée ("Avant de partir — mon bilan"). Missions et
+// indicateurs sont copiés depuis la fiche de poste au moment de la saisie : si la
+// fiche change plus tard, les anciens comptes rendus restent lisibles tels quels.
+db.run(`
+  CREATE TABLE IF NOT EXISTS comptes_rendus (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    date            TEXT NOT NULL,
+    missions        TEXT NOT NULL DEFAULT '[]',
+    indicateurs     TEXT NOT NULL DEFAULT '[]',
+    resume          TEXT NOT NULL DEFAULT '',
+    priorite_demain TEXT NOT NULL DEFAULT '',
+    probleme        TEXT NOT NULL DEFAULT '',
+    statut          TEXT NOT NULL DEFAULT 'brouillon' CHECK(statut IN ('brouillon','soumis','valide','a_revoir')),
+    retour_manager  TEXT NOT NULL DEFAULT '',
+    soumis_le       TEXT,
+    valide_par      INTEGER REFERENCES app_users(id),
+    valide_le       TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, date)
+  )
+`);
+
+// Notes privées : visibles uniquement par leur auteur, managers compris.
+db.run(`
+  CREATE TABLE IF NOT EXISTS notes_privees (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    titre      TEXT NOT NULL DEFAULT '',
+    contenu    TEXT NOT NULL DEFAULT '',
+    epingle    INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Accusé de lecture : date à laquelle le salarié a ouvert son document pour la
+// première fois (les téléchargements du manager ne comptent pas).
+tryAlter('ALTER TABLE employe_documents ADD COLUMN vu_le TEXT');
+
 module.exports = db;

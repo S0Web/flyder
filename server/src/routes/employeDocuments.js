@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../db/database');
 const { requireAuth, requireManager } = require('../middleware/auth');
 const { analyserFichesDePaie } = require('../lib/payslipParser');
+const { requireDeverrouillage } = require('../lib/deverrouillage');
 
 // Documents des salariés (fiches de paie, contrat, arrêt maladie, autre) — sur le
 // volume persistant, jamais dans server/public. Contrairement aux images Formation,
@@ -69,10 +70,12 @@ function peutVoir(req, userId) {
 // ─── Documents d'un salarié ──────────────────────────────────────────────────
 
 // GET /api/employe-documents/:userId — liste (le salarié voit les siens, le manager tout).
-router.get('/:userId', requireAuth, (req, res) => {
+// Lecture comme téléchargement exigent un déverrouillage récent par code (voir
+// lib/deverrouillage.js), en plus de la session.
+router.get('/:userId', requireAuth, requireDeverrouillage, (req, res) => {
   if (!peutVoir(req, req.params.userId)) return res.status(403).json({ error: 'Accès refusé' });
   const rows = db.all(
-    `SELECT id, type, periode, nom_fichier, date_upload FROM employe_documents
+    `SELECT id, type, periode, nom_fichier, date_upload, vu_le FROM employe_documents
      WHERE user_id = ? ORDER BY periode DESC, date_upload DESC`,
     [req.params.userId]
   );
@@ -80,10 +83,14 @@ router.get('/:userId', requireAuth, (req, res) => {
 });
 
 // GET /api/employe-documents/file/:id — téléchargement.
-router.get('/file/:id', requireAuth, (req, res) => {
+router.get('/file/:id', requireAuth, requireDeverrouillage, (req, res) => {
   const doc = db.get('SELECT * FROM employe_documents WHERE id = ?', [req.params.id]);
   if (!doc) return res.status(404).json({ error: 'Document introuvable' });
   if (!peutVoir(req, doc.user_id)) return res.status(403).json({ error: 'Accès refusé' });
+  // Accusé de lecture : seule la première ouverture par le salarié lui-même compte.
+  if (!doc.vu_le && doc.user_id === req.user.id) {
+    db.run("UPDATE employe_documents SET vu_le = datetime('now') WHERE id = ?", [doc.id]);
+  }
   res.download(doc.chemin, doc.nom_fichier);
 });
 
@@ -102,7 +109,7 @@ router.post('/:userId', requireManager, (req, res) => {
       [req.params.userId, type, periode || null, req.file.originalname, req.file.path, req.user.id]
     );
     res.status(201).json(
-      db.get('SELECT id, type, periode, nom_fichier, date_upload FROM employe_documents WHERE id = ?', [result.lastInsertRowid])
+      db.get('SELECT id, type, periode, nom_fichier, date_upload, vu_le FROM employe_documents WHERE id = ?', [result.lastInsertRowid])
     );
   });
 });

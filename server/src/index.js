@@ -41,7 +41,8 @@ const pointeursRouter = require('./routes/pointeurs');
 const dashboardRouter = require('./routes/dashboard');
 const analyticsRouter = require('./routes/analytics');
 const appUsersRouter  = require('./routes/appUsers');
-const tasksRouter     = require('./routes/tasks');
+const tachesRouter    = require('./routes/taches');
+const equipeRouter    = require('./routes/equipe');
 const personnelCreneauxRouter = require('./routes/personnelCreneaux');
 const annuaireRouter  = require('./routes/annuaire');
 const adminRouter     = require('./routes/admin');
@@ -81,7 +82,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Unlock-Token'],
 }));
 
 app.use(express.json());
@@ -114,7 +115,10 @@ app.use('/api/tickets',     requireAuth, ticketsRouter);
 app.use('/api/changelog',   requireAuth, changelogRouter);
 app.use('/api/preferences', requireAuth, preferencesRouter);
 app.use('/api/app-users',   appUsersRouter);
-app.use('/api/tasks',       requireAuth, requireWriteAccess, tasksRouter);
+app.use('/api/taches',      requireAuth, requireWriteAccess, tachesRouter);
+// Équipe : fiches de poste, comptes rendus, notes privées, tableaux de bord — chaque
+// route gère son niveau d'accès (voir routes/equipe.js).
+app.use('/api/equipe',      requireAuth, equipeRouter);
 app.use('/api/personnel-creneaux',  requireAuth, requireWriteAccess, personnelCreneauxRouter);
 // Annuaire : contient des coordonnées personnelles, ni lecture ni écriture hors accès privilégié.
 app.use('/api/annuaire',   requireAuth, requireAnnuaireAccess, annuaireRouter);

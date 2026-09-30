@@ -162,7 +162,7 @@ export default function Settings() {
               className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
               Modifier mes informations
             </button>
-            <button onClick={() => navigate(`/parametres/utilisateurs/${me.id}`)}
+            <button onClick={() => navigate(`/equipe/membres/${me.id}`)}
               className="text-sm px-4 py-2 rounded text-white font-medium"
               style={{ backgroundColor: '#3D5AFE' }}>
               Ouvrir ma fiche
@@ -211,7 +211,7 @@ export default function Settings() {
                     </button>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <button onClick={() => navigate(`/parametres/utilisateurs/${u.id}`)} className="text-xs text-sky-600 hover:underline">Ouvrir la fiche</button>
+                    <button onClick={() => navigate(`/equipe/membres/${u.id}`)} className="text-xs text-sky-600 hover:underline">Ouvrir la fiche</button>
                     {!u.actif && u.id !== me?.id && (
                       <button onClick={() => handleDeleteUser(u)} className="ml-3 text-xs text-red-500 hover:underline">
                         Supprimer définitivement

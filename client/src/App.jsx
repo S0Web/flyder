@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ConfigProvider } from './context/ConfigContext';
@@ -19,7 +19,13 @@ const Formation           = lazy(() => import('./pages/Formation'));
 const FormationCategorie  = lazy(() => import('./pages/FormationCategorie'));
 const Documentation       = lazy(() => import('./pages/Documentation'));
 const Settings            = lazy(() => import('./pages/Settings'));
-const FicheEmploye        = lazy(() => import('./pages/FicheEmploye'));
+const EquipeLayout        = lazy(() => import('./pages/equipe/EquipeLayout'));
+const VueEnsemble         = lazy(() => import('./pages/equipe/VueEnsemble'));
+const MaJournee           = lazy(() => import('./pages/equipe/MaJournee'));
+const Taches              = lazy(() => import('./pages/equipe/Taches'));
+const ComptesRendus       = lazy(() => import('./pages/equipe/ComptesRendus'));
+const Membres             = lazy(() => import('./pages/equipe/Membres'));
+const FicheMembre         = lazy(() => import('./pages/equipe/FicheMembre'));
 const Nouveautes          = lazy(() => import('./pages/Nouveautes'));
 const Support             = lazy(() => import('./pages/Support'));
 const AbonnementBloque    = lazy(() => import('./pages/AbonnementBloque'));
@@ -46,7 +52,17 @@ function ProtectedRoutes() {
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/"                   element={<Planning />} />
-          <Route path="/planning-personnel" element={<PlanningPersonnel />} />
+          {/* Équipe : remplace « Planning personnel » (ancienne URL redirigée). */}
+          <Route path="/equipe" element={<EquipeLayout />}>
+            <Route index element={<EquipeAccueil />} />
+            <Route path="ma-journee" element={<MaJournee />} />
+            <Route path="planning" element={<PlanningPersonnel />} />
+            <Route path="taches" element={<Taches />} />
+            <Route path="comptes-rendus" element={<ComptesRendus />} />
+            <Route path="membres" element={<MembresOuMaFiche />} />
+            <Route path="membres/:id" element={<FicheMembre />} />
+          </Route>
+          <Route path="/planning-personnel" element={<Navigate to="/equipe/planning" replace />} />
           <Route path="/recapitulatif"      element={<Coaches />} />
           {/* Ancienne URL : des raccourcis/onglets ouverts pointent encore dessus. */}
           <Route path="/coaches"            element={<Navigate to="/recapitulatif" replace />} />
@@ -60,7 +76,7 @@ function ProtectedRoutes() {
           <Route path="/support"            element={<Support />} />
           <Route path="/nouveautes"         element={<Nouveautes />} />
           <Route path="/parametres"         element={<Settings />} />
-          <Route path="/parametres/utilisateurs/:id" element={<FicheEmploye />} />
+          <Route path="/parametres/utilisateurs/:id" element={<RedirectionFiche />} />
           <Route path="*"                   element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
@@ -88,6 +104,23 @@ export default function App() {
       </ToastProvider>
     </ConfigProvider>
   );
+}
+
+// Accueil de l'onglet Équipe : vue d'ensemble pour un manager, sa journée sinon.
+function EquipeAccueil() {
+  const { user } = useAuth();
+  return user?.role === 'manager' ? <VueEnsemble /> : <MaJournee />;
+}
+
+function MembresOuMaFiche() {
+  const { user } = useAuth();
+  return user?.role === 'manager' ? <Membres /> : <Navigate to={`/equipe/membres/${user?.id}`} replace />;
+}
+
+// Les fiches salariés vivaient sous Paramètres : liens et favoris existants.
+function RedirectionFiche() {
+  const { id } = useParams();
+  return <Navigate to={`/equipe/membres/${id}`} replace />;
 }
 
 function ProfilePickerRoute() {
