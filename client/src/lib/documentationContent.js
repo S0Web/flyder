@@ -65,39 +65,81 @@ Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coa
       {
         id: 'planning-personnel',
         titre: 'Équipe',
-        contenu: `L'onglet Équipe regroupe tout ce qui concerne le personnel de la salle : planning, tâches, comptes rendus de fin de journée et fiches individuelles. Le manager y trouve une vue d'ensemble ; chaque salarié y voit sa journée et sa propre fiche.
+        contenu: `L'onglet Équipe regroupe tout ce qui concerne le personnel de la salle : planning, tâches, bilans de fin de journée et fiches individuelles. Il remplace l'ancien « Planning personnel ». Un manager y trouve une vue d'ensemble de l'équipe ; chaque salarié y voit sa journée, ses tâches et sa propre fiche.
 
-## Vue d'ensemble (Manager)
-
-Qui est là aujourd'hui (avec un repère sur l'heure actuelle), les comptes rendus à valider, le suivi des bilans jour par jour sur 14 jours (croisé avec le planning : un oubli sur un jour travaillé apparaît en pointillés rouges), l'avancement des tâches, la charge de chacun, les problèmes signalés et les absences à venir.
+Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes rendus, Effectif. Onglets d'un salarié : Ma journée, Planning, Mes tâches, Mes comptes rendus, Ma fiche. Un petit chiffre corail à côté d'un onglet (et un point rouge sur « Équipe » dans le menu) signale ce qui attend : bilans à valider pour un manager ; tâche en retard, bilan à revoir ou nouveau document pour un salarié.
 
 ## Ma journée
 
-Mes horaires du jour et de la semaine, mes tâches, qui travaille avec moi aujourd'hui, et le bouton pour faire mon bilan de fin de journée. Les alertes importantes (bilan à revoir, nouveau document) s'affichent en haut.
+- Tes horaires du jour écrits en grand, ton poste et ton objectif principal.
+- Le bouton « Faire mon bilan de fin de journée ». Une fois envoyé, il est remplacé par un tampon « À valider », puis « Validé ».
+- Tes chiffres : tâches à faire aujourd'hui, en retard, terminées ces 7 derniers jours, congés restants.
+- Les alertes : bilan renvoyé « à revoir », nouveau document déposé pour toi.
+- Tes tâches, avec un champ pour t'en ajouter une rapidement.
+- Tes missions du quotidien (celles de ta fiche de poste), à déplier.
+- Ta semaine jour par jour, et « Avec moi aujourd'hui » : qui travaille, à quelles heures, qui est en poste en ce moment (trait corail = heure actuelle), qui est absent.
+
+## Vue d'ensemble (Manager)
+
+- En haut : présents du jour, tâches ouvertes, tâches en retard, taux de réalisation des tâches de la semaine, bilans à valider, documents pas encore ouverts par leur destinataire.
+- « Qui est là » : les horaires du jour de chacun sur une frise ; un clic sur un prénom ouvre sa fiche.
+- « À valider » : les derniers bilans reçus, validables directement depuis cette page.
+- « Bilans de fin de journée » : une case par personne et par jour sur 14 jours, croisée avec le planning. Case pleine foncée = validé, pleine corail = à valider, barrée = à revoir, en pointillés = jour travaillé sans bilan, hachurée = ne travaillait pas.
+- « Avancement des tâches » : tâches terminées et créées chaque semaine (si les créées dépassent durablement les terminées, la pile grossit), et la charge de chacun (une case par tâche ouverte, en corail si elle est en retard).
+- « Terrain » : les problèmes signalés dans les bilans des 7 derniers jours et les absences des 3 prochaines semaines (congés, arrêts…).
 
 ## Planning
 
-Le planning du personnel, semaine par semaine — à ne pas confondre avec le [Planning des cours](/documentation/planning). Tout le monde voit le planning de toute l'équipe (pour savoir qui relaie qui) ; le filtre « Mes horaires » n'affiche que les siens. Cliquer sur une case (employé × jour) permet d'indiquer un horaire de travail ou une absence (CP, école, férié, arrêt, repos), plusieurs créneaux par jour possibles. La frise sous le tableau montre qui est là et quand ; « Dupliquer la semaine précédente » recopie les jours encore vides ; le « Récap mensuel » (Manager) totalise les heures sur 12 mois.
+Le planning du personnel, semaine par semaine — à ne pas confondre avec le [Planning des cours](/documentation/planning). Tout le monde voit le planning de toute l'équipe (pour savoir avec qui on travaille et qui prend le relais) ; « Mes horaires » n'affiche que les siens.
+
+Cliquer sur une case (employé × jour) permet d'indiquer un horaire de travail ou une absence (CP, école, férié, arrêt, repos) ; une journée peut contenir plusieurs créneaux (matin et soir). La frise sous le tableau montre qui est là et quand. « Dupliquer la semaine précédente » recopie les jours encore vides. Le « Récap mensuel » (Manager) totalise les heures de chacun sur 12 mois.
 
 ## Tâches
 
-Chaque tâche a une échéance, une priorité, un statut (à faire, en cours, terminée), une description et un fil de commentaires. Une tâche peut être récurrente (tous les jours, toutes les semaines, tous les mois) : quand elle est terminée, la suivante est créée automatiquement. Le manager assigne des tâches à tout le monde ; un salarié peut s'en créer lui-même — la mention « créée par… » indique toujours l'auteur. Vue Liste (regroupée par échéance) ou Tableau (glisser-déposer entre les colonnes).
+Chaque tâche a :
+- une **échéance** et une **priorité** (basse, normale, haute « !! », urgente « !!! ») ;
+- un **statut** : à faire, en cours, terminée ;
+- une **répétition** facultative (tous les jours, toutes les semaines, tous les mois) : quand la tâche est terminée, la suivante se crée toute seule avec la prochaine échéance ;
+- des **détails** et un **suivi** où chacun peut ajouter une note (Entrée pour envoyer) ;
+- son **auteur**, toujours affiché (« créée par… »).
 
-## Comptes rendus de fin de journée
+Le manager crée des tâches pour n'importe qui et peut filtrer par membre. Un salarié voit ses propres tâches et peut s'en créer ; sur une tâche créée par quelqu'un d'autre, il peut changer le statut et ajouter une note, mais seul l'auteur ou un manager modifie le reste.
 
-Avant de partir, chacun coche les missions de sa fiche de poste réalisées dans la journée, renseigne ses chiffres (prospects contactés, adhérents accompagnés…), sa priorité du lendemain et un éventuel problème à signaler, puis l'envoie. Le manager le valide, ou le renvoie « à revoir » avec un commentaire. Un compte rendu reste modifiable tant qu'il n'est pas validé (7 jours maximum).
+Deux affichages : **Liste**, regroupée par échéance (en retard, aujourd'hui, cette semaine, plus tard, sans échéance, terminées), où la case à gauche coche une tâche en un clic ; **Tableau**, en trois colonnes (à faire, en cours, terminée), où l'on fait glisser une tâche d'une colonne à l'autre. Les tâches terminées restent visibles 60 jours.
+
+## Bilan de fin de journée
+
+Avant de partir, chacun ouvre « Mon bilan de la journée » :
+1. **Ce que j'ai fait** : cocher les missions de sa fiche de poste réalisées dans la journée.
+2. **Mes chiffres** : les indicateurs prévus par sa fiche de poste (prospects contactés, adhérents accompagnés, contenus publiés…).
+3. **Pour finir** : la journée en deux mots, la priorité du lendemain, un problème ou besoin à signaler.
+
+« Brouillon » enregistre sans envoyer (visible par soi seul) ; « Envoyer au manager » le transmet. Un bilan reste modifiable tant qu'il n'est pas validé, jusqu'à 7 jours après.
+
+Le manager le **valide** (avec un mot en retour s'il le souhaite) ou le renvoie **à revoir** en expliquant quoi corriger : le salarié le voit en haut de sa journée et le corrige. Un manager ne valide pas son propre bilan : c'est un autre manager qui s'en charge.
+
+Page « Comptes rendus » : un manager y trouve les bilans **à valider** et l'**historique** de toute l'équipe (filtrable par membre) ; un salarié y retrouve tous les siens. Le champ **jour** permet d'afficher un jour précis ; « tous les jours » revient à la liste complète.
 
 ## Fiche d'un membre
 
-Aperçu (chiffres clés, horaires, congés payés), fiche de poste (objectif, missions du quotidien, indicateurs du bilan — rédigée par un manager), tâches, comptes rendus, documents et, sur sa propre fiche uniquement, des notes privées que personne d'autre ne peut lire, managers compris.
+Depuis Effectif (manager) ou Ma fiche (salarié) :
+- **Aperçu** : la semaine en cours, le solde de congés payés et le résumé du poste.
+- **Fiche de poste** : l'objectif principal, les missions du quotidien, les chiffres demandés dans le bilan et un rappel facultatif affiché dans le bilan (ex. « Si j'ai terminé, je reprends la liste depuis le début »). Rédigée et modifiée par un manager.
+- **Tâches** et **Comptes rendus** du membre.
+- **Documents** : voir ci-dessous.
+- **Carnet privé** (sur sa propre fiche uniquement) : des notes personnelles qui s'enregistrent toutes seules. Personne d'autre ne peut les lire, managers compris.
+
+Effectif (Manager) présente toute l'équipe, une ligne par personne : poste, heures de la semaine, tâches ouvertes et en retard, date du dernier bilan, congés restants, documents non ouverts. « Ajouter un membre » crée un nouveau profil.
 
 ## Documents confidentiels
 
-Fiches de paie, contrat, arrêts maladie : même connecté, il faut ressaisir son code confidentiel pour les ouvrir, et l'accès se reverrouille au bout de 10 minutes. Un salarié ne voit que ses propres documents. Le manager voit si chaque document a été consulté par son destinataire (accusé de lecture).
+Fiches de paie, contrat, arrêts maladie et autres documents se trouvent dans le coffre de la fiche. Pour l'ouvrir, il faut ressaisir son code confidentiel, même en étant déjà connecté ; il se referme automatiquement au bout de 10 minutes (ou avec « refermer maintenant »). Un profil sans code est invité à en créer un, qui servira aussi à la connexion.
+
+Un salarié ne voit que ses propres documents ; les nouveaux sont marqués « nouveau ». Le manager dépose les documents depuis la fiche (ou en masse via Paramètres > Utilisateurs > Importer les fiches de paie) et voit pour chacun s'il a été ouvert par son destinataire, et quand.
 
 ## Congés payés
 
-Le solde de CP s'affiche sur la fiche de chacun et dans la barre latérale du planning ; l'ajustement manuel du cumul se fait depuis la fiche (Manager).`,
+Le solde de CP s'affiche dans Ma journée, sur la fiche de chacun et dans la barre latérale du planning. Le détail (acquis, ajustement, pris, restant) est sur la fiche ; l'ajustement manuel du cumul est réservé au manager.`,
       },
     ],
   },
