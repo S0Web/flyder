@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
 const { dateLocaleISO, ajouterJours, ajouterMois } = require('../lib/dates');
+const { genererChecklists } = require('../lib/checklists');
 
 // Tâches de l'équipe. Le manager voit et gère tout ; un salarié ne voit que les
 // tâches qui lui sont assignées, peut s'en créer lui-même (la tâche garde son
@@ -56,6 +57,7 @@ function creerOccurrenceSuivante(tache) {
 
 // GET /api/taches?assigne_a=&vue=ouvertes|faites|toutes
 router.get('/', (req, res) => {
+  genererChecklists(); // checklists du jour pour la personne planifiée (idempotent)
   const where = [];
   const params = [];
   if (!estManager(req)) {

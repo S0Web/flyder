@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -7,7 +7,7 @@ import { parseServerDate } from '../../lib/utils';
 import {
   PRIORITES, STATUTS_TACHE, RECURRENCES, aujourdhuiISO, isoPlusJours, nomComplet, ecartJours,
 } from '../../lib/equipe';
-import { Plaque, Rien, BoutonEncre, BoutonTrait, champCls } from './kit';
+import { Plaque, Rien, Marque, Compte, BoutonEncre, BoutonTrait, champCls } from './kit';
 import Panneau from './Panneau';
 
 // Priorité notée comme sur un tableau blanc : « !! », « !!! ».
@@ -25,7 +25,7 @@ export function echeanceCourte(echeance, fait) {
   return { texte: `${d}.${m}` };
 }
 
-// Case carrée : vide (à faire), trait corail (en cours), pleine (terminée).
+// Case carrée : vide (à faire), contour bleu (en cours), pleine (terminée).
 function Case({ statut, onClick }) {
   const fait = statut === 'fait';
   return (
@@ -33,12 +33,12 @@ function Case({ statut, onClick }) {
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       aria-label={fait ? 'Marquer comme à faire' : statut === 'en_cours' ? 'En cours : marquer comme terminée' : 'Marquer comme terminée'}
-      className={`relative h-[18px] w-[18px] flex-shrink-0 rounded-[3px] flex items-center justify-center transition-colors ${
-        fait ? 'bg-brand-ink' : statut === 'en_cours' ? 'border-2 border-fitness bg-white' : 'border-2 border-brand-ink/30 hover:border-brand-ink bg-white'
+      className={`relative h-[18px] w-[18px] flex-shrink-0 rounded-lg flex items-center justify-center transition-colors ${
+        fait ? 'bg-sky-500' : statut === 'en_cours' ? 'border-2 border-sky-500 bg-white' : 'border-2 border-gray-300 hover:border-gray-400 bg-white'
       }`}
     >
       {fait && <Check className="h-3 w-3 text-white animate-pop" strokeWidth={3.5} />}
-      {statut === 'en_cours' && <span className="h-2 w-2 rounded-[1px] bg-fitness" />}
+      {statut === 'en_cours' && <span className="h-2 w-2 rounded-sm bg-sky-500" />}
     </button>
   );
 }
@@ -51,22 +51,23 @@ export function TacheLigne({ tache, onOpen, onToggle, montrerAssigne = false }) 
   return (
     <div
       onClick={() => onOpen?.(tache)}
-      className={`group relative flex items-start gap-3 pl-4 pr-3 py-3 cursor-pointer hover:bg-brand-cream/60 transition-colors ${retard ? 'before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:bg-fitness' : ''}`}
+      className={`group relative flex items-start gap-3 pl-4 pr-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${retard ? 'before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:bg-red-500' : ''}`}
     >
       <div className="pt-[3px]"><Case statut={tache.statut} onClick={() => onToggle?.(tache)} /></div>
       <div className="flex-1 min-w-0">
         <div className={`text-[15px] leading-snug ${fait ? 'text-gray-400 line-through decoration-1' : 'text-brand-ink'}`}>
           {!fait && MARQUE_PRIORITE[tache.priorite] && (
-            <span className={`font-mono font-semibold mr-1.5 ${tache.priorite === 'basse' ? 'text-gray-400' : 'text-fitness'}`}>{MARQUE_PRIORITE[tache.priorite]}</span>
+            <span className={`font-semibold mr-1.5 ${tache.priorite === 'basse' ? 'text-gray-400' : 'text-red-500'}`}>{MARQUE_PRIORITE[tache.priorite]}</span>
           )}
           {tache.titre}
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 font-mono text-[11px] text-gray-500">
-          {ech && <span className={retard ? 'text-fitness font-semibold' : ''}>{ech.texte}</span>}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-[11px] text-gray-500">
+          {ech && <span className={retard ? 'text-red-600 font-semibold' : ''}>{ech.texte}</span>}
+          {tache.moment && <Marque ton="bleu">checklist · {tache.moment}</Marque>}
           {tache.statut === 'en_cours' && <span className="text-brand-ink">en cours</span>}
           {tache.recurrence !== 'aucune' && <span>{RECURRENCE_COURTE[tache.recurrence]}</span>}
           {tache.nb_commentaires > 0 && <span>{tache.nb_commentaires} note{tache.nb_commentaires > 1 ? 's' : ''}</span>}
-          <span className="text-gray-400">créée par {tache.cree_par_prenom}</span>
+          {!tache.moment && <span className="text-gray-400">créée par {tache.cree_par_prenom}</span>}
         </div>
       </div>
       {montrerAssigne && (
@@ -118,13 +119,13 @@ export function ListeTaches({ taches, onOpen, onToggle, montrerAssigne, vide, fa
           <section key={g.id}>
             <button type="button" onClick={() => g.id === 'faites' && setFaitesVisibles(v => !v)}
               className={`w-full flex items-center gap-3 mb-1 ${g.id === 'faites' ? 'cursor-pointer' : 'cursor-default'}`}>
-              <span className={`font-display text-[15px] font-bold ${g.id === 'retard' ? 'text-fitness' : 'text-brand-ink'}`}>{g.label}</span>
-              <span className="font-mono text-[11px] text-gray-400">{String(g.items.length).padStart(2, '0')}</span>
-              <span className="flex-1 border-b border-dashed border-brand-ink/15" />
-              {g.id === 'faites' && <span className="font-mono text-[11px] text-gray-500">{replie ? 'afficher' : 'masquer'}</span>}
+              <span className={`font-display text-[15px] font-bold ${g.id === 'retard' ? 'text-red-600' : 'text-brand-ink'}`}>{g.label}</span>
+              <Compte n={g.items.length} ton={g.id === 'retard' ? 'rouge' : 'gris'} />
+              <span className="flex-1 border-b border-gray-200" />
+              {g.id === 'faites' && <span className="text-[11px] text-gray-500">{replie ? 'afficher' : 'masquer'}</span>}
             </button>
             {!replie && (
-              <div className="bg-white border-y border-brand-ink/10 divide-y divide-brand-ink/[0.07]">
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden divide-y divide-gray-100">
                 {g.items.map(t => (
                   <TacheLigne key={t.id} tache={t} onOpen={onOpen} onToggle={onToggle} montrerAssigne={montrerAssigne} />
                 ))}
@@ -164,12 +165,12 @@ export function AjoutRapide({ membres, assigneParDefaut, onCree, placeholder = '
     }
   }
 
-  const mini = 'font-mono text-[11px] text-brand-ink bg-transparent border-0 border-b border-brand-ink/20 px-0 py-1 focus:outline-none focus:ring-0 focus:border-fitness';
+  const mini = 'text-xs text-gray-700 bg-white border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent';
   return (
-    <form onSubmit={submit} className="flex flex-wrap sm:flex-nowrap items-end gap-x-4 gap-y-2 border-b-2 border-brand-ink pb-2">
-      <span className="font-mono text-lg leading-none text-fitness pb-1">+</span>
+    <form onSubmit={submit} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-white border border-gray-200 rounded-xl shadow-sm pl-3 pr-2 py-2">
+      <Plus className="h-4 w-4 text-sky-500 flex-shrink-0" />
       <input value={titre} onChange={e => setTitre(e.target.value)} placeholder={placeholder}
-        className="flex-1 min-w-[180px] text-[15px] text-brand-ink bg-transparent border-0 px-0 py-1 focus:outline-none focus:ring-0 placeholder:text-gray-400" />
+        className="flex-1 min-w-[180px] text-sm text-brand-ink bg-transparent border-0 px-1 py-1 focus:outline-none focus:ring-0 placeholder:text-gray-400" />
       <input type="date" value={echeance} onChange={e => setEcheance(e.target.value)} aria-label="Échéance" className={mini} />
       {isManager && membres?.length > 0 && !assigneParDefaut && (
         <select value={assigne} onChange={e => setAssigne(Number(e.target.value))} aria-label="Assigner à" className={`${mini} pr-6`}>
@@ -177,8 +178,8 @@ export function AjoutRapide({ membres, assigneParDefaut, onCree, placeholder = '
         </select>
       )}
       <button type="submit" disabled={busy || !titre.trim()}
-        className="font-mono text-[11px] font-semibold text-white bg-brand-ink rounded-[3px] px-3 py-1.5 disabled:opacity-30">
-        ajouter ↵
+        className="text-xs font-medium text-white bg-sky-500 hover:bg-sky-600 rounded-lg px-3 py-2 disabled:opacity-40 transition-colors">
+        Ajouter ↵
       </button>
     </form>
   );
@@ -187,15 +188,15 @@ export function AjoutRapide({ membres, assigneParDefaut, onCree, placeholder = '
 // ── Panneau de détail / création ──────────────────────────────────────────────
 function Ligne({ label, children }) {
   return (
-    <div className="grid grid-cols-[96px_1fr] items-baseline gap-4 py-2.5 border-b border-brand-ink/10">
-      <span className="font-mono text-[11px] text-gray-500">{label}</span>
+    <div className="grid grid-cols-[96px_1fr] items-baseline gap-4 py-2.5 border-b border-gray-200">
+      <span className="text-xs font-medium text-gray-500">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );
 }
 
-const choixCls = (actif) => `font-mono text-xs px-2 py-1 rounded-[3px] border transition-colors ${
-  actif ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/20 text-gray-600 hover:border-brand-ink'
+const choixCls = (actif) => `text-xs px-2 py-1 rounded-lg border transition-colors ${
+  actif ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
 }`;
 
 function horodatage(s) {
@@ -279,13 +280,13 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
   return (
     <Panneau
       surtitre={nouvelle ? 'nouvelle tâche' : `tâche n° ${tache.id}`}
-      titre={nouvelle ? 'Que faut-il faire ?' : (tache.titre || 'Sans titre')}
+      titre={nouvelle ? 'Que faut-il faire ?' : 'Détail de la tâche'}
       sousTitre={!nouvelle && `créée par ${nomComplet({ prenom: tache.cree_par_prenom, nom: tache.cree_par_nom })} · ${horodatage(tache.created_at)}`}
       onClose={onClose}
       pied={(fermer) => (
         <div className="flex items-center gap-2">
           {!nouvelle && peutEditer && (
-            <button onClick={() => supprimer(fermer)} className="font-mono text-[11px] text-gray-500 hover:text-fitness underline underline-offset-4">
+            <button onClick={() => supprimer(fermer)} className="text-sm text-gray-500 hover:text-red-600">
               supprimer
             </button>
           )}
@@ -305,7 +306,7 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
             rows={2}
             autoFocus={nouvelle}
             placeholder="Intitulé de la tâche"
-            className="w-full resize-none font-display text-lg font-bold leading-snug text-brand-ink placeholder:text-gray-300 bg-transparent border-0 border-b-2 border-brand-ink px-0 focus:outline-none focus:ring-0 focus:border-fitness"
+            className={`${champCls} resize-none text-base font-semibold leading-snug`}
           />
         )}
 
@@ -327,13 +328,13 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
             )}
           </Ligne>
           <Ligne label="échéance">
-            <input type="date" value={form.echeance || ''} onChange={e => set('echeance', e.target.value)} disabled={!peutEditer} className={`${champCls} font-mono`} />
+            <input type="date" value={form.echeance || ''} onChange={e => set('echeance', e.target.value)} disabled={!peutEditer} className={`${champCls}`} />
           </Ligne>
           <Ligne label="priorité">
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(PRIORITES).sort((a, b) => b[1].rang - a[1].rang).map(([k, v]) => (
                 <button key={k} type="button" disabled={!peutEditer} onClick={() => set('priorite', k)} className={choixCls(form.priorite === k)}>
-                  {MARQUE_PRIORITE[k] && <span className={form.priorite === k ? 'text-fitness' : ''}>{MARQUE_PRIORITE[k]} </span>}{v.label.toLowerCase()}
+                  {MARQUE_PRIORITE[k] && <span className={form.priorite === k ? 'text-sky-600' : ''}>{MARQUE_PRIORITE[k]} </span>}{v.label.toLowerCase()}
                 </button>
               ))}
             </div>
@@ -349,10 +350,10 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
         </div>
 
         <div>
-          <div className="font-mono text-[11px] text-gray-500 mb-2">détails</div>
+          <div className="text-xs font-medium text-gray-500 mb-2">Détails</div>
           <textarea value={form.description} onChange={e => set('description', e.target.value)} disabled={!peutEditer}
             rows={4} placeholder={peutEditer ? 'Contexte, liste, lien utile…' : 'Pas de détail.'}
-            className="w-full bg-white border border-brand-ink/15 rounded-[3px] px-3 py-2.5 text-sm text-brand-ink leading-relaxed focus:outline-none focus:border-brand-ink resize-y disabled:bg-transparent" />
+            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-brand-ink leading-relaxed focus:outline-none focus:border-transparent focus:ring-2 focus:ring-sky-400 resize-y disabled:bg-transparent" />
           {!peutEditer && (
             <p className="text-xs text-gray-500 mt-2">
               Tu peux changer le statut et ajouter une note ; seul {tache.cree_par_prenom} ou un manager modifie le reste.
@@ -364,27 +365,27 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
           <div>
             <div className="flex items-center gap-3 mb-3">
               <span className="font-display text-[15px] font-bold text-brand-ink">Suivi</span>
-              <span className="font-mono text-[11px] text-gray-400">{String(commentaires.length).padStart(2, '0')}</span>
-              <span className="flex-1 border-b border-dashed border-brand-ink/15" />
+              <Compte n={commentaires.length} />
+              <span className="flex-1 border-b border-gray-200" />
             </div>
-            <ol className="border-l-2 border-brand-ink/15 ml-1 space-y-4">
+            <ol className="border-l-2 border-gray-200 ml-1 space-y-4">
               {commentaires.map(c => (
                 <li key={c.id} className="relative pl-4">
-                  <span className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-[1px] bg-brand-ink" />
-                  <div className="font-mono text-[11px] text-gray-500">
+                  <span className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-sky-500" />
+                  <div className="text-[11px] text-gray-500">
                     <span className="text-brand-ink font-semibold">{c.prenom}</span> · {horodatage(c.created_at)}
                   </div>
                   <p className="text-sm text-brand-ink whitespace-pre-wrap mt-0.5 leading-relaxed">{c.contenu}</p>
                 </li>
               ))}
               <li ref={finRef} className="relative pl-4">
-                <span className="absolute -left-[5px] top-2.5 h-2 w-2 rounded-[1px] border-2 border-fitness bg-brand-cream" />
+                <span className="absolute -left-[5px] top-2.5 h-2 w-2 rounded-sm border-2 border-sky-500 bg-white" />
                 <form onSubmit={commenter} className="flex items-end gap-2">
                   <textarea value={nouveauCom} onChange={e => setNouveauCom(e.target.value)} rows={1}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commenter(e); } }}
                     placeholder="Ajouter une note au suivi…" className={`${champCls} resize-none`} />
                   <button type="submit" disabled={!nouveauCom.trim()}
-                    className="font-mono text-[11px] font-semibold text-fitness disabled:text-gray-300 pb-2 whitespace-nowrap">envoyer ↵</button>
+                    className="text-xs font-medium text-sky-600 disabled:text-gray-300 pb-2 whitespace-nowrap">Envoyer ↵</button>
                 </form>
               </li>
             </ol>

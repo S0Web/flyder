@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
+const { alertesComplet } = require('../lib/remplissage');
 
 // Agrégations de la page Analyse. Un seul endpoint : tous les graphiques
 // partagent la même tranche (période + catégorie), donc les calculer ensemble
@@ -14,6 +15,13 @@ const db      = require('../db/database');
 // laisse CAST tronquer le reste — "18:30" devient 18 tout seul.
 const HEURE_SQL = "CAST(SUBSTR(s.horaire, 1, INSTR(s.horaire||'h','h')-1) AS INTEGER)";
 const REALISE   = "s.statut IN ('effectue','paye')";
+
+// Remplissage : uniquement sur les séances réalisées dont l'effectif ET la capacité du
+// cours sont connus. Sans ce filtre, une séance sans effectif compterait comme vide.
+const AVEC_CAPACITE = `${REALISE} AND s.nb_presents IS NOT NULL AND ct.capacite IS NOT NULL`;
+const REMPLISSAGE_SEANCES = `SUM(CASE WHEN ${AVEC_CAPACITE} THEN 1 ELSE 0 END)`;
+const REMPLISSAGE_PRESENTS = `SUM(CASE WHEN ${AVEC_CAPACITE} THEN s.nb_presents ELSE 0 END)`;
+const REMPLISSAGE_PLACES = `SUM(CASE WHEN ${AVEC_CAPACITE} THEN ct.capacite ELSE 0 END)`;
 
 function anneeScolaireCourante() {
   const now  = new Date();
@@ -57,7 +65,10 @@ router.get('/', (req, res) => {
       COUNT(DISTINCT CASE WHEN ${REALISE} THEN s.coach_id END)        AS coachs_actifs,
       COUNT(DISTINCT CASE WHEN ${REALISE} THEN s.cours_type_id END)   AS cours_distincts,
       AVG(CASE WHEN ${REALISE} AND s.nb_presents IS NOT NULL THEN s.nb_presents END) AS effectif_moyen,
-      SUM(CASE WHEN ${REALISE} AND s.coach_id IS NULL THEN 1 ELSE 0 END) AS sans_coach
+      SUM(CASE WHEN ${REALISE} AND s.coach_id IS NULL THEN 1 ELSE 0 END) AS sans_coach,
+      ${REMPLISSAGE_SEANCES}                                          AS seances_avec_capacite,
+      ${REMPLISSAGE_PRESENTS}                                         AS presents_avec_capacite,
+      ${REMPLISSAGE_PLACES}                                           AS places_avec_capacite
     ${FROM} ${WHERE}
   `, params);
 
@@ -157,11 +168,15 @@ router.get('/', (req, res) => {
       ct.id                                                           AS cours_type_id,
       ct.nom                                                          AS nom,
       ct.categorie                                                    AS categorie,
+      ct.capacite                                                     AS capacite,
       COUNT(*)                                                        AS programmes,
       SUM(CASE WHEN ${REALISE} THEN 1 ELSE 0 END)                     AS effectues,
       SUM(CASE WHEN s.statut = 'annule' THEN 1 ELSE 0 END)            AS annules,
       SUM(CASE WHEN ${REALISE} THEN COALESCE(s.nb_presents,0) ELSE 0 END) AS participants,
-      AVG(CASE WHEN ${REALISE} AND s.nb_presents IS NOT NULL THEN s.nb_presents END) AS effectif_moyen
+      AVG(CASE WHEN ${REALISE} AND s.nb_presents IS NOT NULL THEN s.nb_presents END) AS effectif_moyen,
+      ${REMPLISSAGE_SEANCES}                                          AS seances_avec_capacite,
+      SUM(CASE WHEN ${AVEC_CAPACITE} AND s.nb_presents >= ct.capacite THEN 1 ELSE 0 END) AS seances_pleines,
+      ${REMPLISSAGE_PRESENTS} * 100.0 / NULLIF(${REMPLISSAGE_PLACES}, 0) AS taux_remplissage
     ${FROM} ${WHERE}
     GROUP BY ct.id HAVING programmes > 0 ORDER BY effectues DESC
   `, params);
@@ -199,9 +214,33 @@ router.get('/', (req, res) => {
     GROUP BY tranche
   `, params);
 
+  // ── Remplacements de coach ─────────────────────────────────────
+  // Par séance de la période (et de la catégorie) : qui a remplacé, qui a été remplacé.
+  const remplacementsBruts = db.all(`
+    SELECT mp.ancien_coach_id, mp.nouveau_coach_id
+    FROM modifications_ponctuelles mp
+    JOIN seances s ON s.id = mp.seance_id JOIN cours_types ct ON ct.id = s.cours_type_id
+    ${WHERE} ${WHERE ? 'AND' : 'WHERE'} mp.type = 'remplacement_coach'
+  `, params);
+  const parCoach = new Map();
+  const ligne = (id) => {
+    if (!parCoach.has(id)) parCoach.set(id, { coach_id: id, a_remplace: 0, a_ete_remplace: 0 });
+    return parCoach.get(id);
+  };
+  for (const r of remplacementsBruts) {
+    if (r.nouveau_coach_id) ligne(r.nouveau_coach_id).a_remplace++;
+    if (r.ancien_coach_id) ligne(r.ancien_coach_id).a_ete_remplace++;
+  }
+  const nomsCoachs = new Map(db.all('SELECT id, TRIM(prenom || \' \' || nom) AS nom FROM coaches').map(c => [c.id, c.nom]));
+  const remplacements = [...parCoach.values()]
+    .map(l => ({ ...l, coach: nomsCoachs.get(l.coach_id) || 'Coach supprimé' }))
+    .sort((a, b) => (b.a_remplace + b.a_ete_remplace) - (a.a_remplace + a.a_ete_remplace));
+  kpi.remplacements = remplacementsBruts.length;
+
   res.json({
     kpi, mensuel, hebdomadaire, mensuelCategorie, parJour, parHeure, heatmap,
-    categories, cours, coachs, distribution, bornes,
+    categories, cours, coachs, distribution, bornes, remplacements,
+    alertes_complet: alertesComplet().filter(a => !categorie || a.categorie === categorie),
     debut, fin, categorie,
   });
 });

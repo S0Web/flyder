@@ -12,7 +12,7 @@ export default function SemaineHoraires({ creneaux }) {
 
   return (
     <div>
-      <div className="grid grid-cols-7 border border-brand-ink/15 rounded-[3px] overflow-hidden bg-white">
+      <div className="grid grid-cols-7 border border-gray-200 rounded-lg overflow-hidden bg-white">
         {jours.map(iso => {
           const duJour = creneaux.filter(c => c.date === iso).sort((a, b) => a.ordre - b.ordre);
           const absence = duJour.find(c => c.type !== 'travail');
@@ -21,27 +21,27 @@ export default function SemaineHoraires({ creneaux }) {
           const d = new Date(`${iso}T12:00:00`);
           return (
             <div key={iso}
-              className={`min-h-[96px] flex flex-col border-r border-brand-ink/10 last:border-r-0 px-1 sm:px-2 py-2 ${
-                estAuj ? 'bg-brand-ink text-white' : absence ? 'hachures' : ''
+              className={`min-h-[96px] flex flex-col border-r border-gray-200 last:border-r-0 px-1 sm:px-2 py-2 ${
+                estAuj ? 'bg-sky-500 text-white' : absence ? 'hachures' : ''
               } ${iso < auj && !estAuj ? 'opacity-45' : ''}`}>
-              <div className={`font-mono text-[10px] uppercase ${estAuj ? 'text-fitness' : 'text-gray-400'}`}>
+              <div className={`text-[10px] uppercase ${estAuj ? 'text-white/80' : 'text-gray-400'}`}>
                 {d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}
               </div>
               <div className={`font-display text-lg font-bold leading-none ${estAuj ? 'text-white' : 'text-brand-ink'}`}>{d.getDate()}</div>
               <div className="mt-auto pt-2 space-y-0.5">
                 {absence ? (
-                  <div className={`font-mono text-[10px] uppercase leading-tight ${estAuj ? 'text-white' : 'text-brand-ink'}`}>{TYPES_ABSENCE[absence.type]?.court}</div>
+                  <div className={`text-[10px] uppercase leading-tight ${estAuj ? 'text-white' : 'text-brand-ink'}`}>{TYPES_ABSENCE[absence.type]?.court}</div>
                 ) : travail.length ? travail.map(c => (
-                  <div key={c.id} className={`font-mono text-[10px] sm:text-[11px] leading-tight tabular-nums ${estAuj ? 'text-white' : 'text-brand-ink'}`}>
+                  <div key={c.id} className={`text-[10px] sm:text-[11px] leading-tight tabular-nums ${estAuj ? 'text-white' : 'text-brand-ink'}`}>
                     {fmtHeure(c.debut)}<br className="sm:hidden" /><span className="hidden sm:inline">–</span>{fmtHeure(c.fin)}
                   </div>
-                )) : <div className={`font-mono text-[11px] ${estAuj ? 'text-white/40' : 'text-gray-300'}`}>—</div>}
+                )) : <div className={`text-[11px] ${estAuj ? 'text-white/40' : 'text-gray-300'}`}>—</div>}
               </div>
             </div>
           );
         })}
       </div>
-      <div className="mt-2 flex justify-end font-mono text-[11px] text-gray-500">
+      <div className="mt-2 flex justify-end text-[11px] text-gray-500">
         total semaine <span className="ml-2 text-brand-ink font-semibold">{fmtDuree(total)}</span>
       </div>
     </div>

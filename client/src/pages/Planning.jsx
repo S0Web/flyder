@@ -13,6 +13,7 @@ import MiniCalendar from '../components/MiniCalendar';
 import HeadcountPopover from '../components/HeadcountPopover';
 import PointeurBadge from '../components/PointeurBadge';
 import { nextStatut } from '../lib/statutCycle';
+import { serieCompletDe } from '../lib/remplissage';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ const ROWS = [
 
 // ── Vue grille ─────────────────────────────────────────────────────────────────
 
-function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd, alerteSansCoachJours, rows }) {
+function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPatch, onDelete, onAdd, alerteSansCoachJours, serieComplet, rows }) {
   return (
     <div className="overflow-x-auto -mx-4 md:mx-0">
       <table className="w-full border-collapse table-fixed min-w-[860px] mx-4 md:mx-0">
@@ -118,7 +119,7 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
                         <div className="h-4 bg-white/60 rounded-md animate-pulse" />
                       )}
                       {cellSeances.map(s => (
-                        <SeanceCard key={s.id} seance={s} profils={profils} onPatch={onPatch} onDelete={onDelete} onClick={onOpenCard} alerteSansCoachJours={alerteSansCoachJours} />
+                        <SeanceCard key={s.id} seance={s} profils={profils} onPatch={onPatch} onDelete={onDelete} onClick={onOpenCard} alerteSansCoachJours={alerteSansCoachJours} souventComplet={serieComplet(s)} />
                       ))}
                       <button
                         onClick={() => onAdd(iso)}
@@ -140,7 +141,7 @@ function VueGrille({ semaine, seances, loading, today, profils, onOpenCard, onPa
 
 // ── Vue liste ──────────────────────────────────────────────────────────────────
 
-function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete, alerteSansCoachJours }) {
+function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete, alerteSansCoachJours, serieComplet }) {
   if (loading) return <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>;
   if (!seances.length) return null;
 
@@ -201,6 +202,12 @@ function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete, al
                     </td>
                     <td className="px-3 py-1.5 border-b border-gray-100 font-semibold text-gray-800 text-xs">
                       {s.cours_nom}
+                      {serieComplet(s) > 0 && s.statut === 'programme' && (
+                        <span
+                          title={`Ce créneau a affiché complet ${serieComplet(s)} fois de suite.`}
+                          className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-amber-800 bg-amber-100 rounded px-1 py-px"
+                        >Complet ×{serieComplet(s)}</span>
+                      )}
                     </td>
                     <td className="px-3 py-1.5 border-b border-gray-100">
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide
@@ -223,7 +230,7 @@ function VueListe({ seances, loading, profils, onOpenCard, onPatch, onDelete, al
                       </button>
                     </td>
                     <td className="px-3 py-1.5 border-b border-gray-100 text-center">
-                      <HeadcountPopover value={s.nb_presents} onSelect={(n) => onPatch(s.id, { nb_presents: n })} />
+                      <HeadcountPopover value={s.nb_presents} capacite={s.capacite} onSelect={(n) => onPatch(s.id, { nb_presents: n })} />
                     </td>
                     <td className="px-3 py-1.5 border-b border-gray-100 text-xs text-gray-500">
                       <PointeurBadge
@@ -253,6 +260,7 @@ export default function Planning() {
   const [seances, setSeances]     = useState([]);
   const [coaches, setCoaches]     = useState([]);
   const [coursTypes, setCoursTypes] = useState([]);
+  const [alertesComplet, setAlertesComplet] = useState([]);
   const [profils, setProfils]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
@@ -269,6 +277,7 @@ export default function Planning() {
   const rows = useMemo(() => aquaActive ? ROWS : ROWS.filter(r => r.categorie !== 'aqua'), [aquaActive]);
 
   const semaine = getSemaine(lundi);
+  const serieComplet = useCallback((s) => serieCompletDe(alertesComplet, s), [alertesComplet]);
 
   const loadSeances = useCallback(async () => {
     try {
@@ -283,11 +292,16 @@ export default function Planning() {
     }
   }, [lundi]);
 
+  const chargerAlertes = useCallback(() => {
+    api.getAlertesRemplissage().then(setAlertesComplet).catch(() => {});
+  }, []);
+
   useEffect(() => {
+    chargerAlertes();
     api.getCoaches().then(setCoaches).catch(() => {});
     api.getCoursTypes().then(setCoursTypes).catch(() => {});
     api.getProfiles().then(setProfils).catch(() => {});
-  }, []);
+  }, [chargerAlertes]);
 
   useEffect(() => { loadSeances(); }, [loadSeances]);
 
@@ -319,6 +333,7 @@ export default function Planning() {
     try {
       await api.patchSeance(id, data);
       loadSeances();
+      if ('nb_presents' in data || 'statut' in data) chargerAlertes();
     } catch (e) {
       toast.error('Échec de la mise à jour : ' + e.message);
     }
@@ -342,6 +357,7 @@ export default function Planning() {
       }
       setModal(null);
       loadSeances();
+      chargerAlertes();
       toast.success('Séance enregistrée');
     } catch (e) {
       toast.error('Échec de l\'enregistrement : ' + e.message);
@@ -534,6 +550,7 @@ export default function Planning() {
             onDelete={handleDelete}
             onAdd={(iso) => setModal(`new:${iso}`)}
             alerteSansCoachJours={alerteSansCoachJours}
+            serieComplet={serieComplet}
             rows={rows}
           />
         )}
@@ -550,6 +567,7 @@ export default function Planning() {
               onPatch={handlePatch}
               onDelete={handleDelete}
               alerteSansCoachJours={alerteSansCoachJours}
+              serieComplet={serieComplet}
             />
           )
         )}
@@ -564,6 +582,8 @@ export default function Planning() {
           onSave={handleSave}
           onClose={() => setModal(null)}
           onCoursCreated={(ct) => setCoursTypes(prev => [...prev, ct])}
+          onCoursUpdated={(ct) => setCoursTypes(prev => prev.map(c => c.id === ct.id ? ct : c))}
+          onReplaced={() => { loadSeances(); chargerAlertes(); toast.success('Coach remplacé'); }}
           aquaActive={aquaActive}
         />
       )}

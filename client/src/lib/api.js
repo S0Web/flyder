@@ -106,6 +106,14 @@ export const api = {
   deverrouiller: (code) => req('/auth/deverrouiller', { method: 'POST', body: JSON.stringify({ code }) }),
 
   // Tâches
+  getIncidents:   (params = {}) => req(`/incidents${qs(params)}`),
+  createIncident: (data) => req('/incidents', { method: 'POST', body: JSON.stringify(data) }),
+  patchIncident:  (id, data) => req(`/incidents/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteIncident: (id) => req(`/incidents/${id}`, { method: 'DELETE' }),
+  getChecklists:   () => req('/checklists'),
+  createChecklist: (data) => req('/checklists', { method: 'POST', body: JSON.stringify(data) }),
+  updateChecklist: (id, data) => req(`/checklists/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteChecklist: (id) => req(`/checklists/${id}`, { method: 'DELETE' }),
   getTaches:    (params = {}) => req(`/taches${qs(params)}`),
   createTache:  (data) => req('/taches', { method: 'POST', body: JSON.stringify(data) }),
   patchTache:   (id, data) => req(`/taches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
@@ -170,6 +178,8 @@ export const api = {
   // Cours types
   getCoursTypes: () => req('/cours-types'),
   createCoursType: (nom, categorie) => req('/cours-types', { method: 'POST', body: JSON.stringify({ nom, categorie }) }),
+  patchCoursType: (id, data) => req(`/cours-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  getAlertesRemplissage: () => req('/seances/alertes-remplissage'),
 
   // Annuaire
   getAnnuaire:          () => req('/annuaire'),
@@ -180,6 +190,8 @@ export const api = {
   // Séances
   getSeances:      (semaine) => req(`/seances${semaine ? `?semaine=${semaine}` : ''}`),
   createSeance:    (data) => req('/seances', { method: 'POST', body: JSON.stringify(data) }),
+  getRemplacement: (id) => req(`/seances/${id}/remplacement`),
+  remplacerCoach:  (id, data) => req(`/seances/${id}/remplacer`, { method: 'POST', body: JSON.stringify(data) }),
   patchSeance:     (id, data) => req(`/seances/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteSeance:    (id) => req(`/seances/${id}`, { method: 'DELETE' }),
   dupliquerSemaine: (semaine_source, semaine_cible) =>

@@ -166,6 +166,7 @@ export default function Analyse() {
       heures:         (kk.minutes || 0) / 60,
       effectifMoyen:  kk.effectif_moyen,
       tauxAnnulation: kk.programmes ? (kk.annules / kk.programmes) * 100 : null,
+      tauxRemplissage: kk.places_avec_capacite ? (kk.presents_avec_capacite / kk.places_avec_capacite) * 100 : null,
     });
     return { cur: of(k), prev: of(kPrev) };
   }, [k, kPrev]);
@@ -229,10 +230,24 @@ export default function Analyse() {
       .map(c => ({ label: c.nom, value: c.participants || 0, color: CAT_COLOR[c.categorie], meta: c })),
     [cours]);
 
+  const alertesComplet = useMemo(() => data?.alertes_complet || [], [data]);
+
+  const topRemplissage = useMemo(
+    () => [...cours].filter(c => c.seances_avec_capacite > 0 && c.taux_remplissage != null)
+      .sort((a, b) => b.taux_remplissage - a.taux_remplissage).slice(0, 10)
+      .map(c => ({ label: c.nom, value: c.taux_remplissage, color: CAT_COLOR[c.categorie], meta: c })),
+    [cours]);
+
   const nuageCours = useMemo(
     () => cours.filter(c => c.effectues >= 3 && c.effectif_moyen != null)
       .map(c => ({ label: c.nom, x: c.effectues, y: c.effectif_moyen, color: CAT_COLOR[c.categorie] })),
     [cours]);
+
+  const remplacements = useMemo(() => data?.remplacements || [], [data]);
+  const topRemplacants = useMemo(
+    () => remplacements.filter(r => r.a_remplace > 0).slice().sort((a, b) => b.a_remplace - a.a_remplace).slice(0, 8)
+      .map(r => ({ label: r.coach, value: r.a_remplace, meta: r })),
+    [remplacements]);
 
   const topCoachsHeures = useMemo(
     () => [...coachs].sort((a, b) => (b.minutes || 0) - (a.minutes || 0)).slice(0, 10)
@@ -398,7 +413,11 @@ export default function Analyse() {
             invert spark={sparkOf(m => (m.programmes ? (m.annules / m.programmes) * 100 : 0))} sparkColor={VIZ.critical} />
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mt-3">
+          <StatTile label="Taux de remplissage" value={fmtPct(agg.cur?.tauxRemplissage, 0)} delta={delta('tauxRemplissage')}
+            hint={k?.seances_avec_capacite
+              ? `présents ÷ places, sur ${fmtInt(k.seances_avec_capacite)} séances`
+              : 'renseignez la capacité des cours (fenêtre d\'une séance)'} />
           <StatTile label="Cours au catalogue" value={fmtInt(k?.cours_distincts)} hint="types de cours donnés" />
           <StatTile label="Coachs actifs" value={fmtInt(k?.coachs_actifs)} hint="ont assuré au moins un cours" />
           <StatTile label="Séances programmées" value={fmtInt(k?.programmes)} hint="effectuées + annulées + à venir" />
@@ -596,6 +615,54 @@ export default function Analyse() {
           </ChartCard>
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <ChartCard
+            title="Quels cours sont les mieux remplis&nbsp;?"
+            hint="Présents ÷ places, sur les séances dont l'effectif est renseigné. Seuls les cours dont la capacité est connue apparaissent."
+            legend={aquaActive && <>
+              <LegendItem color={VIZ.aqua} label="Aqua" shape="square" />
+              <LegendItem color={VIZ.fitness} label="Fitness" shape="square" />
+            </>}
+            table={{
+              head: ['Cours', 'Remplissage', 'Capacité', 'Séances pleines', 'Séances mesurées'],
+              rows: topRemplissage.map(r => [r.label, fmtPct(r.value, 0), fmtInt(r.meta.capacite),
+                fmtInt(r.meta.seances_pleines), fmtInt(r.meta.seances_avec_capacite)]),
+            }}
+          >
+            <HBarChart data={topRemplissage} valueFmt={v => fmtPct(v, 0)}
+              tipExtra={d => `${fmtInt(d.meta.capacite)} places · ${fmtInt(d.meta.seances_pleines)} séances pleines sur ${fmtInt(d.meta.seances_avec_capacite)}`} />
+          </ChartCard>
+
+          <ChartCard
+            title="Créneaux souvent complets"
+            hint="Un créneau (même cours, même jour, même heure) dont les dernières séances ont toutes atteint la capacité, au moins 3 fois de suite. Indépendant de la période choisie : c'est l'état actuel. Candidat à une séance de plus ou à une capacité relevée."
+          >
+            {alertesComplet.length === 0 ? (
+              <p className="text-sm text-gray-500 py-6 text-center">
+                Aucun créneau n'est complet plusieurs fois de suite.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {alertesComplet.map(a => (
+                  <li key={`${a.cours_type_id}-${a.jour_semaine}-${a.horaire_minutes}`}
+                    className="flex items-center justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-800 truncate">{a.cours_nom}</div>
+                      <div className="text-xs text-gray-500">
+                        {JOURS_LONGS[a.jour_semaine]} {Math.floor(a.horaire_minutes / 60)}h{String(a.horaire_minutes % 60).padStart(2, '0')}
+                        {' · '}{a.capacite} places
+                      </div>
+                    </div>
+                    <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide text-amber-800 bg-amber-100 rounded px-2 py-0.5">
+                      complet {a.serie}× de suite
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ChartCard>
+        </div>
+
         {/* ══ 5. Coachs ═══════════════════════════════════════════ */}
         <SectionTitle id="coachs" Icon={Users} sub="Charge de travail et remplissage par intervenant.">
           Les coachs
@@ -630,6 +697,20 @@ export default function Analyse() {
                 .map(c => ({ label: c.coach, value: c.effectif_moyen, meta: c }))}
               valueFmt={v => fmtDec(v)}
               tipExtra={d => `${fmtInt(d.meta.effectues)} séances assurées`} />
+          </ChartCard>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <ChartCard
+            title="Qui dépanne le plus souvent&nbsp;?"
+            hint="Séances de la période qu'un coach a reprises à un autre, ou à une séance laissée sans coach (bouton « Remplacer le coach » de la fiche d'une séance). Le tableau donne aussi combien de fois chacun a été remplacé."
+            table={{
+              head: ['Coach', 'A remplacé', 'A été remplacé'],
+              rows: remplacements.map(r => [r.coach, fmtInt(r.a_remplace), fmtInt(r.a_ete_remplace)]),
+            }}
+          >
+            <HBarChart data={topRemplacants} valueFmt={v => `${fmtInt(v)} séance${v > 1 ? 's' : ''}`}
+              tipExtra={d => `${fmtInt(d.meta.a_ete_remplace)} fois remplacé`} />
           </ChartCard>
         </div>
 

@@ -14,7 +14,7 @@ const heure = (s) => parseServerDate(s).toLocaleTimeString('fr-FR', { hour: '2-d
 function LigneFiche({ signe, label, children, ton = 'text-brand-ink' }) {
   return (
     <div className="grid grid-cols-[88px_1fr] sm:grid-cols-[104px_1fr] gap-3 items-baseline py-1.5">
-      <span className="font-mono text-[11px] text-gray-500 whitespace-nowrap truncate"><span className="text-fitness">{signe}</span> {label}</span>
+      <span className="text-[11px] text-gray-500 whitespace-nowrap truncate"><span className="text-sky-600">{signe}</span> {label}</span>
       <span className={`text-sm leading-relaxed ${ton}`}>{children}</span>
     </div>
   );
@@ -23,9 +23,9 @@ function LigneFiche({ signe, label, children, ton = 'text-brand-ink' }) {
 function TitreSection({ n, children, droite }) {
   return (
     <div className="flex items-baseline gap-3 mb-3">
-      <span className="font-mono text-[11px] text-fitness">{n}</span>
+      <span className="text-[11px] text-sky-600">{n}</span>
       <span className="font-display text-[15px] font-bold text-brand-ink">{children}</span>
-      <span className="flex-1 border-b border-dashed border-brand-ink/15" />
+      <span className="flex-1 border-b border-gray-200" />
       {droite}
     </div>
   );
@@ -81,7 +81,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
       largeur="max-w-2xl"
       pied={verrouille ? null : (fermer) => (
         <div className="flex items-center gap-2">
-          <span className="hidden sm:block font-mono text-[11px] text-gray-400 flex-1">
+          <span className="hidden sm:block text-[11px] text-gray-400 flex-1">
             {cr?.statut === 'soumis' ? 'déjà envoyé · modifiable tant qu’il n’est pas validé' : 'le brouillon reste visible par toi seul'}
           </span>
           <BoutonTrait onClick={() => enregistrer(false, fermer)} disabled={saving || !form}>Brouillon</BoutonTrait>
@@ -92,7 +92,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
       )}
     >
       {!form ? (
-        <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>
+        <p className="py-16 text-center text-xs text-gray-400">chargement…</p>
       ) : (
         <div className="space-y-8">
           {cr && cr.statut !== 'brouillon' && (
@@ -100,7 +100,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
               <Tampon statut={cr.statut} className="mt-1" />
               {cr.retour_manager && (
                 <p className="text-sm text-brand-ink leading-relaxed">
-                  <span className="font-mono text-[11px] text-gray-500">{cr.valide_par_prenom} : </span>{cr.retour_manager}
+                  <span className="text-[11px] text-gray-500">{cr.valide_par_prenom} : </span>{cr.retour_manager}
                 </p>
               )}
             </div>
@@ -108,7 +108,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
 
           <section>
             <TitreSection n="01" droite={
-              <span className="flex items-center gap-2"><Cases faits={faites} total={total} couleur="#0B7A3E" /><span className="font-mono text-[11px] text-gray-500">{faites}/{total}</span></span>
+              <span className="flex items-center gap-2"><Cases faits={faites} total={total} couleur="#0B7A3E" /><span className="text-[11px] text-gray-500">{faites}/{total}</span></span>
             }>
               Ce que j'ai fait
             </TitreSection>
@@ -118,11 +118,11 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
               <ol>
                 {form.missions.map((m, i) => (
                   <li key={i}>
-                    <label className="flex items-start gap-3 py-2 border-b border-brand-ink/[0.07] cursor-pointer group">
-                      <span className="font-mono text-[11px] text-gray-400 w-5 pt-0.5 text-right">{String(i + 1).padStart(2, '0')}</span>
+                    <label className="flex items-start gap-3 py-2 border-b border-gray-100 cursor-pointer group">
+                      <span className="text-[11px] text-gray-400 w-5 pt-0.5 text-right">{String(i + 1).padStart(2, '0')}</span>
                       <input type="checkbox" checked={m.fait} disabled={verrouille} className="sr-only"
                         onChange={() => setForm(f => ({ ...f, missions: f.missions.map((x, j) => j === i ? { ...x, fait: !x.fait } : x) }))} />
-                      <span className={`mt-[2px] h-4 w-4 flex-shrink-0 rounded-[3px] flex items-center justify-center ${m.fait ? 'bg-[#0B7A3E]' : 'border-2 border-brand-ink/25 group-hover:border-brand-ink'}`}>
+                      <span className={`mt-[2px] h-4 w-4 flex-shrink-0 rounded-lg flex items-center justify-center ${m.fait ? 'bg-[#0B7A3E]' : 'border-2 border-gray-300 group-hover:border-gray-400'}`}>
                         {m.fait && <Check className="h-3 w-3 text-white" strokeWidth={3.5} />}
                       </span>
                       <span className={`text-sm leading-snug ${m.fait ? 'text-brand-ink' : 'text-gray-600'}`}>{m.texte}</span>
@@ -132,7 +132,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
               </ol>
             )}
             {data.fiche.rappel && (
-              <p className="mt-4 pl-3 border-l-2 border-fitness text-[13px] text-gray-600 italic leading-relaxed">{data.fiche.rappel}</p>
+              <p className="mt-4 pl-3 border-l-2 border-sky-500 text-[13px] text-gray-600 italic leading-relaxed">{data.fiche.rappel}</p>
             )}
           </section>
 
@@ -145,13 +145,13 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
                   const Tag = ind.type === 'oui_non' ? 'div' : 'label';
                   return (
                     <Tag key={i} className="block">
-                      <span className="block font-mono text-[11px] text-gray-500 leading-tight min-h-[26px]">{ind.libelle}</span>
+                      <span className="block text-xs font-medium text-gray-500 leading-tight min-h-[28px]">{ind.libelle}</span>
                       {ind.type === 'oui_non' ? (
                         <div className="flex gap-2 pt-1.5">
                           {['oui', 'non'].map(v => (
                             <button key={v} type="button" disabled={verrouille} onClick={() => maj(ind.valeur === v ? '' : v)}
-                              className={`font-mono text-sm px-3 py-1.5 rounded-[3px] border transition-colors disabled:opacity-60 ${
-                                ind.valeur === v ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/25 text-gray-600 hover:border-brand-ink'
+                              className={`text-sm px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-60 ${
+                                ind.valeur === v ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
                               }`}>{v === 'oui' ? 'Oui' : 'Non'}</button>
                           ))}
                         </div>
@@ -159,7 +159,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
                         <input value={ind.valeur} disabled={verrouille} placeholder="—"
                           inputMode={ind.type === 'nombre' ? 'decimal' : undefined}
                           onChange={e => maj(e.target.value)}
-                          className="w-full font-mono text-2xl font-semibold text-brand-ink bg-transparent border-0 border-b-2 border-brand-ink/20 px-0 py-1 focus:outline-none focus:ring-0 focus:border-fitness placeholder:text-gray-300" />
+                          className={`${champCls} text-base font-semibold`} />
                       )}
                     </Tag>
                   );
@@ -175,17 +175,17 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
               Ta journée en deux mots reste réservée au manager.
             </p>
             <label className="block">
-              <span className="font-mono text-[11px] text-gray-500">ma journée en deux mots</span>
+              <span className="text-xs font-medium text-gray-500">Ma journée en deux mots</span>
               <textarea rows={2} value={form.resume} disabled={verrouille} onChange={e => setForm(f => ({ ...f, resume: e.target.value }))}
                 placeholder="Ce qui a marché, ce qui a coincé" className={`${champCls} resize-none`} />
             </label>
             <label className="block">
-              <span className="font-mono text-[11px] text-gray-500"><span className="text-fitness">→</span> priorité de demain</span>
+              <span className="text-xs font-medium text-gray-500"><span className="text-sky-600">→</span> priorité de demain</span>
               <input value={form.priorite_demain} disabled={verrouille} onChange={e => setForm(f => ({ ...f, priorite_demain: e.target.value }))}
                 placeholder="La première chose à faire en arrivant" className={champCls} />
             </label>
             <label className="block">
-              <span className="font-mono text-[11px] text-gray-500"><span className="text-fitness">⚑</span> problème ou besoin à signaler</span>
+              <span className="text-xs font-medium text-gray-500"><span className="text-red-600">⚑</span> problème ou besoin à signaler</span>
               <textarea rows={2} value={form.probleme} disabled={verrouille} onChange={e => setForm(f => ({ ...f, probleme: e.target.value }))}
                 placeholder="Facultatif" className={`${champCls} resize-none`} />
             </label>
@@ -225,7 +225,7 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
   const aValider = isManager && cr.statut === 'soumis';
 
   return (
-    <article className="relative flex bg-white border border-brand-ink/10 rounded-[3px]">
+    <article className="relative flex bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {!compact && <Ephemeride iso={cr.date} />}
       <div className="flex-1 min-w-0 px-4 sm:px-5 py-4">
         <Tampon statut={cr.statut} className="absolute top-3.5 right-4" />
@@ -233,10 +233,10 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
         <header className="flex items-center gap-3 pr-28">
           {montrerAuteur && <Plaque user={{ id: cr.user_id, prenom: cr.prenom, nom: cr.nom }} size={30} />}
           <div className="min-w-0">
-            <div className="font-display text-[17px] font-bold text-brand-ink leading-tight truncate">
+            <div className="font-display text-base font-bold text-brand-ink leading-tight truncate">
               {montrerAuteur ? `${cr.prenom} ${cr.nom}` : jourLong(cr.date)}
             </div>
-            <div className="font-mono text-[11px] text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="text-[11px] text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               {compact && <span>{jourLong(cr.date).toLowerCase()}</span>}
               <span>{cr.soumis_le ? `envoyé à ${heure(cr.soumis_le)}` : 'non envoyé'}</span>
               {total > 0 && (
@@ -247,10 +247,10 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
         </header>
 
         {cr.indicateurs.length > 0 && (
-          <div className={`mt-4 grid ${compact ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-5'} border-y border-brand-ink/10`}>
+          <div className={`mt-4 grid ${compact ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-5'} border-y border-gray-200`}>
             {cr.indicateurs.map((ind, i) => (
-              <div key={i} className="px-2.5 py-2.5 border-r border-brand-ink/10 last:border-r-0 min-w-0">
-                <div className="font-mono text-xl font-semibold text-brand-ink leading-none truncate" title={ind.valeur}>
+              <div key={i} className="px-2.5 py-2.5 border-r border-gray-200 last:border-r-0 min-w-0">
+                <div className="text-xl font-semibold text-brand-ink leading-none truncate" title={ind.valeur}>
                   {ind.type === 'oui_non' && ind.valeur ? ind.valeur.charAt(0).toUpperCase() + ind.valeur.slice(1) : (ind.valeur || '—')}
                 </div>
                 <div className="text-[11px] text-gray-500 mt-1.5 leading-tight line-clamp-2" title={ind.libelle}>{ind.libelle}</div>
@@ -262,18 +262,18 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
         <div className="mt-3">
           {cr.resume && <p className="text-[15px] text-brand-ink leading-relaxed mb-2">{cr.resume}</p>}
           {cr.priorite_demain && <LigneFiche signe="→" label="demain">{cr.priorite_demain}</LigneFiche>}
-          {cr.probleme && <LigneFiche signe="⚑" label="signalé" ton="text-fitness font-medium">{cr.probleme}</LigneFiche>}
+          {cr.probleme && <LigneFiche signe="⚑" label="signalé" ton="text-red-700 font-medium">{cr.probleme}</LigneFiche>}
           {cr.retour_manager && <LigneFiche signe="✎" label={cr.valide_par_prenom || 'manager'}>{cr.retour_manager}</LigneFiche>}
         </div>
 
         <div className="mt-2 flex items-center gap-4">
           {total > 0 && (
-            <button onClick={() => setOuvert(o => !o)} className="font-mono text-[11px] text-gray-500 hover:text-brand-ink underline underline-offset-4 decoration-brand-ink/20">
+            <button onClick={() => setOuvert(o => !o)} className="text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline underline-offset-2">
               {ouvert ? 'masquer les missions' : 'détail des missions'}
             </button>
           )}
           {onModifier && cr.statut !== 'valide' && (
-            <button onClick={() => onModifier(cr)} className="font-mono text-[11px] text-fitness underline underline-offset-4">
+            <button onClick={() => onModifier(cr)} className="text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline underline-offset-2">
               {cr.statut === 'a_revoir' ? 'corriger' : 'modifier'}
             </button>
           )}
@@ -282,7 +282,7 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
           <ol className="mt-3 columns-1 sm:columns-2 gap-6 animate-fadeIn">
             {cr.missions.map((m, i) => (
               <li key={i} className="flex items-start gap-2 text-[13px] py-0.5 break-inside-avoid">
-                <span className={`font-mono text-[11px] w-4 ${m.fait ? 'text-[#0B7A3E]' : 'text-gray-300'}`}>{m.fait ? '✓' : '·'}</span>
+                <span className={`text-[11px] w-4 ${m.fait ? 'text-[#0B7A3E]' : 'text-gray-300'}`}>{m.fait ? '✓' : '·'}</span>
                 <span className={m.fait ? 'text-brand-ink' : 'text-gray-400'}>{m.texte}</span>
               </li>
             ))}
@@ -290,7 +290,7 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
         )}
 
         {aValider && (
-          <footer className="mt-4 pt-3 border-t-2 border-brand-ink">
+          <footer className="mt-4 pt-3 border-t border-gray-200">
             {modeRevoir ? (
               <div className="space-y-3">
                 <textarea rows={2} autoFocus value={retour} onChange={e => setRetour(e.target.value)}
@@ -301,10 +301,10 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <input value={retour} onChange={e => setRetour(e.target.value)} placeholder="Un mot en retour (facultatif)"
                   className={`${champCls} flex-1 min-w-[180px]`} />
-                <button onClick={() => setModeRevoir(true)} className="font-mono text-[11px] text-gray-600 hover:text-fitness underline underline-offset-4 pb-2">à revoir</button>
+                <BoutonTrait onClick={() => setModeRevoir(true)} className="!py-1.5">À revoir</BoutonTrait>
                 <BoutonEncre onClick={() => decider('valide')} disabled={busy} className="!py-1.5">Valider</BoutonEncre>
               </div>
             )}

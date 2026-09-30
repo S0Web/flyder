@@ -63,11 +63,11 @@ export default function ComptesRendus() {
         {onglet !== 'a_valider' && (
           <div className="flex items-end gap-3">
             <label className="block">
-              <span className="block font-mono text-[11px] text-gray-500 mb-1">jour</span>
+              <span className="block text-[11px] text-gray-500 mb-1">jour</span>
               <input type="date" value={jour} max={aujourdhuiISO()} onChange={e => setJour(e.target.value)} className={selectCls} />
             </label>
             {jour && (
-              <button onClick={() => setJour('')} className="font-mono text-[11px] text-gray-500 hover:text-brand-ink underline underline-offset-4 pb-2">
+              <button onClick={() => setJour('')} className="text-[11px] text-gray-500 hover:text-brand-ink underline underline-offset-4 pb-2">
                 tous les jours
               </button>
             )}
@@ -78,7 +78,7 @@ export default function ComptesRendus() {
       </div>
 
       {affiches === null ? (
-        <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>
+        <p className="py-16 text-center text-xs text-gray-400">chargement…</p>
       ) : affiches.length === 0 ? (
         <Rien>{onglet === 'a_valider' ? 'aucun bilan en attente' : (jour ? 'aucun compte rendu ce jour-là' : 'aucun compte rendu pour l’instant')}</Rien>
       ) : (

@@ -14,8 +14,8 @@ const TYPES = [
   { id: 'repos',   label: 'Repos' },
 ];
 
-const choixCls = (actif) => `font-mono text-xs px-2 py-1.5 rounded-[3px] border transition-colors ${
-  actif ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/20 text-gray-600 hover:border-brand-ink'
+const choixCls = (actif) => `text-xs px-2 py-1.5 rounded-lg border transition-colors ${
+  actif ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
 }`;
 
 export default function PersonnelCreneauModal({ employe, date, creneaux, onSave, onClose }) {
@@ -65,7 +65,7 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
     }
   }
 
-  const label = 'block font-mono text-[11px] text-gray-500';
+  const label = 'block text-[11px] text-gray-500';
   return (
     <Panneau
       surtitre="planning du personnel"
@@ -77,7 +77,7 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
         <div className="flex items-center gap-2">
           {existing.length > 0 && (
             <button type="button" onClick={() => effacer(fermer)} disabled={saving}
-              className="font-mono text-[11px] text-gray-500 hover:text-fitness underline underline-offset-4 disabled:opacity-50">
+              className="text-[11px] text-gray-500 hover:text-sky-600 underline underline-offset-4 disabled:opacity-50">
               effacer ce jour
             </button>
           )}
@@ -88,7 +88,7 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
       )}
     >
       <div className="space-y-7">
-        {error && <p className="font-mono text-xs text-fitness">{error}</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div>
           <span className={label}>type de journée</span>
@@ -104,18 +104,18 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
             <span className={label}>horaires</span>
             {segments.map((seg, i) => (
               <div key={i} className="flex items-end gap-3">
-                <input type="time" value={seg.debut} onChange={e => setSegment(i, 'debut', e.target.value)} aria-label="Début" className={`${champCls} font-mono`} />
-                <span className="font-mono text-fitness pb-1.5">→</span>
-                <input type="time" value={seg.fin} onChange={e => setSegment(i, 'fin', e.target.value)} aria-label="Fin" className={`${champCls} font-mono`} />
+                <input type="time" value={seg.debut} onChange={e => setSegment(i, 'debut', e.target.value)} aria-label="Début" className={`${champCls}`} />
+                <span className="text-sky-600 pb-1.5">→</span>
+                <input type="time" value={seg.fin} onChange={e => setSegment(i, 'fin', e.target.value)} aria-label="Fin" className={`${champCls}`} />
                 {segments.length > 1 && (
                   <button type="button" onClick={() => setSegments(segs => segs.filter((_, idx) => idx !== i))} aria-label="Retirer ce créneau"
-                    className="font-mono text-[11px] text-gray-400 hover:text-fitness pb-2 px-1">✕</button>
+                    className="text-[11px] text-gray-400 hover:text-red-600 pb-2 px-1">✕</button>
                 )}
               </div>
             ))}
             {segments.length < 2 && (
               <button type="button" onClick={() => setSegments(segs => [...segs, { debut: '', fin: '' }])}
-                className="inline-flex items-center gap-1 font-mono text-[11px] text-fitness hover:underline">
+                className="inline-flex items-center gap-1 text-[11px] text-sky-600 hover:underline">
                 <Plus className="h-3 w-3" /> 2e créneau (coupure)
               </button>
             )}

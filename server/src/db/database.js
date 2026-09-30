@@ -130,6 +130,8 @@ db.run(`
 `);
 
 tryAlter('ALTER TABLE seances ADD COLUMN pointeur_id INTEGER REFERENCES pointeurs(id)');
+// Places disponibles par cours (facultatif) : sert au taux de remplissage et à l'alerte « complet ».
+tryAlter('ALTER TABLE cours_types ADD COLUMN capacite INTEGER');
 tryAlter('ALTER TABLE seances ADD COLUMN notes TEXT');
 tryAlter('ALTER TABLE coaches ADD COLUMN nom TEXT NOT NULL DEFAULT \'\'');
 
@@ -401,6 +403,10 @@ db.run(`
   )
 `);
 
+// Qui a enregistré le remplacement (trace : qui devait faire le cours, qui l'a fait, pourquoi, par qui).
+tryAlter('ALTER TABLE modifications_ponctuelles ADD COLUMN auteur_id INTEGER REFERENCES app_users(id)');
+db.run('CREATE INDEX IF NOT EXISTS idx_modifs_seance ON modifications_ponctuelles(seance_id)');
+
 // ─── Suppression définitive (soft) : garde la ligne pour l'historique du planning ───
 tryAlter('ALTER TABLE app_users ADD COLUMN supprime INTEGER NOT NULL DEFAULT 0');
 tryAlter('ALTER TABLE coaches   ADD COLUMN supprime INTEGER NOT NULL DEFAULT 0');
@@ -514,6 +520,9 @@ tryAlter('ALTER TABLE app_users ADD COLUMN cp_ajuste REAL NOT NULL DEFAULT 0');
 // ─── Heures de contrat par semaine (facultatif, manager) : sert à comparer les heures
 // planifiées au contrat. NULL = pas de suivi (extra, CDD au forfait…). ───
 tryAlter('ALTER TABLE app_users ADD COLUMN heures_contrat_semaine REAL');
+// Fiche coach du salarié qui donne aussi des cours (facultatif) : relie son planning de cours
+// à sa journée et à son récap d'heures. Un coach n'est relié qu'à un seul profil.
+tryAlter('ALTER TABLE app_users ADD COLUMN coach_id INTEGER REFERENCES coaches(id)');
 
 // ─── Annuaire : un coach peut aussi apparaître dans d'autres catégories (ex. employé) ───
 tryAlter("ALTER TABLE coaches ADD COLUMN categories_extra TEXT NOT NULL DEFAULT ''");
@@ -663,6 +672,26 @@ db.run(`
   )
 `);
 
+// Checklists d'ouverture / fermeture / bassin : des modèles de tâches (sans responsable fixe).
+// Chaque jour concerné, une tâche est générée pour la personne planifiée sur ce créneau
+// (voir lib/checklists.js) ; `taches.modele_id` + `echeance` empêchent tout doublon.
+db.run(`
+  CREATE TABLE IF NOT EXISTS checklist_modeles (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    moment      TEXT NOT NULL CHECK(moment IN ('ouverture','fermeture','bassin')),
+    titre       TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    priorite    TEXT NOT NULL DEFAULT 'normale' CHECK(priorite IN ('basse','normale','haute','urgente')),
+    jours       TEXT NOT NULL DEFAULT '[0,1,2,3,4,5,6]',
+    actif       INTEGER NOT NULL DEFAULT 1,
+    cree_par    INTEGER NOT NULL REFERENCES app_users(id),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+tryAlter("ALTER TABLE taches ADD COLUMN moment TEXT");
+tryAlter("ALTER TABLE taches ADD COLUMN modele_id INTEGER");
+db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_taches_modele_jour ON taches(modele_id, echeance) WHERE modele_id IS NOT NULL');
+
 // Reprise des anciennes tâches hebdomadaires : échéance = dimanche de leur semaine ISO.
 ;(function migrateTasksVersTaches() {
   try {
@@ -773,5 +802,28 @@ db.run('CREATE INDEX IF NOT EXISTS idx_demandes_conges_user ON demandes_conges(u
 // la tâche créée pour le traiter (il est alors considéré résolu quand cette tâche est faite).
 tryAlter('ALTER TABLE comptes_rendus ADD COLUMN probleme_resolu INTEGER NOT NULL DEFAULT 0');
 tryAlter('ALTER TABLE comptes_rendus ADD COLUMN probleme_tache_id INTEGER');
+
+// Incidents du terrain (bassin, matériel) : suivis avec un statut et un responsable. Ils peuvent
+// être saisis directement ou repris d'un « problème signalé » dans un bilan (comptes_rendus.probleme_incident_id).
+db.run(`
+  CREATE TABLE IF NOT EXISTS incidents (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    type              TEXT NOT NULL DEFAULT 'materiel' CHECK(type IN ('bassin','materiel','autre')),
+    titre             TEXT NOT NULL,
+    description       TEXT NOT NULL DEFAULT '',
+    statut            TEXT NOT NULL DEFAULT 'ouvert' CHECK(statut IN ('ouvert','en_cours','resolu')),
+    responsable_id    INTEGER REFERENCES app_users(id),
+    signale_par       INTEGER NOT NULL REFERENCES app_users(id),
+    date_signalement  TEXT NOT NULL,
+    compte_rendu_id   INTEGER REFERENCES comptes_rendus(id) ON DELETE SET NULL,
+    resolution        TEXT NOT NULL DEFAULT '',
+    resolu_le         TEXT,
+    resolu_par        INTEGER REFERENCES app_users(id),
+    created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+db.run('CREATE INDEX IF NOT EXISTS idx_incidents_statut ON incidents(statut, type)');
+tryAlter('ALTER TABLE comptes_rendus ADD COLUMN probleme_incident_id INTEGER');
 
 module.exports = db;

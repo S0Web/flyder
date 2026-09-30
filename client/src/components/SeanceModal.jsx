@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { STATUT_CONFIG } from '../lib/utils';
 import { useDismiss } from '../lib/useDismiss';
 import CoursCombobox from './CoursCombobox';
+import { api } from '../lib/api';
 
 // Convertit "9h30" ou "18:15" → "09:30" pour <input type="time">
 function toTimeInput(h) {
@@ -17,7 +18,7 @@ function toTimeInput(h) {
   return h;
 }
 
-export default function SeanceModal({ seance, coaches, coursTypes, appUsers = [], onSave, onClose, onCoursCreated, aquaActive = true }) {
+export default function SeanceModal({ seance, coaches, coursTypes, appUsers = [], onSave, onClose, onCoursCreated, onCoursUpdated, onReplaced, aquaActive = true }) {
   const [form, setForm] = useState({
     statut:           seance?.statut           || 'programme',
     nb_presents:      seance?.nb_presents       ?? '',
@@ -29,18 +30,78 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
     duree_minutes:    seance?.duree_minutes     || 60,
     date:             seance?.date              || '',
   });
+  const coursChoisi = coursTypes.find(ct => ct.id === Number(form.cours_type_id));
+  // Capacité du cours (places) : propre au type de cours, donc partagée par toutes ses séances.
+  const [capacite, setCapacite] = useState(coursChoisi?.capacite ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState(null);
   const { closing, dismiss } = useDismiss(onClose);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
+  // ── Remplacement de coach (séance déjà enregistrée, pas encore effectuée) ──
+  const peutRemplacer = !!seance?.id && ['programme', 'annule'].includes(seance.statut);
+  const besoinCoach = peutRemplacer && (!seance.coach_id || seance.statut === 'annule');
+  const [remplOuvert, setRemplOuvert] = useState(besoinCoach);
+  const [rempl, setRempl] = useState({ candidats: [], historique: [] });
+  const [remplCoach, setRemplCoach] = useState('');
+  const [remplRaison, setRemplRaison] = useState('');
+  const [remplBusy, setRemplBusy] = useState(false);
+  const [remplMsg, setRemplMsg] = useState(null);
+
+  const chargerRemplacement = useCallback(() => {
+    if (!seance?.id) return;
+    api.getRemplacement(seance.id).then(setRempl).catch(() => {});
+  }, [seance?.id]);
+  useEffect(() => { chargerRemplacement(); }, [chargerRemplacement]);
+
+  async function remplacer() {
+    const choisi = rempl.candidats.find(c => c.id === Number(remplCoach));
+    if (!choisi) return;
+    let forcer = false;
+    if (choisi.occupe_a) {
+      if (!confirm(`${choisi.prenom} a déjà un cours à ${choisi.occupe_a} ce jour-là. Le remplacer quand même ici ?`)) return;
+      forcer = true;
+    }
+    setRemplBusy(true);
+    setError(null);
+    try {
+      const maj = await api.remplacerCoach(seance.id, { coach_id: choisi.id, raison: remplRaison, forcer });
+      // Le formulaire reflète la séance telle qu'elle est désormais enregistrée.
+      setForm(f => ({ ...f, coach_id: maj.coach_id || '', statut: maj.statut }));
+      setRemplMsg(`${choisi.prenom} remplace sur cette séance.`);
+      setRemplCoach('');
+      setRemplRaison('');
+      setRemplOuvert(false);
+      chargerRemplacement();
+      onReplaced?.(maj);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRemplBusy(false);
+    }
+  }
+
+  function choisirCours(v) {
+    set('cours_type_id', v);
+    setCapacite(coursTypes.find(ct => ct.id === Number(v))?.capacite ?? '');
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
     if (!form.cours_type_id) { setError('Choisis un cours.'); return; }
+    const capaciteSaisie = capacite === '' ? null : Number(capacite);
+    if (capaciteSaisie !== null && (!Number.isInteger(capaciteSaisie) || capaciteSaisie < 1 || capaciteSaisie > 500)) {
+      setError('La capacité doit être un entier entre 1 et 500.');
+      return;
+    }
     setSaving(true);
     try {
+      if (capaciteSaisie !== (coursChoisi?.capacite ?? null)) {
+        const maj = await api.patchCoursType(Number(form.cours_type_id), { capacite: capaciteSaisie });
+        onCoursUpdated?.(maj);
+      }
       const payload = {
         ...form,
         nb_presents:      form.nb_presents      === '' ? null : Number(form.nb_presents),
@@ -95,11 +156,30 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
             <CoursCombobox
               value={form.cours_type_id}
               coursTypes={coursTypes}
-              onChange={v => set('cours_type_id', v)}
+              onChange={choisirCours}
               onCreated={onCoursCreated}
               aquaActive={aquaActive}
             />
           </div>
+
+          {/* Capacité du cours */}
+          {coursChoisi && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Capacité du cours <span className="font-normal text-gray-400">(places, facultatif)</span>
+              </label>
+              <input
+                type="number" min="1" max="500" step="1" inputMode="numeric"
+                value={capacite}
+                onChange={e => setCapacite(e.target.value)}
+                placeholder="Ex. 20"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Valable pour toutes les séances de « {coursChoisi.nom} ». Sert au taux de remplissage.
+              </p>
+            </div>
+          )}
 
           {/* Coach */}
           <div>
@@ -115,6 +195,68 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
               ))}
             </select>
           </div>
+
+          {/* Remplacement de coach : séance sans coach ou annulée (ouvert d'office), ou coach à remplacer */}
+          {peutRemplacer && (
+            <div className={`rounded-lg border px-3 py-2.5 ${besoinCoach && remplOuvert ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
+              {remplMsg && <p className="text-sm text-green-700 font-medium mb-1">✓ {remplMsg}</p>}
+              {!remplOuvert ? (
+                <button type="button" onClick={() => { setRemplOuvert(true); setRemplMsg(null); }}
+                  className="text-sm font-medium text-sky-600 hover:text-sky-700">
+                  Remplacer le coach…
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-800">
+                      {!seance.coach_id ? 'Trouver un coach pour cette séance' : 'Remplacer le coach'}
+                    </span>
+                    {!besoinCoach && (
+                      <button type="button" onClick={() => setRemplOuvert(false)} className="text-xs text-gray-500 hover:text-gray-700">annuler</button>
+                    )}
+                  </div>
+                  {seance.statut === 'annule' && (
+                    <p className="text-xs text-amber-800">Séance annulée : un remplaçant la remet au programme.</p>
+                  )}
+                  <select value={remplCoach} onChange={e => setRemplCoach(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    <option value="">-- Choisir le remplaçant --</option>
+                    {rempl.candidats.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.prenom}{c.nom ? ` ${c.nom}` : ''}
+                        {c.occupe_a ? ` — déjà un cours à ${c.occupe_a}` : c.deja_donne ? ` — a déjà donné ce cours ${c.deja_donne}×` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <input type="text" maxLength={300} value={remplRaison} onChange={e => setRemplRaison(e.target.value)}
+                    placeholder="Motif (malade, congé…) — facultatif"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                  <button type="button" onClick={remplacer} disabled={!remplCoach || remplBusy}
+                    className="w-full bg-sky-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-sky-700 disabled:opacity-40 active:scale-[0.98] transition-transform">
+                    {remplBusy ? 'Enregistrement…' : 'Confirmer le remplacement'}
+                  </button>
+                  <p className="text-[11px] text-gray-400">Enregistré tout de suite, avec une trace (qui, quand, pourquoi).</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Historique des remplacements de cette séance */}
+          {rempl.historique.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Historique du coach</div>
+              <ul className="space-y-1" data-testid="historique-remplacements">
+                {rempl.historique.map(h => (
+                  <li key={h.id} className="text-xs text-gray-600 leading-snug">
+                    <span className="text-gray-400 tabular-nums">{h.date_modification.slice(8, 10)}.{h.date_modification.slice(5, 7)}</span>{' · '}
+                    {h.ancien_coach || 'sans coach'} → <span className="font-medium text-gray-800">{h.nouveau_coach}</span>
+                    {h.raison && <> · « {h.raison} »</>}
+                    {h.auteur && <span className="text-gray-400"> · par {h.auteur}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Date (déplacer la séance, uniquement en édition) */}
           {seance && (

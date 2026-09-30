@@ -34,4 +34,12 @@ function lundiDe(iso) {
   return dateLocaleISO(d);
 }
 
-module.exports = { dateLocaleISO, depuisISO, ajouterJours, ajouterMois, lundiDe };
+// Les horaires de séance sont saisis tantôt « 9h », « 12h15 », tantôt « 18:30 » : renvoie les
+// minutes depuis minuit, ou null si le format est illisible.
+function horaireEnMinutes(horaire) {
+  const m = /^(\d{1,2})\s*[h:]\s*(\d{0,2})/i.exec(String(horaire || ''));
+  if (!m) return null;
+  return Number(m[1]) * 60 + (m[2] ? Number(m[2]) : 0);
+}
+
+module.exports = { dateLocaleISO, depuisISO, ajouterJours, ajouterMois, lundiDe, horaireEnMinutes };

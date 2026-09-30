@@ -60,22 +60,35 @@ La barre latérale gauche permet de cocher un ou plusieurs cours pour n'afficher
 
 ## Assigner un coach
 
-Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coachs actifs. Une séance sans coach assigné, si elle approche (délai réglable dans [Préférences > Alertes](/documentation/parametres-preferences)), est mise en évidence pour ne pas être oubliée.`,
+Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coachs actifs. Une séance sans coach assigné, si elle approche (délai réglable dans [Préférences > Alertes](/documentation/parametres-preferences)), est mise en évidence pour ne pas être oubliée.
+
+## Remplacer un coach
+
+Un coach malade ou absent ? Ouvre la fiche de la séance : pour une séance **sans coach** ou **annulée**, le bloc « Trouver un coach pour cette séance » s'ouvre tout seul ; pour une séance qui a un coach, le lien « Remplacer le coach… » l'ouvre. La liste propose les coachs actifs : ceux qui ont déjà donné ce cours sont en tête, et ceux qui ont déjà un cours qui chevauche ce créneau sont signalés (le remplacement reste possible après confirmation). Un motif (malade, congé…) est facultatif. Confirmer enregistre tout de suite le remplacement, remet au programme une séance annulée, et garde une **trace** : qui devait faire le cours, qui le fait, pourquoi, quand et par qui. L'historique s'affiche dans la fiche de la séance. Changer simplement le coach depuis la liste déroulante de la fiche laisse aussi une trace (sans motif). Une séance déjà effectuée ou payée ne se remplace pas de cette façon : modifie son coach depuis sa fiche.
+
+Les remplacements alimentent l'[Analyse des coachs](/documentation/analyse-coachs) : qui dépanne le plus souvent, et combien de fois chacun a été remplacé.
+
+## Capacité et remplissage
+
+Chaque cours peut avoir une **capacité** (son nombre de places), facultative : elle se saisit dans la fiche d'une séance, sous le choix du cours, et vaut pour toutes les séances de ce cours. Quand elle est connue, l'effectif d'une séance s'affiche sous la forme « 12/20 » (en ambre quand la séance est complète), et l'[Analyse](/documentation/analyse-cours) calcule des taux de remplissage.
+
+Un créneau — même cours, même jour de la semaine, même heure de début — dont les dernières séances réalisées ont **toutes affiché complet, au moins 3 fois de suite**, reçoit la mention « Complet ×3 » (ou 4, 5…) sur ses prochaines séances programmées : c'est le signe d'une demande non satisfaite, à traiter en ouvrant une séance de plus ou en relevant la capacité. La mention disparaît dès qu'une séance n'est pas pleine, ou quand le créneau n'a plus eu de séance complète depuis 60 jours.`,
       },
       {
         id: 'planning-personnel',
         titre: 'Équipe',
         contenu: `L'onglet Équipe regroupe tout ce qui concerne le personnel de la salle : planning, tâches, bilans de fin de journée et fiches individuelles. Il remplace l'ancien « Planning personnel ». Un manager y trouve une vue d'ensemble de l'équipe ; chaque salarié y voit sa journée, ses tâches et sa propre fiche.
 
-Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes rendus, Effectif. Onglets d'un salarié : Ma journée, Planning, Mes tâches, Mes comptes rendus, Ma fiche. Un point rouge sur « Équipe » dans le menu signale ce qui attend : bilans à valider et demandes de congé pour un manager ; tâche en retard, bilan à revoir ou nouveau document pour un salarié.
+Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes rendus, Incidents, Effectif. Onglets d'un salarié : Ma journée, Planning, Mes tâches, Mes comptes rendus, Incidents, Ma fiche. Un point rouge sur « Équipe » dans le menu signale ce qui attend : bilans à valider, demandes de congé et incidents sans responsable pour un manager ; tâche en retard, bilan à revoir, nouveau document ou incident dont on est responsable pour un salarié.
 
 ## Ma journée
 
 - Tes horaires du jour écrits en grand, ton poste et ton objectif principal.
-- Le bouton « Faire mon bilan de fin de journée ». Une fois envoyé, il est remplacé par un tampon « À valider », puis « Validé ».
+- Le bouton « Faire mon bilan de fin de journée ». Une fois envoyé, il est remplacé par une pastille « À valider », puis « Validé ».
 - Tes chiffres : tâches à faire aujourd'hui, en retard, terminées ces 7 derniers jours, congés restants.
 - Les alertes : bilan renvoyé « à revoir », nouveau document déposé pour toi, réponse à une demande de congé.
-- Tes tâches, avec un champ pour t'en ajouter une rapidement.
+- Tes cours, si ton profil est relié à une fiche coach (voir Effectif) : les séances des 7 prochains jours, avec l'heure, le statut et l'effectif. Le planning des cours reste la référence, on n'y modifie rien d'ici.
+- Tes tâches, avec un champ pour t'en ajouter une rapidement. Les tâches de checklist du jour (ouverture, fermeture, bassin) y figurent quand tu es la personne planifiée sur le créneau.
 - Tes missions du quotidien (celles de ta fiche de poste), à déplier.
 - « À savoir en arrivant » : la priorité de demain et le problème signalé par tes collègues dans leur bilan d'hier ou d'aujourd'hui (un problème réglé n'y figure plus).
 - Ta semaine jour par jour, avec « demander un congé », et « Avec moi aujourd'hui » : qui travaille, à quelles heures, qui est en poste en ce moment (trait corail = heure actuelle), qui est absent.
@@ -89,13 +102,13 @@ Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes r
 - « Bilans de fin de journée » : une case par personne et par jour sur 14 jours, croisée avec le planning. Case pleine foncée = validé, pleine corail = à valider, barrée = à revoir, en pointillés = jour travaillé sans bilan, hachurée = ne travaillait pas.
 - « Chiffres du terrain » : les indicateurs de type « nombre » saisis dans les bilans (prospects contactés, adhérents accompagnés…), additionnés par membre : cette semaine, la semaine dernière et les 30 derniers jours.
 - « Charge de l'équipe » : les tâches ouvertes de chacun (une case par tâche, en corail si elle est en retard) et le nombre de tâches terminées ces 7 derniers jours.
-- « Terrain » : les problèmes à traiter (signalés dans les bilans des 30 derniers jours, pas encore résolus) et les absences des 3 prochaines semaines (congés, arrêts, absences ; les jours d'école ne sont pas listés). Un problème peut être transformé en tâche en un clic, ou marqué résolu ; relié à une tâche, il est considéré résolu dès que cette tâche est terminée.
+- « Terrain » : les problèmes à traiter (signalés dans les bilans des 30 derniers jours, pas encore résolus) et les absences des 3 prochaines semaines (congés, arrêts, absences ; les jours d'école ne sont pas listés). Un problème peut être transformé en tâche en un clic, repris comme incident (voir Incidents), ou marqué résolu ; relié à une tâche, il est considéré résolu dès que cette tâche est terminée.
 
 ## Planning
 
 Le planning du personnel, semaine par semaine — à ne pas confondre avec le [Planning des cours](/documentation/planning). Tout le monde voit le planning de toute l'équipe (pour savoir avec qui on travaille et qui prend le relais) ; « Mes horaires » n'affiche que les siens.
 
-Cliquer sur une case (employé × jour) permet d'indiquer un horaire de travail ou une absence (CP, école, férié, arrêt, repos) ; une journée peut contenir plusieurs créneaux (matin et soir). La frise sous le tableau montre qui est là et quand ; ses bornes sont les heures d'ouverture de la salle (Préférences > Planning). « Dupliquer la semaine précédente » recopie les jours encore vides. Pour un manager, la colonne « total » compare les heures planifiées aux heures de contrat de chacun (si elles sont renseignées). Le « Récap mensuel » (Manager) totalise les heures de chacun sur 12 mois et s'exporte en CSV pour la paie.
+Cliquer sur une case (employé × jour) permet d'indiquer un horaire de travail ou une absence (CP, école, férié, arrêt, repos) ; une journée peut contenir plusieurs créneaux (matin et soir). La frise sous le tableau montre qui est là et quand ; ses bornes sont les heures d'ouverture de la salle (Préférences > Planning). « Dupliquer la semaine précédente » recopie les jours encore vides. Pour un manager, la colonne « total » compare les heures planifiées aux heures de contrat de chacun (si elles sont renseignées). Le « Récap mensuel » (Manager) totalise les heures de chacun sur 12 mois et s'exporte en CSV pour la paie. Pour un salarié relié à une fiche coach, ses heures de cours (séances non annulées) s'affichent à part, mois par mois et en total : elles ne sont pas additionnées aux heures planifiées, le planning couvrant déjà sa présence.
 
 ## Tâches
 
@@ -109,6 +122,21 @@ Chaque tâche a :
 Le manager crée des tâches pour n'importe qui et peut filtrer par membre. Un salarié voit ses propres tâches et peut s'en créer ; sur une tâche créée par quelqu'un d'autre, il peut changer le statut et ajouter une note, mais seul l'auteur ou un manager modifie le reste.
 
 Deux affichages : **Liste**, regroupée par échéance (en retard, aujourd'hui, cette semaine, plus tard, sans échéance, terminées), où la case à gauche coche une tâche en un clic ; **Tableau**, en trois colonnes (à faire, en cours, terminée), où l'on fait glisser une tâche d'une colonne à l'autre. Les tâches terminées restent visibles 60 jours.
+
+## Checklists du service
+
+Un manager ouvre « Checklists du service » (bouton en haut de la page Tâches) pour définir les routines d'**ouverture**, de **fermeture** et du **bassin** : des modèles de tâches, sans responsable fixe, avec une priorité et les jours concernés. Chaque jour concerné, chaque modèle devient une tâche pour la personne planifiée sur le créneau, d'après le planning du personnel :
+- **ouverture** : la première personne planifiée, si elle commence au plus tard 2 h après l'heure d'ouverture de la salle (Préférences > Planning) ;
+- **fermeture** : la dernière personne planifiée, si elle finit au plus tôt 2 h avant la fermeture ;
+- **bassin** : la personne qui ouvre (contrôle avant l'accueil du public).
+
+Si personne n'est planifié sur un créneau, rien n'est créé et le panneau l'indique (« personne de planifié sur ce créneau »). Une tâche non commencée suit le planning : si celui-ci change, elle passe à la bonne personne ; une tâche commencée ou terminée ne bouge plus. Ces tâches se cochent comme les autres (marque « checklist »), et une tâche non faite reste « en retard » les jours suivants. Modifier un modèle met à jour les tâches du jour non commencées ; le supprimer les retire, l'historique reste.
+
+## Incidents
+
+L'onglet Incidents suit les pannes et problèmes du terrain : **bassin** (pH, chlore, eau…), **matériel** ou **autre**. Tout le monde peut en signaler un et consulter la liste ; chaque incident a un **statut** (ouvert, en cours, résolu), un **responsable** (désigné par un manager), la **mesure prise** et les dates de signalement et de résolution, ce qui sert de trace (notamment pour le contrôle du bassin). Le responsable fait avancer le statut et note la mesure prise ; seul un manager modifie le reste ou supprime. Un incident résolu reste consultable 12 mois.
+
+Un manager peut aussi reprendre un **problème signalé dans un bilan** (Vue d'ensemble > Problèmes à traiter > « suivre comme incident ») : il devient un incident, quitte la liste des problèmes à traiter, et disparaît de « À savoir en arrivant » une fois résolu.
 
 ## Bilan de fin de journée
 
@@ -134,6 +162,8 @@ Depuis Effectif (manager) ou Ma fiche (salarié) :
 - **Carnet privé** (sur sa propre fiche uniquement) : des notes personnelles qui s'enregistrent toutes seules. Personne d'autre ne peut les lire, managers compris.
 
 Effectif (Manager) présente toute l'équipe, une ligne par personne : poste, heures de la semaine comparées au contrat (si renseigné), tâches ouvertes et en retard, date du dernier bilan, congés restants, documents non ouverts. C'est aussi ici que se gère l'équipe : « Ajouter un membre » crée un profil (avec son rôle, sa date de début de contrat et ses heures de contrat hebdomadaires), « désactiver » / « réactiver » et « supprimer » (uniquement sur un profil déjà désactivé) agissent sur chaque ligne, et « Importer les fiches de paie » répartit en masse les documents de plusieurs employés à la fois.
+
+Dans « Modifier » (ou à la création), un manager peut relier un salarié à une **fiche coach** s'il donne aussi des cours : ses séances des 7 prochains jours apparaissent alors dans sa journée et ses heures de cours dans le récap mensuel. Une fiche coach ne se relie qu'à un seul profil.
 
 ## Documents confidentiels
 
@@ -219,7 +249,7 @@ Un menu de navigation rapide (à droite, sur grand écran) permet de sauter dire
 
 C'est le tableau de bord "santé" de l'activité. Une hausse régulière des participants avec un effectif moyen stable = la salle grandit sainement (plus de cours, pas juste plus de monde entassé). Une hausse des annulations, elle, doit alerter même si le reste va bien — c'est souvent le premier signal d'un problème (coach en difficulté, créneau mal choisi, cours qui ne plaît plus). Voir aussi [Fiabilité du planning](/documentation/analyse-qualite).
 
-Quatre chiffres complémentaires en dessous (cours au catalogue, coachs actifs, séances programmées, séances sans coach) donnent une photo rapide de la structure de l'offre — "séances sans coach" en particulier mérite d'être à zéro en permanence.`,
+Cinq chiffres complémentaires en dessous (taux de remplissage, cours au catalogue, coachs actifs, séances programmées, séances sans coach) donnent une photo rapide de la structure de l'offre — "séances sans coach" en particulier mérite d'être à zéro en permanence. Le **taux de remplissage** rapporte les présents aux places disponibles, sur les séances réalisées dont l'effectif et la capacité du cours sont connus (la capacité se saisit dans la fiche d'une séance, voir [Planning des cours](/documentation/planning)).`,
       },
       {
         id: 'analyse-evolution',
@@ -266,6 +296,14 @@ Classement des cours par total de participants sur la période.
 
 Un nuage de points : chaque point est un cours, sa position horizontale indique combien de fois il a été programmé, sa position verticale son effectif moyen. Les cours en haut à gauche (peu programmés mais toujours pleins) sont les meilleurs candidats à un créneau supplémentaire — c'est de la demande non satisfaite. Ceux en bas à droite (souvent programmés mais peu remplis) méritent l'inverse : réduire la fréquence, changer l'horaire, ou remplacer le cours.
 
+## Quels cours sont les mieux remplis ?
+
+Le taux de remplissage de chaque cours dont la capacité est connue : présents ÷ places, sur les séances dont l'effectif est renseigné. Un cours à 95 % est quasiment toujours plein ; un cours à 40 % a de la marge.
+
+## Créneaux souvent complets
+
+La liste des créneaux (même cours, même jour, même heure) dont les dernières séances ont toutes atteint la capacité, au moins 3 fois de suite. Elle ne dépend pas de la période choisie : c'est l'état actuel, avec le nombre de séances pleines d'affilée. Chaque ligne est un candidat à une séance de plus ou à une capacité relevée.
+
 ## Pourquoi ce graphique change la donne
 
 Sans lui, la tentation naturelle est de se fier à l'instinct ("je sens que ce cours marche bien") — ce graphique remplace l'instinct par un fait vérifiable, et révèle souvent des surprises (un cours qu'on pensait secondaire mais qui affiche complet à chaque fois).`,
@@ -280,6 +318,10 @@ Classement par heures réellement effectuées (les annulations ne comptent pas).
 ## Qui remplit le mieux ses séances ?
 
 Effectif moyen par coach (minimum 5 séances pour être comparable). À lire avec prudence : un coach qui n'anime que des cours naturellement moins fréquentés (ex. Pilates vs Zumba) aura logiquement une moyenne plus basse sans que ce soit un problème de qualité d'animation — le type de cours pèse autant que le coach lui-même.
+
+## Qui dépanne le plus souvent ?
+
+Les séances de la période qu'un coach a reprises à un autre (ou à une séance laissée sans coach), via « Remplacer le coach » dans la fiche d'une séance. Le tableau donne aussi, pour chaque coach, combien de fois il a été remplacé : de quoi repérer ceux sur qui on compte, et ceux dont les absences reviennent.
 
 Pour le suivi des heures facturables, voir [Coachs](/documentation/coachs).`,
       },
