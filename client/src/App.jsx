@@ -63,9 +63,10 @@ function ProtectedRoutes() {
             <Route path="membres/:id" element={<FicheMembre />} />
           </Route>
           <Route path="/planning-personnel" element={<Navigate to="/equipe/planning" replace />} />
-          <Route path="/recapitulatif"      element={<Coaches />} />
-          {/* Ancienne URL : des raccourcis/onglets ouverts pointent encore dessus. */}
-          <Route path="/coaches"            element={<Navigate to="/recapitulatif" replace />} />
+          <Route path="/coachs"             element={<Coaches />} />
+          {/* Anciennes URL : des raccourcis/onglets ouverts pointent encore dessus. */}
+          <Route path="/coaches"            element={<Navigate to="/coachs" replace />} />
+          <Route path="/recapitulatif"      element={<Navigate to="/coachs" replace />} />
           <Route path="/analyse"            element={<Analyse />} />
           <Route path="/annuaire"           element={<Annuaire />} />
           <Route path="/formation"                        element={<Formation />} />

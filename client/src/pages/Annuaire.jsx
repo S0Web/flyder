@@ -9,14 +9,14 @@ import { DISCIPLINE_CONFIG } from '../lib/utils';
 
 // Catégories affichées (filtres + sections). Les coachs viennent de la table
 // coaches — modifiables ici (téléphone + disciplines) via une fiche allégée ;
-// pour le nom/email, direction l'onglet Coaches.
+// pour le nom/email, direction l'onglet Coachs.
 const DISPLAY_CATEGORIES = [
   { id: 'coach',       label: 'Coachs' },
   { id: 'prestataire', label: 'Prestataires' },
   { id: 'employe',     label: 'Employés' },
   { id: 'responsable', label: 'Responsables' },
 ];
-// Catégories qu'on peut créer depuis cette page (les coachs se créent depuis Coaches).
+// Catégories qu'on peut créer depuis cette page (les coachs se créent depuis Coachs).
 const EDITABLE_CATEGORIES = DISPLAY_CATEGORIES.filter(c => c.id !== 'coach');
 
 function norm(s) {
@@ -170,7 +170,7 @@ function CoachQuickEditModal({ coach, onSave, onClose, aquaActive = true }) {
       >
         <div className="px-6 pt-5 pb-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">{coach.nom}</h2>
-          <Link to="/coaches" onClick={dismiss} className="text-xs text-sky-600 hover:underline">Gérer dans Coaches →</Link>
+          <Link to="/coachs" onClick={dismiss} className="text-xs text-sky-600 hover:underline">Gérer dans Coachs →</Link>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">{error}</div>}
@@ -326,7 +326,7 @@ export default function Annuaire() {
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500">{g.label}</h2>
                 {g.id === 'coach' && (
-                  <Link to="/coaches" className="text-xs text-sky-600 hover:underline">Gérer dans Coaches →</Link>
+                  <Link to="/coachs" className="text-xs text-sky-600 hover:underline">Gérer dans Coachs →</Link>
                 )}
               </div>
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

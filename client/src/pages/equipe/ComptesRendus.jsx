@@ -36,14 +36,14 @@ export default function ComptesRendus() {
 
   const affiches = useMemo(() => {
     if (!liste) return null;
-    if (onglet === 'a_valider') return aValider.filter(cr => cr.user_id !== user.id && (!membre || String(cr.user_id) === membre));
+    if (onglet === 'a_valider') return aValider.filter(cr => !membre || String(cr.user_id) === membre);
     return isManager ? liste : liste.filter(cr => cr.user_id === user.id);
   }, [liste, aValider, onglet, membre, isManager, user.id]);
 
   const auj = aujourdhuiISO();
   const monCrDuJour = liste?.find(cr => cr.user_id === user.id && cr.date === auj);
   const peutModifier = (cr) => cr.user_id === user.id && cr.date >= isoPlusJours(auj, -7);
-  const nbAValider = aValider.filter(cr => cr.user_id !== user.id).length;
+  const nbAValider = aValider.length;
 
   return (
     <div className="max-w-5xl">

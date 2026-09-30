@@ -17,7 +17,7 @@ import logo from '../assets/logo-flyder-dark.png';
 
 const ALL_LINKS = [
   { to: '/',                   label: 'Planning des cours',  icon: CalendarDays,  end: true },
-  { to: '/recapitulatif',      label: 'Récapitulatif',       icon: ClipboardList },
+  { to: '/coachs',             label: 'Coachs',              icon: ClipboardList },
   { to: '/analyse',            label: 'Analyse',             icon: BarChart3 },
   { to: '/equipe',             label: 'Équipe',              icon: UsersRound },
   { to: '/annuaire',           label: 'Annuaire',            icon: BookUser },

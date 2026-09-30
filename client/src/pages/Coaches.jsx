@@ -652,9 +652,9 @@ export default function Coaches() {
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-800">Récapitulatif des heures effectuées</h1>
+            <h1 className="text-lg font-bold text-gray-800">Coachs</h1>
             <p className="text-xs text-gray-400 mt-0.5">
-              13 derniers mois · les graphiques et statistiques sont désormais dans{' '}
+              Heures effectuées sur les 13 derniers mois · les graphiques et statistiques sont désormais dans{' '}
               <Link to="/analyse" className="text-sky-600 hover:underline font-medium">Analyse</Link>
             </p>
           </div>

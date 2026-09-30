@@ -136,10 +136,6 @@ export const api = {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
     return req(`/coaches/recap${qs ? `?${qs}` : ''}`);
   },
-  getDashboard: (params = {}) => {
-    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
-    return req(`/dashboard${qs ? `?${qs}` : ''}`);
-  },
   getAnalytics: (params = {}) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
     return req(`/analytics${qs ? `?${qs}` : ''}`);
@@ -187,7 +183,7 @@ export const api = {
 
   // Créneaux personnel
   getPersonnelCreneaux:   (semaine) => req(`/personnel-creneaux?semaine=${semaine}`),
-  getCpSummary:           (annee) => req(`/personnel-creneaux/cp-summary${annee ? `?annee=${annee}` : ''}`),
+  getCpSummary:           () => req('/personnel-creneaux/cp-summary'),
   getPersonnelRecap:      (debut, fin) => req(`/personnel-creneaux/recap?debut=${debut}&fin=${fin}`),
   upsertPersonnelCreneau: (employeId, date, data) =>
     req(`/personnel-creneaux/${employeId}/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -296,8 +292,6 @@ export const api = {
   deleteIpAutorisee: (id) => req(`/ip-autorisees/${id}`, { method: 'DELETE' }),
 
   // Admin
-  seedBallancourt: () => req('/admin/seed-ballancourt', { method: 'POST' }),
-  seedCorbeilHistorique: () => req('/admin/seed-corbeil-historique', { method: 'POST' }),
   seedDemo: (reset = false) => req(`/admin/seed-demo${reset ? '?reset=1' : ''}`, { method: 'POST' }),
   downloadBackup: async () => {
     const token = getToken();

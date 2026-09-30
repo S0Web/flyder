@@ -144,7 +144,7 @@ export function AjoutRapide({ membres, assigneParDefaut, onCree, placeholder = '
   const isManager = user?.role === 'manager';
   const [titre, setTitre] = useState('');
   const [assigne, setAssigne] = useState(assigneParDefaut || user?.id);
-  const [echeance, setEcheance] = useState(aujourdhuiISO());
+  const [echeance, setEcheance] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (assigneParDefaut) setAssigne(assigneParDefaut); }, [assigneParDefaut]);
@@ -214,7 +214,7 @@ export function TachePanneau({ tache, membres, assigneParDefaut, onClose, onSave
     titre: tache?.titre || '',
     description: tache?.description || '',
     assigne_a: tache?.assigne_a || assigneParDefaut || user.id,
-    echeance: tache?.echeance ?? (nouvelle ? aujourdhuiISO() : ''),
+    echeance: tache?.echeance ?? '',
     priorite: tache?.priorite || 'normale',
     recurrence: tache?.recurrence || 'aucune',
     statut: tache?.statut || 'a_faire',

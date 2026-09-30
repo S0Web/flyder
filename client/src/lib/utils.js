@@ -19,7 +19,7 @@ export const CATEGORIE_CONFIG = {
              cell: '#FFF6F1', card: '#FFE7D9', accent: '#FF5A36', label: '#12162B' },
 };
 
-// Disciplines des coachs — utilisé par la fiche Coach (Coaches.jsx) et l'Annuaire.
+// Disciplines des coachs — utilisé par la fiche Coach (pages/Coaches.jsx) et l'Annuaire.
 export const DISCIPLINE_CONFIG = {
   aqua:          { label: 'Aqua',          bg: 'bg-sky-100',     text: 'text-sky-700',     accent: 'accent-sky-500' },
   fitness:       { label: 'Fitness',       bg: 'bg-amber-100',   text: 'text-amber-700',   accent: 'accent-amber-500' },

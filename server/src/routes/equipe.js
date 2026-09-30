@@ -144,7 +144,6 @@ router.put('/comptes-rendus/moi/:date', requireWriteAccess, (req, res) => {
 router.post('/comptes-rendus/:id/decision', requireManager, (req, res) => {
   const cr = db.get('SELECT * FROM comptes_rendus WHERE id = ?', [req.params.id]);
   if (!cr || cr.statut === 'brouillon') return res.status(404).json({ error: 'Compte rendu introuvable' });
-  if (cr.user_id === req.user.id) return res.status(403).json({ error: 'Un autre manager doit valider ton propre compte rendu.' });
   const decision = req.body.decision === 'a_revoir' ? 'a_revoir' : 'valide';
   const retour = String(req.body.retour || '').trim();
   if (decision === 'a_revoir' && !retour) {
@@ -210,7 +209,9 @@ function creneauxEntre(debut, fin, userId) {
 // Qui est là aujourd'hui : créneaux de travail groupés par personne, et absences.
 function presencesDuJour(date) {
   const parPersonne = new Map();
+  const actifs = new Set(db.all(`SELECT id FROM app_users WHERE ${MEMBRES_ACTIFS}`).map(r => r.id));
   for (const c of creneauxEntre(date, date)) {
+    if (!actifs.has(c.employe_id)) continue; // profil désactivé, supprimé ou masqué
     if (!parPersonne.has(c.employe_id)) {
       parPersonne.set(c.employe_id, { id: c.employe_id, prenom: c.prenom, nom: c.nom, creneaux: [], absence: null });
     }
@@ -227,36 +228,25 @@ function presencesDuJour(date) {
 // GET /api/equipe/vue-ensemble — tableau de bord manager.
 router.get('/vue-ensemble', requireManager, (req, res) => {
   const aujourdhui = dateLocaleISO();
-  const lundi = lundiDe(aujourdhui);
   const membres = db.all(`SELECT id, prenom, nom, role FROM app_users WHERE ${MEMBRES_ACTIFS} ORDER BY prenom, nom`);
   const ids = new Set(membres.map(m => m.id));
 
-  const taches = db.all(`SELECT id, assigne_a, statut, echeance, fait_le, created_at FROM taches`);
+  const taches = db.all(`SELECT id, assigne_a, statut, echeance, fait_le FROM taches`);
   const ouvertes = taches.filter(t => t.statut !== 'fait' && ids.has(t.assigne_a));
   const enRetard = ouvertes.filter(t => t.echeance && t.echeance < aujourdhui);
-  const semaineTaches = taches.filter(t => t.echeance && t.echeance >= lundi && t.echeance <= ajouterJours(lundi, 6));
-  const tauxSemaine = semaineTaches.length
-    ? Math.round((semaineTaches.filter(t => t.statut === 'fait').length / semaineTaches.length) * 100)
-    : null;
+  // Tâches tenues : parmi celles arrivées à échéance sur les 7 derniers jours (aujourd'hui
+  // compris), part de celles qui sont terminées. Fenêtre glissante : le chiffre ne repart
+  // pas de zéro chaque lundi, et les tâches sans échéance n'y entrent pas.
+  const debut7j = ajouterJours(aujourdhui, -6);
+  const echues7j = taches.filter(t => ids.has(t.assigne_a) && t.echeance && t.echeance >= debut7j && t.echeance <= aujourdhui);
+  const tenues7j = echues7j.filter(t => t.statut === 'fait').length;
+  const taux7j = echues7j.length ? Math.round((tenues7j / echues7j.length) * 100) : null;
 
-  // Un manager ne valide pas son propre bilan (c'est à un autre manager de le faire).
+  // Un manager peut valider son propre bilan (il est parfois seul à gérer la salle) :
+  // tous les bilans soumis sont donc à valider, le sien compris.
   const crAValider = db.all(
-    `${SELECT_CR} WHERE cr.statut = 'soumis' AND cr.user_id != ? ORDER BY cr.date DESC, cr.soumis_le DESC`,
-    [req.user.id]
+    `${SELECT_CR} WHERE cr.statut = 'soumis' ORDER BY cr.date DESC, cr.soumis_le DESC`
   ).map(formaterCr);
-
-  // Tendance sur 8 semaines : tâches terminées vs tâches créées, par semaine.
-  const tendance = [];
-  for (let i = 7; i >= 0; i--) {
-    const debut = ajouterJours(lundi, -7 * i);
-    const fin = ajouterJours(debut, 6);
-    const dansSemaine = (dt) => dt && dt.slice(0, 10) >= debut && dt.slice(0, 10) <= fin;
-    tendance.push({
-      semaine: debut,
-      faites: taches.filter(t => t.statut === 'fait' && dansSemaine(t.fait_le)).length,
-      creees: taches.filter(t => dansSemaine(t.created_at)).length,
-    });
-  }
 
   // Charge par membre.
   const septJours = ajouterJours(aujourdhui, -7);
@@ -289,7 +279,8 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
   const absencesAVenir = db.all(
     `SELECT pc.employe_id AS id, u.prenom, u.nom, pc.date, pc.type
      FROM personnel_creneaux pc JOIN app_users u ON u.id = pc.employe_id
-     WHERE pc.type IN ('cp','arret','ecole','absent') AND pc.date BETWEEN ? AND ?
+     WHERE pc.type IN ('cp','arret','absent') AND pc.date BETWEEN ? AND ?
+       AND u.actif = 1 AND u.supprime = 0 AND u.masque = 0
      ORDER BY pc.date, u.prenom`,
     [aujourdhui, ajouterJours(aujourdhui, 21)]
   );
@@ -302,7 +293,7 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
 
   const docsNonConsultes = db.get(
     `SELECT COUNT(*) AS n FROM employe_documents d JOIN app_users u ON u.id = d.user_id
-     WHERE d.vu_le IS NULL AND u.actif = 1 AND u.supprime = 0`
+     WHERE d.vu_le IS NULL AND u.actif = 1 AND u.supprime = 0 AND u.masque = 0`
   ).n;
 
   const presents = presencesDuJour(aujourdhui);
@@ -314,7 +305,9 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
       presents: presents.filter(p => p.creneaux.length).length,
       taches_ouvertes: ouvertes.length,
       taches_en_retard: enRetard.length,
-      taux_semaine: tauxSemaine,
+      taux_7j: taux7j,
+      taches_echues_7j: echues7j.length,
+      taches_tenues_7j: tenues7j,
       cr_a_valider: crAValider.length,
       cr_du_jour: crPeriode.filter(c => c.date === aujourdhui && c.statut !== 'brouillon').length,
       docs_non_consultes: docsNonConsultes,
@@ -322,7 +315,6 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
     presents,
     cr_a_valider: crAValider,
     charge,
-    tendance,
     suivi_cr: { jours, membres: suiviCr },
     absences_a_venir: absencesAVenir,
     problemes,
@@ -450,7 +442,7 @@ router.get('/ma-journee', (req, res) => {
 // comptes rendus à valider (manager), sinon ce qui attend le salarié.
 router.get('/pastille', (req, res) => {
   if (estManager(req)) {
-    return res.json({ count: db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE statut = 'soumis' AND user_id != ?", [req.user.id]).n });
+    return res.json({ count: db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE statut = 'soumis'").n });
   }
   const aujourdhui = dateLocaleISO();
   const n = db.get("SELECT COUNT(*) AS n FROM taches WHERE assigne_a = ? AND statut != 'fait' AND echeance < ?", [req.user.id, aujourdhui]).n

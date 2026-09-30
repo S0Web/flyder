@@ -368,7 +368,7 @@ export default function PlanningPersonnel() {
         ) : loading ? (
           <div className="text-center py-10 text-gray-400 text-sm">Chargement…</div>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-gray-400 py-10 text-center">Aucun profil — ajoute un membre depuis Équipe &gt; Membres.</p>
+          <p className="text-sm text-gray-400 py-10 text-center">Aucun profil — ajoute un membre depuis Équipe &gt; Effectif.</p>
         ) : (
           <>
           <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-x-auto">

@@ -202,7 +202,7 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
     }
   }
 
-  const aValider = isManager && cr.statut === 'soumis' && cr.user_id !== user.id;
+  const aValider = isManager && cr.statut === 'soumis';
 
   return (
     <article className="relative flex bg-white border border-brand-ink/10 rounded-[3px]">

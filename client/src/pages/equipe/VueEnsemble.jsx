@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { LineChart } from '../../components/Charts';
-import { VIZ, semaineCourt, semaineLabelFull } from '../../lib/chartTheme';
 import TimelineJour from '../../components/equipe/TimelineJour';
 import { CompteRenduCarte } from '../../components/equipe/ComptesRendus';
 import { Rubrique, Feuille, Intertitre, Compteurs, Rien, Lien } from '../../components/equipe/kit';
@@ -100,10 +98,10 @@ function ChargeMembres({ charge }) {
 }
 
 // Fusionne les jours consécutifs d'une même absence (ex. CP jeudi + vendredi).
-// Les jours d'école récurrents sont trop nombreux pour être utiles ici : on les ignore.
+// Les jours d'école récurrents sont déjà écartés par le serveur.
 function regrouperAbsences(lignes) {
   const out = [];
-  for (const l of lignes.filter(x => x.type !== 'ecole').sort((a, b) => a.id - b.id || a.date.localeCompare(b.date))) {
+  for (const l of [...lignes].sort((a, b) => a.id - b.id || a.date.localeCompare(b.date))) {
     const prec = out[out.length - 1];
     const lendemain = prec && new Date(dateDepuisISO(prec.fin).getTime() + 86400000);
     if (prec && prec.id === l.id && prec.type === l.type && lendemain && dateDepuisISO(l.date).getTime() === lendemain.getTime()) {
@@ -127,10 +125,6 @@ export default function VueEnsemble() {
   }, []);
   useEffect(() => { charger(); }, [charger]);
 
-  const tendance = useMemo(() => (data?.tendance || []).map(t => ({
-    label: semaineCourt(t.semaine), full: semaineLabelFull(t.semaine), faites: t.faites, creees: t.creees,
-  })), [data]);
-
   if (erreur) return <p className="font-mono text-sm text-fitness">erreur : {erreur}</p>;
   if (!data) return <p className="py-20 text-center font-mono text-xs text-gray-400">chargement…</p>;
 
@@ -145,7 +139,7 @@ export default function VueEnsemble() {
           { label: 'présents', valeur: `${k.presents}/${k.membres}` },
           { label: 'tâches ouvertes', valeur: k.taches_ouvertes },
           { label: 'en retard', valeur: k.taches_en_retard, ton: k.taches_en_retard ? 'corail' : undefined },
-          { label: 'réalisé cette semaine', valeur: k.taux_semaine == null ? '—' : `${k.taux_semaine}%` },
+          { label: 'tâches tenues · 7 j', valeur: k.taux_7j == null ? '—' : `${k.taux_7j}%`, note: k.taches_echues_7j ? `${k.taches_tenues_7j}/${k.taches_echues_7j} échues terminées` : 'aucune échue' },
           { label: 'bilans à valider', valeur: k.cr_a_valider, ton: k.cr_a_valider ? 'corail' : undefined, note: `${k.cr_du_jour} reçu${k.cr_du_jour > 1 ? 's' : ''} aujourd'hui` },
           { label: 'docs non ouverts', valeur: k.docs_non_consultes },
         ]} />
@@ -176,27 +170,11 @@ export default function VueEnsemble() {
         <SuiviComptesRendus suivi={data.suivi_cr} />
       </Feuille>
 
-      <Rubrique numero="03" titre="Avancement des tâches" />
-      <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-6">
-        <Feuille className="p-4 sm:p-5">
-          <Intertitre>Terminées et créées, par semaine</Intertitre>
-          <p className="text-xs text-gray-500 -mt-1 mb-3 max-w-xl">
-            Quand la courbe des terminées passe sous celle des créées, la pile grossit : c'est le moment de redistribuer.
-          </p>
-          <div className="flex gap-5 font-mono text-[11px] text-gray-500 mb-2">
-            <span><span className="inline-block w-4 h-[2px] bg-brand-ink align-middle mr-1.5" />terminées</span>
-            <span><span className="inline-block w-4 h-[2px] align-middle mr-1.5" style={{ backgroundColor: VIZ.fitness }} />créées</span>
-          </div>
-          <LineChart data={tendance} height={210} series={[
-            { key: 'faites', label: 'Terminées', color: VIZ.ink },
-            { key: 'creees', label: 'Créées', color: VIZ.fitness },
-          ]} />
-        </Feuille>
-        <Feuille className="p-4 sm:p-5">
-          <Intertitre>Charge de chacun</Intertitre>
-          <ChargeMembres charge={data.charge} />
-        </Feuille>
-      </div>
+      <Rubrique numero="03" titre="Charge de l'équipe" />
+      <Feuille className="p-4 sm:p-5 max-w-3xl">
+        <Intertitre>Tâches ouvertes par personne</Intertitre>
+        <ChargeMembres charge={data.charge} />
+      </Feuille>
 
       <Rubrique numero="04" titre="Terrain" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -218,7 +196,7 @@ export default function VueEnsemble() {
         </section>
         <section>
           <Intertitre>Absences · 3 semaines</Intertitre>
-          {data.absences_a_venir.filter(a => a.type !== 'ecole').length === 0 ? <Rien>aucune absence prévue</Rien> : (
+          {data.absences_a_venir.length === 0 ? <Rien>aucune absence prévue</Rien> : (
             <ol>
               {regrouperAbsences(data.absences_a_venir).map((a, i) => (
                 <li key={i} className="grid grid-cols-[110px_1fr_auto] gap-3 items-baseline py-2.5 border-b border-brand-ink/[0.08]">
