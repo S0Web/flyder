@@ -7,3 +7,7 @@ talents-server/data/
 dist/
 .env
 *.log
+
+# Données historiques nominatives (plannings, séances importées) : jamais dans le dépôt.
+server/private-data/
+scripts/extracted.json

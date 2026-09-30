@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { Feuille, Rien, BoutonEncre, BoutonTrait, Lien, Intertitre, champCls } from './kit';
+import { TYPES_INDICATEUR } from '../../lib/equipe';
 
 function EditeurListe({ valeurs, onChange, ajout }) {
   const maj = (i, v) => onChange(valeurs.map((x, j) => (j === i ? v : x)));
@@ -31,6 +32,38 @@ function EditeurListe({ valeurs, onChange, ajout }) {
   );
 }
 
+function EditeurIndicateurs({ valeurs, onChange }) {
+  const maj = (i, patch) => onChange(valeurs.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const deplacer = (i, d) => {
+    const j = i + d;
+    if (j < 0 || j >= valeurs.length) return;
+    const copie = [...valeurs];
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+    onChange(copie);
+  };
+  const petit = 'font-mono text-[11px] text-gray-400 hover:text-brand-ink px-1';
+  return (
+    <div>
+      {valeurs.map((v, i) => (
+        <div key={i} className="flex items-end gap-2">
+          <span className="w-6 font-mono text-[11px] text-gray-400 pb-2 text-right">{String(i + 1).padStart(2, '0')}</span>
+          <input value={v.libelle} onChange={e => maj(i, { libelle: e.target.value })} placeholder="Prospects contactés" className={champCls} />
+          <select value={v.type} onChange={e => maj(i, { type: e.target.value })} aria-label="Type de réponse"
+            className="border-0 border-b border-brand-ink/20 bg-transparent py-1.5 pl-0 pr-6 font-mono text-[11px] text-brand-ink focus:outline-none focus:ring-0 focus:border-fitness">
+            {Object.entries(TYPES_INDICATEUR).map(([k, t]) => <option key={k} value={k}>{t.label.toLowerCase()}</option>)}
+          </select>
+          <button type="button" onClick={() => deplacer(i, -1)} aria-label="Monter" className={petit}>↑</button>
+          <button type="button" onClick={() => deplacer(i, 1)} aria-label="Descendre" className={petit}>↓</button>
+          <button type="button" onClick={() => onChange(valeurs.filter((_, j) => j !== i))} aria-label="Retirer" className={`${petit} hover:text-fitness`}>✕</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...valeurs, { libelle: '', type: 'nombre' }])} className="ml-8 mt-3 font-mono text-[11px] text-fitness hover:underline">
+        + indicateur
+      </button>
+    </div>
+  );
+}
+
 export default function FichePoste({ fiche, peutModifier, prenom, onSaved }) {
   const toast = useToast();
   const [edition, setEdition] = useState(false);
@@ -41,7 +74,7 @@ export default function FichePoste({ fiche, peutModifier, prenom, onSaved }) {
     setForm({
       intitule: fiche.intitule, objectif: fiche.objectif, rappel: fiche.rappel,
       missions: fiche.missions.length ? [...fiche.missions] : [''],
-      indicateurs: fiche.indicateurs.length ? [...fiche.indicateurs] : [''],
+      indicateurs: fiche.indicateurs.length ? fiche.indicateurs.map(i => ({ ...i })) : [{ libelle: '', type: 'nombre' }],
     });
     setEdition(true);
   }
@@ -84,8 +117,11 @@ export default function FichePoste({ fiche, peutModifier, prenom, onSaved }) {
           </div>
           <div>
             <span className={label}>chiffres du bilan de fin de journée</span>
-            <p className="text-xs text-gray-400 mt-1">Ce que {prenom} renseigne chaque soir (ex. prospects contactés).</p>
-            <EditeurListe valeurs={form.indicateurs} onChange={v => set('indicateurs', v)} ajout="indicateur" />
+            <p className="text-xs text-gray-400 mt-1">
+              Ce que {prenom} renseigne chaque soir (ex. prospects contactés). Les réponses de type « nombre » sont
+              additionnées par semaine dans la Vue d'ensemble.
+            </p>
+            <EditeurIndicateurs valeurs={form.indicateurs} onChange={v => set('indicateurs', v)} />
           </div>
           <label className="block">
             <span className={label}>rappel affiché dans le bilan (facultatif)</span>
@@ -146,9 +182,9 @@ export default function FichePoste({ fiche, peutModifier, prenom, onSaved }) {
           <ul className="space-y-3">
             {fiche.indicateurs.map((ind, i) => (
               <li key={i} className="flex items-end gap-2 text-sm text-brand-ink">
-                <span className="whitespace-nowrap">{ind}</span>
+                <span className="whitespace-nowrap">{ind.libelle}</span>
                 <span className="flex-1 border-b border-dotted border-brand-ink/40 mb-1" />
-                <span className="font-mono text-gray-300 w-8 text-right">___</span>
+                <span className="font-mono text-[11px] text-gray-400 text-right">{TYPES_INDICATEUR[ind.type]?.label.toLowerCase()}</span>
               </li>
             ))}
           </ul>

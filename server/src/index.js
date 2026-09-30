@@ -37,13 +37,12 @@ const healthRouter    = require('./routes/health');
 const coachesRouter   = require('./routes/coaches');
 const coursRouter     = require('./routes/coursTypes');
 const seancesRouter   = require('./routes/seances');
-const pointeursRouter = require('./routes/pointeurs');
-const dashboardRouter = require('./routes/dashboard');
 const analyticsRouter = require('./routes/analytics');
 const appUsersRouter  = require('./routes/appUsers');
 const tachesRouter    = require('./routes/taches');
 const equipeRouter    = require('./routes/equipe');
 const personnelCreneauxRouter = require('./routes/personnelCreneaux');
+const demandesCongesRouter = require('./routes/demandesConges');
 const annuaireRouter  = require('./routes/annuaire');
 const adminRouter     = require('./routes/admin');
 const ipAutoriseesRouter = require('./routes/ipAutorisees');
@@ -108,8 +107,6 @@ app.use('/api/auth',   authRouter);
 app.use('/api/coaches',     requireAuth, requireWriteAccess, coachesRouter);
 app.use('/api/cours-types', requireAuth, requireWriteAccess, coursRouter);
 app.use('/api/seances',     requireAuth, requireWriteAccess, seancesRouter);
-app.use('/api/pointeurs',   requireAuth, requireWriteAccess, pointeursRouter);
-app.use('/api/dashboard',   requireAuth, dashboardRouter);
 app.use('/api/analytics',   requireAuth, analyticsRouter);
 app.use('/api/tickets',     requireAuth, ticketsRouter);
 app.use('/api/changelog',   requireAuth, changelogRouter);
@@ -120,6 +117,7 @@ app.use('/api/taches',      requireAuth, requireWriteAccess, tachesRouter);
 // route gère son niveau d'accès (voir routes/equipe.js).
 app.use('/api/equipe',      requireAuth, equipeRouter);
 app.use('/api/personnel-creneaux',  requireAuth, requireWriteAccess, personnelCreneauxRouter);
+app.use('/api/demandes-conges', requireAuth, requireWriteAccess, demandesCongesRouter);
 // Annuaire : contient des coordonnées personnelles, ni lecture ni écriture hors accès privilégié.
 app.use('/api/annuaire',   requireAuth, requireAnnuaireAccess, annuaireRouter);
 app.use('/api/admin', adminRouter);
@@ -153,25 +151,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erreur serveur, réessaie dans un instant.' });
 });
 
-function startServer(retry = 0) {
+function startServer() {
   const server = app.listen(PORT, () => {
     console.log(`🚀 Flyder — http://localhost:${PORT}`);
     scheduleDailyBackup();
     scheduleStatusPolling();
   });
   server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE' && retry < 3) {
-      const { execSync } = require('child_process');
-      try {
-        execSync(
-          `FOR /F "tokens=5" %P IN ('netstat -a -n -o ^| findstr :${PORT}') DO TaskKill /F /PID %P`,
-          { shell: 'cmd.exe', stdio: 'ignore' }
-        );
-      } catch (_) {}
-      setTimeout(() => startServer(retry + 1), 800);
-    } else {
-      process.exit(1);
-    }
+    // Le port est déjà pris (ex. un ancien process encore actif) : on le dit clairement
+    // plutôt que de tenter de tuer un process, ce qui n'a de sens sur aucun hébergeur.
+    console.error(err.code === 'EADDRINUSE'
+      ? `Le port ${PORT} est déjà utilisé : arrête l'autre process puis relance.`
+      : err);
+    process.exit(1);
   });
 }
 startServer();

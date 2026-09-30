@@ -520,6 +520,85 @@ dynamique qui change avec le temps — la liste blanche devra être mise à jour
 **Fichiers.** `server/src/routes/coaches.js`, `client/src/lib/api.js`,
 `client/src/pages/Coaches.jsx`.
 
+### 50. ✅ Audit du 30/09/2026 : corrections rapides (Équipe, nommage, nettoyage)
+Premier lot issu de l'audit complet de l'application. Volontairement sans effet sur le Planning des cours :
+la plage horaire 9h-21h de la modale de séance est **conservée** (aucun cours avant 9h ni après 21h).
+- **Équipe / bilans.** Un manager peut valider son propre bilan (route `decision` sans refus, bilan du manager
+  inclus dans « À valider » et dans la pastille) : avec un seul manager, ses bilans ne restaient jamais validés.
+- **Équipe / tâches.** Plus d'échéance par défaut à « aujourd'hui » (ajout rapide et panneau de création) : une
+  tâche notée et non faite le soir ne passe plus « en retard » le lendemain. Une tâche sans date apparaît sous
+  « Sans échéance ».
+- **Équipe / Vue d'ensemble.** KPI « réalisé cette semaine » remplacé par « tâches tenues · 7 j » (tâches arrivées
+  à échéance sur les 7 derniers jours, part de celles terminées ; fenêtre glissante, sans remise à zéro le lundi).
+  Courbe « terminées et créées » supprimée (route `vue-ensemble` : `taux_semaine` et `tendance` remplacés par
+  `taux_7j`, `taches_echues_7j`, `taches_tenues_7j`). La section devient « Charge de l'équipe ».
+- **Équipe / Fiche membre.** L'Aperçu affiche enfin les chiffres déjà calculés par `/membres/:id/resume` (jours
+  travaillés, bilans envoyés et validés, tâches faites, tâches en retard sur 30 jours).
+- **Équipe / « Qui est là » et absences.** Uniquement les membres actifs (ni désactivés, ni supprimés, ni
+  masqués) ; les jours d'école ne sont plus renvoyés par la requête d'absences (filtrés deux fois côté client
+  avant) ; les documents non ouverts ignorent les profils masqués.
+- **Une seule pastille.** `lib/useEquipePastille.js` devient un compteur partagé avec requête unique en cours :
+  un clic de sous-onglet déclenche 1 appel `/equipe/pastille` au lieu de 3 à 4.
+- **Nommage.** « Récapitulatif » devient **Coachs** (menu, titre de page, doc, liens de l'Annuaire) ; route
+  `/coachs`, avec `/coaches` et `/recapitulatif` qui redirigent. « Équipe > Membres » corrigé en « Effectif ».
+  La doc décrit maintenant le vrai cycle de statut d'une séance (programmé → effectué → annulé → payé), l'accès
+  à l'Annuaire limité aux IP autorisées et Formation/Documentation dans les droits des utilisateurs.
+- **Code mort retiré.** `routes/dashboard.js` + `lib/insights.js`, `routes/pointeurs.js` (les tables `pointeurs`
+  et `seances.pointeur_id` restent, inertes, pour ne pas migrer la prod), routes `seed-personnel`,
+  `seed-ballancourt`, `seed-corbeil-historique`, `Tooltip.jsx`, `react.svg`, `vite.svg`, `logo-flyder-icon.png`,
+  méthodes `api.getDashboard` / `seedBallancourt` / `seedCorbeilHistorique` et paramètre `annee` de `getCpSummary`,
+  rattrapage `EADDRINUSE` par commandes Windows dans `index.js` (remplacé par un message clair),
+  fichiers parasites à la racine (`git`, `fitnessmovdemopatch.txt`).
+- **Données nominatives sorties du dépôt.** Retirés de l'arbre de travail : `corbeilSeances.js`,
+  `ballancourtSeances.js`, `ballancourtPersonnel.js`, `personnelData.js`, `corbeilCoaches.js`,
+  `ballancourtCoaches.js`, les trois scripts d'import associés et `scripts/extracted.json`
+  (`server/private-data/` et `scripts/extracted.json` sont désormais dans `.gitignore`). Ils restent dans
+  l'historique git : les purger demanderait une réécriture d'historique (`git filter-repo`) puis un
+  force-push, à décider séparément. D'après ce journal, les imports Corbeil et Ballancourt ont déjà été exécutés
+  en production (non vérifiable depuis le dépôt) : les retirer du code ne change rien aux bases existantes.
+- **Conservés volontairement.** `fitnessmovpdfexport.bundle` (il contient un commit absent du dépôt) et
+  `start-server.bat` (lanceur Windows local).
+- **Reste à faire de l'audit** : harmonisation de la charte graphique, capacité par cours et taux de remplissage,
+  lien salarié ↔ coach, checklists d'ouverture/fermeture, indicateurs de bilan numériques.
+
+### 51. ✅ Onglet Équipe : améliorations issues de l'audit (charte, bilans, congés, contrats)
+Deuxième lot de l'audit du 30/09/2026, centré sur l'onglet Équipe.
+- **Signaux redondants.** Plus de badge chiffré sur les onglets ni de KPI « bilans à valider » : restent la
+  pastille du menu (bilans à valider + demandes de congé pour un manager) et la liste « À valider ».
+- **Indicateurs de bilan typés** (`nombre`, `oui_non`, `texte`) : éditeur dans la fiche de poste, saisie adaptée
+  dans le bilan (les anciennes fiches, en simples chaînes, sont lues comme `texte`), valeur refusée si elle ne
+  correspond pas au type. La Vue d'ensemble affiche « Chiffres du terrain » : somme des indicateurs `nombre` par
+  membre, cette semaine / semaine précédente / 30 jours (`chiffres` dans `GET /equipe/vue-ensemble`).
+- **Problèmes signalés → suivi.** Colonnes `comptes_rendus.probleme_resolu` et `probleme_tache_id` ; « Problèmes
+  à traiter » (30 jours) avec « créer une tâche » (panneau prérempli, `initial` sur `TachePanneau`) et « marquer
+  résolu » (`POST /equipe/comptes-rendus/:id/probleme`). Un problème relié à une tâche terminée est considéré
+  résolu ; modifié par son auteur, il redevient ouvert.
+- **Cahier de transmission.** « À savoir en arrivant » dans Ma journée : priorité de demain et problème non résolu
+  des bilans d'hier et d'aujourd'hui des collègues actifs. Seuls ces deux champs sont exposés (jamais « ma journée
+  en deux mots ») ; le panneau de bilan le dit explicitement.
+- **Heures de contrat** (`app_users.heures_contrat_semaine`, facultatif, manager) comparées aux heures planifiées
+  dans Effectif et Planning (écart affiché au-delà de 30 min) ; export CSV du récap mensuel (Excel : BOM, `;`,
+  virgule décimale).
+- **Demandes de congé** (table `demandes_conges`, `routes/demandesConges.js`) : le salarié demande depuis Ma
+  journée ; le manager coche les jours à poser (dimanches sans horaire et jours déjà repos/férié/école/arrêt
+  décochés par défaut) et accepte ou refuse avec un retour ; accepter écrit un « CP » par jour retenu. Aide à la
+  décision : solde de CP, planning du demandeur, collègues déjà en congé. Soumis à `requireWriteAccess` comme le
+  reste : hors IP autorisée, un compte salarié est en lecture seule et ne peut pas demander.
+- **Effectif = gestion des utilisateurs.** Activer/désactiver, supprimer (profil inactif), importer les fiches de
+  paie et régénérer la démo (instance Demo-Portfolio) y sont passés ; l'onglet Paramètres > Utilisateurs
+  disparaît (la doc garde l'article `parametres-utilisateurs`, devenu un renvoi).
+- **Notes de suivi** (table `notes_suivi`) : onglet « Suivi » de la fiche, managers uniquement, jamais visibles par
+  la personne concernée (un manager ne lit pas non plus les notes qui le concernent).
+- **Heures d'ouverture de la salle** (Préférences > Planning, 7h-22h par défaut) : bornes des frises « Qui est là »
+  et du planning du personnel. La plage 9h-21h de la saisie des cours reste inchangée.
+- **Charte Équipe partout.** Planning du personnel, frise, récap mensuel, congés payés, `MiniCalendar` (variante
+  `sobre`), `PersonnelCreneauModal` et `UserModal` (désormais des panneaux latéraux) utilisent le kit d'Équipe.
+  Le reste de l'application (Planning des cours, Coachs, Analyse…) garde l'ancienne charte.
+- **Tâches.** Ajout rapide dans la vue Tableau ; statut « en cours » visible sur la case.
+- **Non fait, à décider.** Le Carnet privé est conservé : le retirer masquerait des notes que des salariés ont pu
+  écrire. Reste aussi la charte des autres onglets, la capacité par cours, le lien salarié ↔ coach et les
+  checklists d'ouverture/fermeture.
+
 ---
 
 ## Idées écartées (ne pas implémenter sans demande explicite)

@@ -511,6 +511,10 @@ tryAlter('ALTER TABLE app_users ADD COLUMN date_debut_contrat TEXT');
 // ─── Cumul de congés payés : ajustement manuel (manager) par rapport au calcul automatique ───
 tryAlter('ALTER TABLE app_users ADD COLUMN cp_ajuste REAL NOT NULL DEFAULT 0');
 
+// ─── Heures de contrat par semaine (facultatif, manager) : sert à comparer les heures
+// planifiées au contrat. NULL = pas de suivi (extra, CDD au forfait…). ───
+tryAlter('ALTER TABLE app_users ADD COLUMN heures_contrat_semaine REAL');
+
 // ─── Annuaire : un coach peut aussi apparaître dans d'autres catégories (ex. employé) ───
 tryAlter("ALTER TABLE coaches ADD COLUMN categories_extra TEXT NOT NULL DEFAULT ''");
 
@@ -732,5 +736,42 @@ db.run(`
 // Accusé de lecture : date à laquelle le salarié a ouvert son document pour la
 // première fois (les téléchargements du manager ne comptent pas).
 tryAlter('ALTER TABLE employe_documents ADD COLUMN vu_le TEXT');
+
+// Notes de suivi d'un membre (entretiens, points d'attention) : écrites et lues par les
+// managers uniquement, jamais par le salarié concerné.
+db.run(`
+  CREATE TABLE IF NOT EXISTS notes_suivi (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    auteur_id  INTEGER NOT NULL REFERENCES app_users(id),
+    contenu    TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+db.run('CREATE INDEX IF NOT EXISTS idx_notes_suivi_user ON notes_suivi(user_id)');
+
+// Demandes de congé : le salarié propose une période, le manager choisit les jours à poser
+// (écrits alors en « CP » dans le planning du personnel, donc décomptés du solde).
+db.run(`
+  CREATE TABLE IF NOT EXISTS demandes_conges (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id        INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    date_debut     TEXT NOT NULL,
+    date_fin       TEXT NOT NULL,
+    motif          TEXT NOT NULL DEFAULT '',
+    statut         TEXT NOT NULL DEFAULT 'en_attente' CHECK(statut IN ('en_attente','acceptee','refusee','annulee')),
+    retour_manager TEXT NOT NULL DEFAULT '',
+    jours          TEXT NOT NULL DEFAULT '[]',
+    decide_par     INTEGER REFERENCES app_users(id),
+    decide_le      TEXT,
+    created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+db.run('CREATE INDEX IF NOT EXISTS idx_demandes_conges_user ON demandes_conges(user_id, statut)');
+
+// Suivi d'un problème signalé dans un bilan : marqué résolu par un manager, et/ou relié à
+// la tâche créée pour le traiter (il est alors considéré résolu quand cette tâche est faite).
+tryAlter('ALTER TABLE comptes_rendus ADD COLUMN probleme_resolu INTEGER NOT NULL DEFAULT 0');
+tryAlter('ALTER TABLE comptes_rendus ADD COLUMN probleme_tache_id INTEGER');
 
 module.exports = db;

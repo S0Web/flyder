@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { colorForUser } from '../../lib/utils';
 import { TYPES_ABSENCE, fmtHeure } from '../../lib/equipe';
+import { useHorairesSalle, graduations } from '../../lib/useHorairesSalle';
 
-const DEBUT = 7, FIN = 22;
-const TICKS = [8, 10, 12, 14, 16, 18, 20, 22];
-const pct = (h) => Math.max(0, Math.min(100, ((h - DEBUT) / (FIN - DEBUT)) * 100));
 const heures = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h + m / 60; };
 
-// Qui travaille aujourd'hui, et quand : une ligne par personne sur un axe
-// 7h–22h, avec l'heure actuelle en trait corail. Les absents sont listés à part.
+// Qui travaille aujourd'hui, et quand : une ligne par personne sur un axe borné par
+// les heures d'ouverture de la salle (Préférences), avec l'heure actuelle en trait
+// corail. Les absents sont listés à part.
 export default function TimelineJour({ presents, lienFiche = false, surligner }) {
+  const { debut: DEBUT, fin: FIN } = useHorairesSalle();
+  const TICKS = graduations(DEBUT, FIN);
+  const pct = (h) => Math.max(0, Math.min(100, ((h - DEBUT) / (FIN - DEBUT)) * 100));
   const [maintenant, setMaintenant] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setMaintenant(new Date()), 60000);

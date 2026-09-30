@@ -1,4 +1,4 @@
-// Bornes de période partagées par le Récapitulatif et la page Analyse : les deux
+// Bornes de période partagées par la page Coachs et la page Analyse : les deux
 // pages proposent les mêmes modes (année scolaire / plage / tout temps) et le
 // même comparatif « vs période précédente », donc une seule implémentation.
 

@@ -9,6 +9,12 @@ export const PRIORITES = {
   basse:   { label: 'Basse',   tone: 'gray',  dot: '#8B93A7', rang: 3 },
 };
 
+export const TYPES_INDICATEUR = {
+  nombre: { label: 'Nombre' },
+  oui_non: { label: 'Oui / non' },
+  texte: { label: 'Texte' },
+};
+
 export const STATUTS_TACHE = {
   a_faire:  { label: 'À faire',  tone: 'gray' },
   en_cours: { label: 'En cours', tone: 'blue' },
@@ -91,6 +97,13 @@ export function fmtDuree(minutes) {
   if (!minutes) return '0h';
   const h = Math.floor(minutes / 60), m = minutes % 60;
   return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
+}
+
+// Écart entre les heures planifiées et le contrat, en minutes (positif = au-delà du contrat).
+// null quand le membre n'a pas d'heures de contrat renseignées.
+export function ecartContrat(minutesPlanifiees, heuresContrat) {
+  if (!heuresContrat) return null;
+  return Math.round((minutesPlanifiees || 0) - heuresContrat * 60);
 }
 
 export function minutesCreneau(c) {

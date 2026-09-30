@@ -182,6 +182,17 @@ export default function Preferences() {
               <span className="text-sm text-gray-500">jour(s) / mois</span>
             </div>
           </Field>
+          <Field label="Heures d'ouverture de la salle"
+            hint="Bornes des frises horaires de l'onglet Équipe (« Qui est là », planning du personnel). Ne limite pas la saisie des cours.">
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" max="23" step="1" className={`${INPUT_CLASS} max-w-[80px]`}
+                value={form.ouverture_heure} onChange={e => set('ouverture_heure', e.target.value)} />
+              <span className="text-sm text-gray-500">h à</span>
+              <input type="number" min="1" max="24" step="1" className={`${INPUT_CLASS} max-w-[80px]`}
+                value={form.fermeture_heure} onChange={e => set('fermeture_heure', e.target.value)} />
+              <span className="text-sm text-gray-500">h</span>
+            </div>
+          </Field>
           <Field label="Cours Aqua"
             hint="Décoche si la salle n'a pas de piscine : le choix Aqua/Fitness disparaît complètement (planning, analyse, fiches coachs), pas juste désactivé.">
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">

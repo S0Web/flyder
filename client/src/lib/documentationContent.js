@@ -20,7 +20,7 @@ Flyder n'utilise pas d'identifiant/mot de passe classique. Au lancement, l'écra
 
 Si un code confidentiel a été défini sur le profil, il est demandé avant l'accès. Un profil sans code peut y accéder directement — définir un code reste facultatif mais recommandé, surtout pour les profils manager. En cas de code oublié, l'option "Code oublié ?" permet de le réinitialiser (un nouveau code doit alors être choisi immédiatement).
 
-Aucun nouveau profil ne peut être créé depuis cet écran : la création se fait exclusivement depuis [Paramètres > Utilisateurs](/documentation/parametres-utilisateurs) (Manager). Exception : si la salle vient d'être installée et qu'aucun profil n'existe encore, un formulaire de création du tout premier compte (automatiquement manager) apparaît à la place de la liste.
+Aucun nouveau profil ne peut être créé depuis cet écran : la création se fait exclusivement depuis [Équipe > Effectif](/documentation/planning-personnel) (Manager). Exception : si la salle vient d'être installée et qu'aucun profil n'existe encore, un formulaire de création du tout premier compte (automatiquement manager) apparaît à la place de la liste.
 
 ## Repères de navigation
 
@@ -47,7 +47,7 @@ Une bascule Grille / Liste en haut de page permet de passer à une vue tableau c
 
 - **Créer** : cliquer sur le petit "+" en bas d'une case (vue grille) ou sur une case vide.
 - **Modifier** : cliquer sur une séance existante ouvre sa fiche (cours, coach, horaire, statut, nombre de présents).
-- **Statut** : chaque séance suit un cycle programmée → effectuée → payée (ou annulée). En vue liste, cliquer directement sur le badge de statut le fait avancer dans le cycle sans ouvrir la fiche.
+- **Statut** : cliquer sur le badge de statut (vue grille comme vue liste) fait avancer la séance dans le cycle programmé → effectué → annulé → payé, puis retour à programmé. La fiche de la séance permet de choisir directement le bon statut.
 - **Supprimer** : disponible depuis la fiche de la séance.
 
 ## Dupliquer une semaine
@@ -67,37 +67,40 @@ Depuis la fiche d'une séance, un coach peut être choisi parmi la liste des coa
         titre: 'Équipe',
         contenu: `L'onglet Équipe regroupe tout ce qui concerne le personnel de la salle : planning, tâches, bilans de fin de journée et fiches individuelles. Il remplace l'ancien « Planning personnel ». Un manager y trouve une vue d'ensemble de l'équipe ; chaque salarié y voit sa journée, ses tâches et sa propre fiche.
 
-Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes rendus, Effectif. Onglets d'un salarié : Ma journée, Planning, Mes tâches, Mes comptes rendus, Ma fiche. Un petit chiffre corail à côté d'un onglet (et un point rouge sur « Équipe » dans le menu) signale ce qui attend : bilans à valider pour un manager ; tâche en retard, bilan à revoir ou nouveau document pour un salarié.
+Onglets d'un manager : Vue d'ensemble, Ma journée, Planning, Tâches, Comptes rendus, Effectif. Onglets d'un salarié : Ma journée, Planning, Mes tâches, Mes comptes rendus, Ma fiche. Un point rouge sur « Équipe » dans le menu signale ce qui attend : bilans à valider et demandes de congé pour un manager ; tâche en retard, bilan à revoir ou nouveau document pour un salarié.
 
 ## Ma journée
 
 - Tes horaires du jour écrits en grand, ton poste et ton objectif principal.
 - Le bouton « Faire mon bilan de fin de journée ». Une fois envoyé, il est remplacé par un tampon « À valider », puis « Validé ».
 - Tes chiffres : tâches à faire aujourd'hui, en retard, terminées ces 7 derniers jours, congés restants.
-- Les alertes : bilan renvoyé « à revoir », nouveau document déposé pour toi.
+- Les alertes : bilan renvoyé « à revoir », nouveau document déposé pour toi, réponse à une demande de congé.
 - Tes tâches, avec un champ pour t'en ajouter une rapidement.
 - Tes missions du quotidien (celles de ta fiche de poste), à déplier.
-- Ta semaine jour par jour, et « Avec moi aujourd'hui » : qui travaille, à quelles heures, qui est en poste en ce moment (trait corail = heure actuelle), qui est absent.
+- « À savoir en arrivant » : la priorité de demain et le problème signalé par tes collègues dans leur bilan d'hier ou d'aujourd'hui (un problème réglé n'y figure plus).
+- Ta semaine jour par jour, avec « demander un congé », et « Avec moi aujourd'hui » : qui travaille, à quelles heures, qui est en poste en ce moment (trait corail = heure actuelle), qui est absent.
 
 ## Vue d'ensemble (Manager)
 
-- En haut : présents du jour, tâches ouvertes, tâches en retard, taux de réalisation des tâches de la semaine, bilans à valider, documents pas encore ouverts par leur destinataire.
+- En haut : présents du jour, tâches ouvertes, tâches en retard, tâches tenues sur 7 jours (part des tâches arrivées à échéance ces 7 derniers jours qui sont terminées), documents pas encore ouverts par leur destinataire.
 - « Qui est là » : les horaires du jour de chacun sur une frise ; un clic sur un prénom ouvre sa fiche.
-- « À valider » : les derniers bilans reçus, validables directement depuis cette page.
+- « À valider » : les derniers bilans reçus, validables directement depuis cette page (un manager peut valider son propre bilan).
+- « Demandes de congé » (quand il y en a) : chaque demande avec le solde de CP du demandeur, les collègues déjà en congé sur ces dates et les jours à poser, que le manager coche ou décoche avant d'accepter. Accepter remplace le planning de chaque jour retenu par « CP » ; refuser demande une raison.
 - « Bilans de fin de journée » : une case par personne et par jour sur 14 jours, croisée avec le planning. Case pleine foncée = validé, pleine corail = à valider, barrée = à revoir, en pointillés = jour travaillé sans bilan, hachurée = ne travaillait pas.
-- « Avancement des tâches » : tâches terminées et créées chaque semaine (si les créées dépassent durablement les terminées, la pile grossit), et la charge de chacun (une case par tâche ouverte, en corail si elle est en retard).
-- « Terrain » : les problèmes signalés dans les bilans des 7 derniers jours et les absences des 3 prochaines semaines (congés, arrêts…).
+- « Chiffres du terrain » : les indicateurs de type « nombre » saisis dans les bilans (prospects contactés, adhérents accompagnés…), additionnés par membre : cette semaine, la semaine dernière et les 30 derniers jours.
+- « Charge de l'équipe » : les tâches ouvertes de chacun (une case par tâche, en corail si elle est en retard) et le nombre de tâches terminées ces 7 derniers jours.
+- « Terrain » : les problèmes à traiter (signalés dans les bilans des 30 derniers jours, pas encore résolus) et les absences des 3 prochaines semaines (congés, arrêts, absences ; les jours d'école ne sont pas listés). Un problème peut être transformé en tâche en un clic, ou marqué résolu ; relié à une tâche, il est considéré résolu dès que cette tâche est terminée.
 
 ## Planning
 
 Le planning du personnel, semaine par semaine — à ne pas confondre avec le [Planning des cours](/documentation/planning). Tout le monde voit le planning de toute l'équipe (pour savoir avec qui on travaille et qui prend le relais) ; « Mes horaires » n'affiche que les siens.
 
-Cliquer sur une case (employé × jour) permet d'indiquer un horaire de travail ou une absence (CP, école, férié, arrêt, repos) ; une journée peut contenir plusieurs créneaux (matin et soir). La frise sous le tableau montre qui est là et quand. « Dupliquer la semaine précédente » recopie les jours encore vides. Le « Récap mensuel » (Manager) totalise les heures de chacun sur 12 mois.
+Cliquer sur une case (employé × jour) permet d'indiquer un horaire de travail ou une absence (CP, école, férié, arrêt, repos) ; une journée peut contenir plusieurs créneaux (matin et soir). La frise sous le tableau montre qui est là et quand ; ses bornes sont les heures d'ouverture de la salle (Préférences > Planning). « Dupliquer la semaine précédente » recopie les jours encore vides. Pour un manager, la colonne « total » compare les heures planifiées aux heures de contrat de chacun (si elles sont renseignées). Le « Récap mensuel » (Manager) totalise les heures de chacun sur 12 mois et s'exporte en CSV pour la paie.
 
 ## Tâches
 
 Chaque tâche a :
-- une **échéance** et une **priorité** (basse, normale, haute « !! », urgente « !!! ») ;
+- une **échéance** facultative (une tâche créée sans date apparaît sous « Sans échéance ») et une **priorité** (basse, normale, haute « !! », urgente « !!! ») ;
 - un **statut** : à faire, en cours, terminée ;
 - une **répétition** facultative (tous les jours, toutes les semaines, tous les mois) : quand la tâche est terminée, la suivante se crée toute seule avec la prochaine échéance ;
 - des **détails** et un **suivi** où chacun peut ajouter une note (Entrée pour envoyer) ;
@@ -111,35 +114,38 @@ Deux affichages : **Liste**, regroupée par échéance (en retard, aujourd'hui, 
 
 Avant de partir, chacun ouvre « Mon bilan de la journée » :
 1. **Ce que j'ai fait** : cocher les missions de sa fiche de poste réalisées dans la journée.
-2. **Mes chiffres** : les indicateurs prévus par sa fiche de poste (prospects contactés, adhérents accompagnés, contenus publiés…).
-3. **Pour finir** : la journée en deux mots, la priorité du lendemain, un problème ou besoin à signaler.
+2. **Mes chiffres** : les indicateurs prévus par sa fiche de poste (prospects contactés, adhérents accompagnés, contenus publiés…). Chacun a un type : un nombre, une réponse oui ou non, ou un texte libre ; une valeur qui ne correspond pas au type est refusée.
+3. **Pour finir** : la journée en deux mots, la priorité du lendemain, un problème ou besoin à signaler. La priorité du lendemain et le problème sont transmis aux collègues (dans « À savoir en arrivant ») ; la journée en deux mots reste réservée au manager.
 
 « Brouillon » enregistre sans envoyer (visible par soi seul) ; « Envoyer au manager » le transmet. Un bilan reste modifiable tant qu'il n'est pas validé, jusqu'à 7 jours après.
 
-Le manager le **valide** (avec un mot en retour s'il le souhaite) ou le renvoie **à revoir** en expliquant quoi corriger : le salarié le voit en haut de sa journée et le corrige. Un manager ne valide pas son propre bilan : c'est un autre manager qui s'en charge.
+Le manager le **valide** (avec un mot en retour s'il le souhaite) ou le renvoie **à revoir** en expliquant quoi corriger : le salarié le voit en haut de sa journée et le corrige. Un manager peut valider son propre bilan, ce qui permet à un manager seul de tenir le dispositif.
 
 Page « Comptes rendus » : un manager y trouve les bilans **à valider** et l'**historique** de toute l'équipe (filtrable par membre) ; un salarié y retrouve tous les siens. Le champ **jour** permet d'afficher un jour précis ; « tous les jours » revient à la liste complète.
 
 ## Fiche d'un membre
 
 Depuis Effectif (manager) ou Ma fiche (salarié) :
-- **Aperçu** : la semaine en cours, le solde de congés payés et le résumé du poste.
-- **Fiche de poste** : l'objectif principal, les missions du quotidien, les chiffres demandés dans le bilan et un rappel facultatif affiché dans le bilan (ex. « Si j'ai terminé, je reprends la liste depuis le début »). Rédigée et modifiée par un manager.
+- **Aperçu** : les chiffres des 30 derniers jours (jours travaillés, bilans envoyés et validés, tâches faites, tâches en retard), la semaine en cours, le solde de congés payés et le résumé du poste.
+- **Fiche de poste** : l'objectif principal, les missions du quotidien, les chiffres demandés dans le bilan (chacun avec son type : nombre, oui/non ou texte) et un rappel facultatif affiché dans le bilan (ex. « Si j'ai terminé, je reprends la liste depuis le début »). Rédigée et modifiée par un manager.
 - **Tâches** et **Comptes rendus** du membre.
 - **Documents** : voir ci-dessous.
+- **Suivi** (manager, sur la fiche des autres membres) : des notes d'entretien ou de suivi, visibles des managers uniquement, jamais de la personne concernée.
 - **Carnet privé** (sur sa propre fiche uniquement) : des notes personnelles qui s'enregistrent toutes seules. Personne d'autre ne peut les lire, managers compris.
 
-Effectif (Manager) présente toute l'équipe, une ligne par personne : poste, heures de la semaine, tâches ouvertes et en retard, date du dernier bilan, congés restants, documents non ouverts. « Ajouter un membre » crée un nouveau profil.
+Effectif (Manager) présente toute l'équipe, une ligne par personne : poste, heures de la semaine comparées au contrat (si renseigné), tâches ouvertes et en retard, date du dernier bilan, congés restants, documents non ouverts. C'est aussi ici que se gère l'équipe : « Ajouter un membre » crée un profil (avec son rôle, sa date de début de contrat et ses heures de contrat hebdomadaires), « désactiver » / « réactiver » et « supprimer » (uniquement sur un profil déjà désactivé) agissent sur chaque ligne, et « Importer les fiches de paie » répartit en masse les documents de plusieurs employés à la fois.
 
 ## Documents confidentiels
 
 Fiches de paie, contrat, arrêts maladie et autres documents se trouvent dans le coffre de la fiche. Pour l'ouvrir, il faut ressaisir son code confidentiel, même en étant déjà connecté ; il se referme automatiquement au bout de 10 minutes (ou avec « refermer maintenant »). Un profil sans code est invité à en créer un, qui servira aussi à la connexion.
 
-Un salarié ne voit que ses propres documents ; les nouveaux sont marqués « nouveau ». Le manager dépose les documents depuis la fiche (ou en masse via Paramètres > Utilisateurs > Importer les fiches de paie) et voit pour chacun s'il a été ouvert par son destinataire, et quand.
+Un salarié ne voit que ses propres documents ; les nouveaux sont marqués « nouveau ». Le manager dépose les documents depuis la fiche (ou en masse via Effectif > Importer les fiches de paie) et voit pour chacun s'il a été ouvert par son destinataire, et quand.
 
 ## Congés payés
 
-Le solde de CP s'affiche dans Ma journée, sur la fiche de chacun et dans la barre latérale du planning. Le détail (acquis, ajustement, pris, restant) est sur la fiche ; l'ajustement manuel du cumul est réservé au manager.`,
+Le solde de CP s'affiche dans Ma journée, sur la fiche de chacun et dans la barre latérale du planning. Le détail (acquis, ajustement, pris, restant) est sur la fiche ; l'ajustement manuel du cumul est réservé au manager.
+
+Pour poser un congé, le salarié utilise « demander un congé » dans Ma journée (une période, un motif facultatif) et suit sa demande au même endroit ; il peut l'annuler tant qu'elle n'est pas traitée. Le manager répond depuis la Vue d'ensemble. Les comptes en lecture seule (hors de la salle) ne peuvent pas envoyer de demande.`,
       },
     ],
   },
@@ -149,8 +155,8 @@ Le solde de CP s'affiche dans Ma journée, sur la fiche de chacun et dans la bar
     articles: [
       {
         id: 'coachs',
-        titre: 'Coachs (Récapitulatif)',
-        contenu: `Cette page centralise le suivi des heures effectuées par chaque coach, sur les 13 derniers mois — utile en fin de mois pour vérifier ce qui est dû avant de régler une facture.
+        titre: 'Coachs',
+        contenu: `L'onglet Coachs centralise le suivi des heures effectuées par chaque coach, sur les 13 derniers mois — utile en fin de mois pour vérifier ce qui est dû avant de régler une facture.
 
 ## Lire le tableau
 
@@ -275,7 +281,7 @@ Classement par heures réellement effectuées (les annulations ne comptent pas).
 
 Effectif moyen par coach (minimum 5 séances pour être comparable). À lire avec prudence : un coach qui n'anime que des cours naturellement moins fréquentés (ex. Pilates vs Zumba) aura logiquement une moyenne plus basse sans que ce soit un problème de qualité d'animation — le type de cours pèse autant que le coach lui-même.
 
-Pour le suivi des heures facturables, voir [Coachs (Récapitulatif)](/documentation/coachs).`,
+Pour le suivi des heures facturables, voir [Coachs](/documentation/coachs).`,
       },
       {
         id: 'analyse-qualite',
@@ -325,18 +331,12 @@ Un badge apparaît dans le menu quand une réponse est arrivée sur un ticket. O
       {
         id: 'parametres-profil',
         titre: 'Mon profil',
-        contenu: `Visible par tout le monde. Affiche l'identité du profil connecté (nom, email, rôle) avec deux actions : modifier ses informations, ou ouvrir sa fiche complète (documents personnels, congés payés — voir [Utilisateurs](/documentation/parametres-utilisateurs)).`,
+        contenu: `Visible par tout le monde. Affiche l'identité du profil connecté (nom, email, rôle) avec deux actions : modifier ses informations, ou ouvrir sa fiche complète (documents personnels, congés payés — voir [Équipe](/documentation/planning-personnel)).`,
       },
       {
         id: 'parametres-utilisateurs',
         titre: 'Utilisateurs (Manager)',
-        contenu: `Liste de tous les profils de la salle (nom, email, rôle, statut actif/inactif). Depuis cet écran :
-
-- **Créer un profil** — bouton "Nouveau". C'est le seul moyen d'ajouter un profil une fois que la salle a déjà son premier compte.
-- **Importer les fiches de paie** — import en masse de documents pour plusieurs employés à la fois.
-- **Activer / désactiver** — cliquer sur le badge de statut. Un profil désactivé n'apparaît plus sur l'écran de connexion mais reste visible dans l'historique (plannings passés, etc.).
-- **Supprimer définitivement** — uniquement possible sur un profil déjà désactivé (sauf le sien).
-- **Ouvrir la fiche** — ouvre la fiche du membre dans l'onglet [Équipe](/documentation/planning-personnel) : fiche de poste, tâches, comptes rendus, documents confidentiels, congés payés.`,
+        contenu: `La gestion des utilisateurs a déménagé dans l'onglet [Équipe > Effectif](/documentation/planning-personnel) : création d'un profil, activation et désactivation, suppression définitive, import des fiches de paie, heures de contrat et date de début de contrat. Chaque ligne ouvre la fiche du membre : fiche de poste, tâches, comptes rendus, documents confidentiels, congés payés et notes de suivi.`,
       },
       {
         id: 'parametres-historique',
@@ -356,7 +356,7 @@ Gestion des adresses IP autorisées : un profil "Utilisateur" (non-manager) n'a 
 
 ## Planning
 
-Le taux mensuel d'acquisition des congés payés (2,5 jours/mois par défaut, le standard légal), et l'activation ou non des cours Aqua : décocher fait disparaître complètement le choix Aqua/Fitness partout dans l'application (planning, analyse, fiches coachs) pour les salles qui n'ont pas de piscine — ce n'est pas juste rendu inaccessible, ça n'apparaît nulle part.
+Les heures d'ouverture de la salle (7h à 22h par défaut), qui bornent les frises horaires de l'onglet Équipe (« Qui est là », planning du personnel) ; elles ne limitent pas la saisie des cours. Le taux mensuel d'acquisition des congés payés (2,5 jours/mois par défaut, le standard légal), et l'activation ou non des cours Aqua : décocher fait disparaître complètement le choix Aqua/Fitness partout dans l'application (planning, analyse, fiches coachs) pour les salles qui n'ont pas de piscine — ce n'est pas juste rendu inaccessible, ça n'apparaît nulle part.
 
 ## Alertes
 
@@ -378,7 +378,7 @@ Télécharger une copie brute de la base de données actuelle, ou en importer un
         contenu: `Flyder distingue deux rôles :
 
 - **Manager** — accès complet : Utilisateurs, Historique, Préférences, création/désactivation de profils, gestion des documents des coachs et employés, permissions illimitées peu importe le lieu de connexion.
-- **Utilisateur** — accès au Planning, à l'onglet Équipe (sa journée, le planning du personnel, ses tâches et sa fiche), Coachs, Annuaire, Analyse, Support, Nouveautés, et à son propre profil. Les permissions d'écriture dépendent de l'adresse IP : restreintes depuis une IP autorisée par un manager (typiquement le Wi-Fi de la salle), lecture seule depuis n'importe où ailleurs.
+- **Utilisateur** — accès au Planning, à l'onglet Équipe (sa journée, le planning du personnel, ses tâches et sa fiche), Coachs, Analyse, Formation, Documentation, Support, Nouveautés, et à son propre profil. L'Annuaire n'est visible que depuis une adresse IP autorisée. Les permissions d'écriture dépendent elles aussi de l'adresse IP : restreintes depuis une IP autorisée par un manager (typiquement le Wi-Fi de la salle), lecture seule depuis n'importe où ailleurs.
 
 Cette distinction protège les réglages sensibles (facturation, congés, sécurité) tout en laissant le personnel de terrain utiliser l'outil au quotidien sans dépendre d'un manager pour chaque action.`,
       },

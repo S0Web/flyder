@@ -43,4 +43,13 @@ function soldeCp(dateDebutContrat, cpAjuste, totalPris, tauxMensuel = 2.5) {
   };
 }
 
-module.exports = { moisEcoules, soldeCp, prisDepuisContrat };
+// CP restants d'un salarié (null sans date de contrat : pas de suivi de cumul).
+function cpRestantPour(userId) {
+  const { getPreference } = require('./preferences');
+  const u = db.get('SELECT date_debut_contrat, cp_ajuste FROM app_users WHERE id = ?', [userId]);
+  if (!u?.date_debut_contrat) return null;
+  const taux = parseFloat(getPreference('conges_taux_mensuel'));
+  return soldeCp(u.date_debut_contrat, u.cp_ajuste, prisDepuisContrat(userId, u.date_debut_contrat), taux).restant;
+}
+
+module.exports = { moisEcoules, soldeCp, prisDepuisContrat, cpRestantPour };

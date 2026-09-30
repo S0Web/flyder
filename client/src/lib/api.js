@@ -124,8 +124,12 @@ export const api = {
   getComptesRendus: (params = {}) => req(`/equipe/comptes-rendus${qs(params)}`),
   getMonCompteRendu: (date) => req(`/equipe/comptes-rendus/moi/${date}`),
   saveMonCompteRendu: (date, data) => req(`/equipe/comptes-rendus/moi/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
+  marquerProbleme: (id, data) => req(`/equipe/comptes-rendus/${id}/probleme`, { method: 'POST', body: JSON.stringify(data) }),
   deciderCompteRendu: (id, decision, retour) =>
     req(`/equipe/comptes-rendus/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision, retour }) }),
+  getNotesSuivi:   (membreId) => req(`/equipe/membres/${membreId}/notes-suivi`),
+  addNoteSuivi:    (membreId, contenu) => req(`/equipe/membres/${membreId}/notes-suivi`, { method: 'POST', body: JSON.stringify({ contenu }) }),
+  deleteNoteSuivi: (id) => req(`/equipe/notes-suivi/${id}`, { method: 'DELETE' }),
   getNotes:    () => req('/equipe/notes'),
   createNote:  (data) => req('/equipe/notes', { method: 'POST', body: JSON.stringify(data) }),
   updateNote:  (id, data) => req(`/equipe/notes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -135,10 +139,6 @@ export const api = {
   getCoachesRecap: (params = {}) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
     return req(`/coaches/recap${qs ? `?${qs}` : ''}`);
-  },
-  getDashboard: (params = {}) => {
-    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
-    return req(`/dashboard${qs ? `?${qs}` : ''}`);
   },
   getAnalytics: (params = {}) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
@@ -185,9 +185,15 @@ export const api = {
   dupliquerSemaine: (semaine_source, semaine_cible) =>
     req('/seances/dupliquer', { method: 'POST', body: JSON.stringify({ semaine_source, semaine_cible }) }),
 
+  // Demandes de congé
+  getDemandesConges:   (params = {}) => req(`/demandes-conges${qs(params)}`),
+  createDemandeConge:  (data) => req('/demandes-conges', { method: 'POST', body: JSON.stringify(data) }),
+  annulerDemandeConge: (id) => req(`/demandes-conges/${id}/annuler`, { method: 'POST' }),
+  deciderDemandeConge: (id, data) => req(`/demandes-conges/${id}/decision`, { method: 'POST', body: JSON.stringify(data) }),
+
   // Créneaux personnel
   getPersonnelCreneaux:   (semaine) => req(`/personnel-creneaux?semaine=${semaine}`),
-  getCpSummary:           (annee) => req(`/personnel-creneaux/cp-summary${annee ? `?annee=${annee}` : ''}`),
+  getCpSummary:           () => req('/personnel-creneaux/cp-summary'),
   getPersonnelRecap:      (debut, fin) => req(`/personnel-creneaux/recap?debut=${debut}&fin=${fin}`),
   upsertPersonnelCreneau: (employeId, date, data) =>
     req(`/personnel-creneaux/${employeId}/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -296,8 +302,6 @@ export const api = {
   deleteIpAutorisee: (id) => req(`/ip-autorisees/${id}`, { method: 'DELETE' }),
 
   // Admin
-  seedBallancourt: () => req('/admin/seed-ballancourt', { method: 'POST' }),
-  seedCorbeilHistorique: () => req('/admin/seed-corbeil-historique', { method: 'POST' }),
   seedDemo: (reset = false) => req(`/admin/seed-demo${reset ? '?reset=1' : ''}`, { method: 'POST' }),
   downloadBackup: async () => {
     const token = getToken();

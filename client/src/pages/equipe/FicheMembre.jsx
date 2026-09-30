@@ -7,12 +7,13 @@ import UserModal from '../../components/UserModal';
 import FichePoste from '../../components/equipe/FichePoste';
 import CoffreDocuments from '../../components/equipe/CoffreDocuments';
 import NotesPrivees from '../../components/equipe/NotesPrivees';
+import NotesSuivi from '../../components/equipe/NotesSuivi';
 import CongesCarte from '../../components/equipe/CongesCarte';
 import SemaineHoraires from '../../components/equipe/SemaineHoraires';
 import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache } from '../../components/equipe/Taches';
 import { CompteRenduCarte, CompteRenduPanneau } from '../../components/equipe/ComptesRendus';
 import {
-  Plaque, Marque, Onglets, Intertitre, Rien, Lien, BoutonEncre, BoutonTrait,
+  Plaque, Marque, Onglets, Intertitre, Rien, Lien, BoutonEncre, BoutonTrait, Feuille, Compteurs,
 } from '../../components/equipe/kit';
 import { aujourdhuiISO, isoPlusJours } from '../../lib/equipe';
 
@@ -61,6 +62,14 @@ function OngletComptesRendus({ membre, estMoi }) {
 function Apercu({ membre, resume, fiche, isManager, allerA }) {
   return (
     <div className="space-y-8">
+      <Feuille>
+        <Compteurs items={[
+          { label: 'jours travaillés · 30 j', valeur: resume.jours_travailles_30j },
+          { label: 'bilans envoyés · 30 j', valeur: resume.cr_30j, note: resume.cr_30j ? `${resume.cr_valides_30j} validé${resume.cr_valides_30j > 1 ? 's' : ''}` : undefined },
+          { label: 'tâches faites · 30 j', valeur: resume.taches_faites_30j, ton: 'vert' },
+          { label: 'tâches en retard', valeur: resume.taches_en_retard, ton: resume.taches_en_retard ? 'corail' : undefined },
+        ]} />
+      </Feuille>
       <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-8">
         <section>
           <Intertitre actions={<Lien as={Link} to="/equipe/planning">planning de l'équipe</Lien>}>Semaine en cours</Intertitre>
@@ -111,6 +120,7 @@ export default function FicheMembre() {
     { id: 'taches', label: 'Tâches', count: resume?.taches_ouvertes },
     { id: 'bilans', label: 'Comptes rendus' },
     { id: 'documents', label: 'Documents', count: resume?.docs_non_consultes, alerte: true },
+    ...(isManager && !estMoi ? [{ id: 'suivi', label: 'Suivi' }] : []),
     ...(estMoi ? [{ id: 'notes', label: 'Carnet privé' }] : []),
   ];
   const onglet = onglets.some(o => o.id === params.get('onglet')) ? params.get('onglet') : 'apercu';
@@ -171,6 +181,7 @@ export default function FicheMembre() {
               onConsulte={() => { api.getMembreResume(id).then(setResume).catch(() => {}); rafraichirCompteurs?.(); }} />
           </div>
         )}
+        {onglet === 'suivi' && isManager && !estMoi && <NotesSuivi membre={membre} />}
         {onglet === 'notes' && estMoi && <NotesPrivees />}
       </div>
 
