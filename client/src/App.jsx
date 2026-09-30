@@ -24,6 +24,7 @@ const VueEnsemble         = lazy(() => import('./pages/equipe/VueEnsemble'));
 const MaJournee           = lazy(() => import('./pages/equipe/MaJournee'));
 const Taches              = lazy(() => import('./pages/equipe/Taches'));
 const ComptesRendus       = lazy(() => import('./pages/equipe/ComptesRendus'));
+const Incidents           = lazy(() => import('./pages/equipe/Incidents'));
 const Membres             = lazy(() => import('./pages/equipe/Membres'));
 const FicheMembre         = lazy(() => import('./pages/equipe/FicheMembre'));
 const Nouveautes          = lazy(() => import('./pages/Nouveautes'));
@@ -59,6 +60,7 @@ function ProtectedRoutes() {
             <Route path="planning" element={<PlanningPersonnel />} />
             <Route path="taches" element={<Taches />} />
             <Route path="comptes-rendus" element={<ComptesRendus />} />
+            <Route path="incidents" element={<Incidents />} />
             <Route path="membres" element={<MembresOuMaFiche />} />
             <Route path="membres/:id" element={<FicheMembre />} />
           </Route>

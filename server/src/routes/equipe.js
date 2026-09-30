@@ -4,7 +4,8 @@ const db      = require('../db/database');
 const { requireManager } = require('../middleware/auth');
 const { requireWriteAccess } = require('../middleware/ipAccess');
 const { cpRestantPour: cpRestant } = require('../lib/cp');
-const { dateLocaleISO, ajouterJours, lundiDe } = require('../lib/dates');
+const { genererChecklists } = require('../lib/checklists');
+const { dateLocaleISO, ajouterJours, lundiDe, horaireEnMinutes } = require('../lib/dates');
 
 // Onglet Équipe : fiches de poste, comptes rendus de fin de journée, notes
 // privées, et les deux tableaux de bord (vue d'ensemble manager / ma journée).
@@ -164,6 +165,7 @@ router.put('/comptes-rendus/moi/:date', requireWriteAccess, (req, res) => {
   }
   if (existant && existant.probleme !== String(b.probleme || '').trim()) {
     db.run('UPDATE comptes_rendus SET probleme_resolu = 0, probleme_tache_id = NULL WHERE id = ?', [existant.id]);
+    // Un incident déjà ouvert à partir de l'ancien texte reste suivi dans Incidents : on garde le lien.
   }
   res.json(formaterCr(db.get(`${SELECT_CR} WHERE cr.user_id = ? AND cr.date = ?`, [req.user.id, date])));
 });
@@ -405,8 +407,16 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
      LEFT JOIN app_users ta ON ta.id = t.assigne_a
      WHERE cr.statut != 'brouillon' AND trim(cr.probleme) != '' AND cr.date >= ?
        AND cr.probleme_resolu = 0 AND (t.id IS NULL OR t.statut != 'fait')
+       AND NOT EXISTS (SELECT 1 FROM incidents i WHERE i.id = cr.probleme_incident_id)
      ORDER BY cr.date DESC LIMIT 20`,
     [ajouterJours(aujourdhui, -30)]
+  );
+  // Incidents suivis (bassin, matériel) : de quoi renvoyer vers l'onglet Incidents.
+  const incidents = db.get(
+    `SELECT SUM(statut != 'resolu') AS ouverts,
+            SUM(statut != 'resolu' AND responsable_id IS NULL) AS sans_responsable,
+            SUM(statut != 'resolu' AND type = 'bassin') AS bassin
+     FROM incidents`
   );
 
   const docsNonConsultes = db.get(
@@ -437,6 +447,7 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
     suivi_cr: { jours, membres: suiviCr },
     absences_a_venir: absencesAVenir,
     problemes,
+    incidents: { ouverts: incidents.ouverts || 0, sans_responsable: incidents.sans_responsable || 0, bassin: incidents.bassin || 0 },
   });
 });
 
@@ -446,7 +457,7 @@ router.get('/membres', requireManager, (req, res) => {
   const aujourdhui = dateLocaleISO();
   const lundi = lundiDe(aujourdhui);
   const membres = db.all(
-    `SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine FROM app_users
+    `SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine, coach_id FROM app_users
      WHERE supprime = 0 AND masque = 0 ORDER BY actif DESC, prenom, nom`
   );
   const heuresSemaine = new Map(db.all(
@@ -522,6 +533,7 @@ router.get('/membres/:id/resume', (req, res) => {
 
 // GET /api/equipe/ma-journee — tableau de bord du salarié connecté.
 router.get('/ma-journee', (req, res) => {
+  genererChecklists(); // checklists du jour pour la personne planifiée (idempotent)
   const aujourdhui = dateLocaleISO();
   const lundi = lundiDe(aujourdhui);
   const me = req.user.id;
@@ -545,10 +557,12 @@ router.get('/ma-journee', (req, res) => {
   // bilan, notamment « ma journée en deux mots », reste réservé à son auteur et aux managers).
   const actifs = new Set(db.all(`SELECT id FROM app_users WHERE ${MEMBRES_ACTIFS}`).map(r => r.id));
   const transmission = db.all(
-    `SELECT cr.id, cr.user_id, cr.date, cr.priorite_demain, cr.probleme, cr.probleme_resolu, u.prenom, t.statut AS tache_statut
+    `SELECT cr.id, cr.user_id, cr.date, cr.priorite_demain, cr.probleme, cr.probleme_resolu, u.prenom,
+            t.statut AS tache_statut, inc.statut AS incident_statut
      FROM comptes_rendus cr
      JOIN app_users u ON u.id = cr.user_id
      LEFT JOIN taches t ON t.id = cr.probleme_tache_id
+     LEFT JOIN incidents inc ON inc.id = cr.probleme_incident_id
      WHERE cr.statut IN ('soumis','valide') AND cr.user_id != ? AND cr.date >= ?
        AND (trim(cr.priorite_demain) != '' OR trim(cr.probleme) != '')
      ORDER BY cr.date DESC, cr.soumis_le DESC LIMIT 12`,
@@ -558,7 +572,7 @@ router.get('/ma-journee', (req, res) => {
     .map(r => ({
       id: r.id, date: r.date, prenom: r.prenom,
       priorite_demain: r.priorite_demain.trim(),
-      probleme: r.probleme_resolu || r.tache_statut === 'fait' ? '' : r.probleme.trim(),
+      probleme: r.probleme_resolu || r.tache_statut === 'fait' || r.incident_statut === 'resolu' ? '' : r.probleme.trim(),
     }))
     .filter(r => r.priorite_demain || r.probleme)
     .slice(0, 6);
@@ -571,10 +585,24 @@ router.get('/ma-journee', (req, res) => {
     [me, ajouterJours(aujourdhui, -7)]
   );
 
+  // Mes cours : si mon profil est relié à une fiche coach, les séances des 7 prochains jours
+  // (hors annulées) apparaissent dans ma journée, à côté de mes tâches.
+  const coachId = db.get('SELECT coach_id FROM app_users WHERE id = ?', [me])?.coach_id ?? null;
+  const cours = coachId
+    ? db.all(
+        `SELECT s.id, s.date, s.horaire, s.duree_minutes, s.statut, s.nb_presents,
+                ct.nom AS cours_nom, ct.categorie, ct.capacite
+         FROM seances s JOIN cours_types ct ON ct.id = s.cours_type_id
+         WHERE s.coach_id = ? AND s.date BETWEEN ? AND ? AND s.statut != 'annule'`,
+        [coachId, aujourdhui, ajouterJours(aujourdhui, 6)]
+      ).sort((a, b) => a.date.localeCompare(b.date) || (horaireEnMinutes(a.horaire) ?? 0) - (horaireEnMinutes(b.horaire) ?? 0))
+    : null;
+
   res.json({
     date: aujourdhui,
     transmission,
     demandes_conges: demandesConges,
+    cours,
     fiche: lireFiche(me),
     mes_creneaux: creneauxEntre(lundi, ajouterJours(lundi, 6), me),
     collegues: presencesDuJour(aujourdhui),
@@ -596,12 +624,14 @@ router.get('/pastille', (req, res) => {
   if (estManager(req)) {
     return res.json({
       count: db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE statut = 'soumis'").n
-        + db.get("SELECT COUNT(*) AS n FROM demandes_conges WHERE statut = 'en_attente'").n,
+        + db.get("SELECT COUNT(*) AS n FROM demandes_conges WHERE statut = 'en_attente'").n
+        + db.get("SELECT COUNT(*) AS n FROM incidents WHERE statut = 'ouvert' AND responsable_id IS NULL").n,
     });
   }
   const aujourdhui = dateLocaleISO();
   const n = db.get("SELECT COUNT(*) AS n FROM taches WHERE assigne_a = ? AND statut != 'fait' AND echeance < ?", [req.user.id, aujourdhui]).n
     + db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE user_id = ? AND statut = 'a_revoir'", [req.user.id]).n
+    + db.get("SELECT COUNT(*) AS n FROM incidents WHERE responsable_id = ? AND statut = 'ouvert'", [req.user.id]).n
     + db.get('SELECT COUNT(*) AS n FROM employe_documents WHERE user_id = ? AND vu_le IS NULL', [req.user.id]).n;
   res.json({ count: n });
 });

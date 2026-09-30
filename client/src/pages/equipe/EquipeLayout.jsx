@@ -28,12 +28,14 @@ export default function EquipeLayout() {
     { to: '/equipe/planning', label: 'Planning' },
     { to: '/equipe/taches', label: 'Tâches' },
     { to: '/equipe/comptes-rendus', label: 'Comptes rendus' },
+    { to: '/equipe/incidents', label: 'Incidents' },
     { to: '/equipe/membres', label: 'Effectif' },
   ] : [
     { to: '/equipe', label: 'Ma journée', end: true },
     { to: '/equipe/planning', label: 'Planning' },
     { to: '/equipe/taches', label: 'Mes tâches' },
     { to: '/equipe/comptes-rendus', label: 'Mes comptes rendus' },
+    { to: '/equipe/incidents', label: 'Incidents' },
     { to: `/equipe/membres/${user?.id}`, label: 'Ma fiche' },
   ];
 

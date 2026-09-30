@@ -7,7 +7,7 @@ import { parseServerDate } from '../../lib/utils';
 import {
   PRIORITES, STATUTS_TACHE, RECURRENCES, aujourdhuiISO, isoPlusJours, nomComplet, ecartJours,
 } from '../../lib/equipe';
-import { Plaque, Rien, BoutonEncre, BoutonTrait, champCls } from './kit';
+import { Plaque, Rien, Marque, BoutonEncre, BoutonTrait, champCls } from './kit';
 import Panneau from './Panneau';
 
 // Priorité notée comme sur un tableau blanc : « !! », « !!! ».
@@ -63,10 +63,11 @@ export function TacheLigne({ tache, onOpen, onToggle, montrerAssigne = false }) 
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 font-mono text-[11px] text-gray-500">
           {ech && <span className={retard ? 'text-fitness font-semibold' : ''}>{ech.texte}</span>}
+          {tache.moment && <Marque ton="bleu">checklist · {tache.moment}</Marque>}
           {tache.statut === 'en_cours' && <span className="text-brand-ink">en cours</span>}
           {tache.recurrence !== 'aucune' && <span>{RECURRENCE_COURTE[tache.recurrence]}</span>}
           {tache.nb_commentaires > 0 && <span>{tache.nb_commentaires} note{tache.nb_commentaires > 1 ? 's' : ''}</span>}
-          <span className="text-gray-400">créée par {tache.cree_par_prenom}</span>
+          {!tache.moment && <span className="text-gray-400">créée par {tache.cree_par_prenom}</span>}
         </div>
       </div>
       {montrerAssigne && (

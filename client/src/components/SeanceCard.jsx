@@ -35,7 +35,7 @@ function joursAvant(dateStr) {
   return Math.round((target - today) / 86400000);
 }
 
-export default function SeanceCard({ seance, profils = [], onPatch, onDelete, onClick, alerteSansCoachJours = Infinity }) {
+export default function SeanceCard({ seance, profils = [], onPatch, onDelete, onClick, alerteSansCoachJours = Infinity, souventComplet = 0 }) {
   const statut = STATUT_CONFIG[seance.statut] || STATUT_CONFIG.programme;
   const sansCoach = !seance.coach_prenom && !seance.coach_nom && joursAvant(seance.date) <= alerteSansCoachJours;
   const cat = CATEGORIE_CONFIG[seance.categorie] || CATEGORIE_CONFIG.fitness;
@@ -90,6 +90,16 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
         {seance.cours_nom}
       </div>
 
+      {/* Créneau complet plusieurs fois de suite : candidat à une séance de plus */}
+      {souventComplet > 0 && seance.statut === 'programme' && (
+        <div
+          title={`Ce créneau a affiché complet ${souventComplet} fois de suite : pensez à ouvrir une séance de plus ou à relever la capacité.`}
+          className="inline-block mt-0.5 text-[10px] font-semibold text-amber-800 bg-amber-100 rounded px-1 py-px leading-tight max-w-full truncate"
+        >
+          Complet ×{souventComplet}
+        </div>
+      )}
+
       {/* Coach */}
       {!sansCoach && (
         <div className="text-[11px] text-gray-500 mt-0.5">
@@ -98,7 +108,7 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
       )}
 
       {/* Ligne inférieure : statut + présents */}
-      <div className="flex items-center justify-between mt-1 gap-1">
+      <div className="flex flex-wrap items-center justify-between mt-1 gap-1">
         <button
           onClick={cycleStatut}
           title={statut.label}
@@ -110,14 +120,14 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
           <span className="hidden sm:inline">{statut.label}</span>
         </button>
 
-        <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+        <div className="flex-shrink-0 ml-auto flex flex-col items-end gap-1.5">
           <PointeurBadge
             pointeurUserId={seance.pointeur_user_id}
             pointeurNom={seance.pointeur_nom}
             profils={profils}
             onSelect={(id) => onPatch(seance.id, { pointeur_user_id: id })}
           />
-          <HeadcountPopover value={seance.nb_presents} onSelect={(n) => onPatch(seance.id, { nb_presents: n })} />
+          <HeadcountPopover value={seance.nb_presents} capacite={seance.capacite} onSelect={(n) => onPatch(seance.id, { nb_presents: n })} />
         </div>
       </div>
 

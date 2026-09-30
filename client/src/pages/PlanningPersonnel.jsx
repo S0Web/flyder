@@ -148,11 +148,12 @@ function fmtH(val) {
 // accents préservés) avec les heures de chaque mois, le total et les CP sur 12 mois.
 function exporterCsv(recap, months) {
   const nb = (n) => String(Math.round((n || 0) * 100) / 100).replace('.', ',');
-  const entete = ['Employé', ...months.map(m => `${MOIS_COURTS[m.slice(5, 7)]} ${m.slice(0, 4)}`), 'Total heures', 'CP (12 mois)'];
+  const entete = ['Employé', ...months.map(m => `${MOIS_COURTS[m.slice(5, 7)]} ${m.slice(0, 4)}`), 'Total heures', 'Heures de cours (12 mois)', 'CP (12 mois)'];
   const lignes = recap.employes.map(e => [
     `${e.prenom} ${e.nom || ''}`.trim(),
     ...months.map(m => (e.mois[m] ? nb(e.mois[m]) : '')),
     nb(e.total),
+    e.coach_id ? nb(e.coursTotal) : '',
     String(e.cpTotal || 0),
   ]);
   const esc = (v) => `"${String(v).replace(/"/g, '""')}"`;
@@ -191,6 +192,7 @@ function RecapMensuel() {
                 <th key={m} className={`${entete} text-center ${m === moisCourant ? '!text-fitness' : ''}`}>{MOIS_COURTS[m.slice(5, 7)]}</th>
               ))}
               <th className={`${entete} text-center text-brand-ink`}>total</th>
+              <th className={`${entete} text-center`} title="Séances non annulées du salarié relié à une fiche coach. Affichées à part : non additionnées au planning.">cours · 12 mois</th>
               <th className={`${entete} text-center`}>CP · 12 mois</th>
             </tr>
           </thead>
@@ -201,9 +203,11 @@ function RecapMensuel() {
                 {months.map(m => (
                   <td key={m} className={`py-2 text-center font-mono text-xs tabular-nums text-gray-600 ${m === moisCourant ? 'bg-fitness/[0.06]' : ''}`}>
                     {e.mois[m] ? fmtH(e.mois[m]) : '—'}
+                    {e.coursMois?.[m] ? <span className="block text-[10px] text-fitness" title="heures de cours ce mois-là">cours {fmtH(e.coursMois[m])}</span> : null}
                   </td>
                 ))}
                 <td className="py-2 text-center font-mono text-sm font-semibold tabular-nums text-brand-ink">{fmtH(e.total)}</td>
+                <td className="py-2 text-center font-mono text-xs tabular-nums text-gray-600">{e.coach_id ? fmtH(e.coursTotal) : '—'}</td>
                 <td className="py-2 text-center font-mono text-xs tabular-nums text-gray-600">{e.cpTotal || '—'}</td>
               </tr>
             ))}

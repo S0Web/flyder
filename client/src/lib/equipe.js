@@ -120,3 +120,30 @@ export function salutation() {
 }
 
 export const nomComplet = (u) => `${u?.prenom || ''} ${u?.nom || ''}`.trim();
+
+// Horaire de séance (« 9h », « 12h15 », « 18:30 ») → minutes depuis minuit, ou null.
+export function minutesHoraire(horaire) {
+  const m = /^(\d{1,2})\s*[h:]\s*(\d{0,2})/i.exec(String(horaire || ''));
+  return m ? Number(m[1]) * 60 + (m[2] ? Number(m[2]) : 0) : null;
+}
+
+const hm = (mins) => `${Math.floor(mins / 60)}h${mins % 60 ? String(mins % 60).padStart(2, '0') : ''}`;
+
+// « 18h → 19h » pour une séance qui commence à `horaire` et dure `duree` minutes.
+export function plageSeance(horaire, duree) {
+  const debut = minutesHoraire(horaire);
+  if (debut === null) return horaire || '';
+  return `${hm(debut)} → ${hm(debut + (duree || 60))}`;
+}
+
+export const TYPES_INCIDENT = {
+  bassin:   { label: 'Bassin',   ton: 'bleu' },
+  materiel: { label: 'Matériel', ton: 'encre' },
+  autre:    { label: 'Autre',    ton: 'gris' },
+};
+
+export const STATUTS_INCIDENT = {
+  ouvert:   { label: 'Ouvert',   ton: 'corail' },
+  en_cours: { label: 'En cours', ton: 'encre' },
+  resolu:   { label: 'Résolu',   ton: 'gris' },
+};

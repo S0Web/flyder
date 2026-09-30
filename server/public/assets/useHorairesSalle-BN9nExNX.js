@@ -1,1 +1,0 @@
-import{m as e}from"./index-CoeBkdlM.js";function t(){let{prefs:t}=e(),n=Number(t?.ouverture_heure),r=Number(t?.fermeture_heure);return Number.isInteger(n)&&Number.isInteger(r)&&n>=0&&r<=24&&n<r?{debut:n,fin:r}:{debut:7,fin:22}}function n(e,t){let n=t-e>12?2:1,r=[];for(let i=Math.ceil(e/n)*n;i<=t;i+=n)r.push(i);return r}export{t as n,n as t};

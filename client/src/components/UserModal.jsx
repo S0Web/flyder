@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../lib/api';
 import Panneau from './equipe/Panneau';
-import { BoutonEncre, BoutonTrait, champCls } from './equipe/kit';
+import { BoutonEncre, BoutonTrait, champCls, selectCls } from './equipe/kit';
 import { useAuth } from '../context/AuthContext';
 
 const choixCls = (actif) => `font-mono text-xs px-2 py-1.5 rounded-[3px] border transition-colors ${
@@ -19,7 +20,12 @@ export default function UserModal({ user, onSave, onClose }) {
     actif:    user?.actif    !== undefined ? user.actif : 1,
     date_debut_contrat: user?.date_debut_contrat || '',
     heures_contrat_semaine: user?.heures_contrat_semaine ?? '',
+    coach_id: user?.coach_id ?? '',
   });
+  const [coachs, setCoachs] = useState([]);
+  useEffect(() => {
+    if (isManager) api.getCoaches(true).then(setCoachs).catch(() => {});
+  }, [isManager]);
   const [error, setError]   = useState(null);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -29,7 +35,11 @@ export default function UserModal({ user, onSave, onClose }) {
     setSaving(true);
     setError(null);
     try {
-      await onSave({ ...form, heures_contrat_semaine: form.heures_contrat_semaine === '' ? null : form.heures_contrat_semaine });
+      await onSave({
+        ...form,
+        heures_contrat_semaine: form.heures_contrat_semaine === '' ? null : form.heures_contrat_semaine,
+        coach_id: form.coach_id === '' ? null : Number(form.coach_id),
+      });
       fermer();
     } catch (err) {
       setError(err.message);
@@ -95,6 +105,16 @@ export default function UserModal({ user, onSave, onClose }) {
                 <input type="number" min="0" max="80" step="0.5" inputMode="decimal" placeholder="Ex. 35" value={form.heures_contrat_semaine}
                   onChange={e => set('heures_contrat_semaine', e.target.value)} className={`${champCls} font-mono`} />
                 <span className="block text-xs text-gray-400 mt-1">Facultatif. Sert à comparer les heures planifiées au contrat (Effectif, Planning). Vide : pas de suivi.</span>
+              </label>
+              <label className="block">
+                <span className={label}>fiche coach</span>
+                <select value={form.coach_id} onChange={e => set('coach_id', e.target.value)} className={`${selectCls} w-full mt-1`}>
+                  <option value="">Aucune — ne donne pas de cours</option>
+                  {coachs.map(c => (
+                    <option key={c.id} value={c.id}>{c.prenom}{c.nom ? ` ${c.nom}` : ''}{c.actif ? '' : ' (inactif)'}</option>
+                  ))}
+                </select>
+                <span className="block text-xs text-gray-400 mt-1">Pour un salarié qui donne aussi des cours : ses cours apparaissent dans « Ma journée » et ses heures de cours dans le récap mensuel. Une fiche coach ne peut être reliée qu'à un profil.</span>
               </label>
             </>
           )}

@@ -4,7 +4,8 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache, MARQUE_PRIORITE, echeanceCourte } from '../../components/equipe/Taches';
-import { Feuille, Compteurs, Plaque, BoutonEncre, Rien, Onglets, selectCls } from '../../components/equipe/kit';
+import ChecklistsPanneau from '../../components/equipe/Checklists';
+import { Feuille, Compteurs, Plaque, BoutonEncre, BoutonTrait, Rien, Onglets, selectCls } from '../../components/equipe/kit';
 import { STATUTS_TACHE, aujourdhuiISO } from '../../lib/equipe';
 
 const COLONNES = ['a_faire', 'en_cours', 'fait'];
@@ -27,6 +28,7 @@ function Fiche({ tache, onOpen, montrerAssigne }) {
       </p>
       <div className="flex items-center gap-3 mt-2 font-mono text-[10px] text-gray-500">
         {ech && <span className={ech.retard ? 'text-fitness font-semibold' : ''}>{ech.texte}</span>}
+        {tache.moment && <span className="text-sky-700">{tache.moment}</span>}
         {tache.recurrence !== 'aucune' && <span>↻</span>}
         {tache.nb_commentaires > 0 && <span>{tache.nb_commentaires} note{tache.nb_commentaires > 1 ? 's' : ''}</span>}
         <span className="flex-1 truncate text-gray-400">par {tache.cree_par_prenom}</span>
@@ -76,6 +78,7 @@ export default function Taches() {
   const [vue, setVue] = useState(() => { try { return localStorage.getItem('fm_taches_vue') || 'liste'; } catch { return 'liste'; } });
   const [recherche, setRecherche] = useState('');
   const [ouverte, setOuverte] = useState(null); // tâche | {} (nouvelle)
+  const [checklistsOuvertes, setChecklistsOuvertes] = useState(false);
   const membre = params.get('membre') || '';
 
   const charger = useCallback(() => {
@@ -130,6 +133,7 @@ export default function Taches() {
         <input value={recherche} onChange={e => setRecherche(e.target.value)} placeholder="rechercher…"
           className="font-mono text-xs bg-transparent border-0 border-b border-brand-ink/25 px-0 py-1.5 w-44 focus:outline-none focus:ring-0 focus:border-fitness" />
         <div className="flex-1" />
+        {isManager && <BoutonTrait onClick={() => setChecklistsOuvertes(true)}>Checklists du service</BoutonTrait>}
         <BoutonEncre onClick={() => setOuverte({})}>Nouvelle tâche</BoutonEncre>
       </div>
 
@@ -162,6 +166,8 @@ export default function Taches() {
             vide={<Rien>{recherche ? 'aucune tâche ne correspond' : 'aucune tâche'}</Rien>} />
         </div>
       )}
+
+      {checklistsOuvertes && <ChecklistsPanneau onClose={() => setChecklistsOuvertes(false)} onChange={charger} />}
 
       {ouverte && (
         <TachePanneau tache={ouverte.id ? ouverte : null} membres={membres}

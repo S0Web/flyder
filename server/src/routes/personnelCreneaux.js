@@ -84,8 +84,8 @@ router.get('/recap', (req, res) => {
 
   const isManager = req.user.role === 'manager';
   const employes = isManager
-    ? db.all('SELECT id, prenom, nom, actif FROM app_users WHERE masque = 0 ORDER BY prenom, nom')
-    : db.all('SELECT id, prenom, nom, actif FROM app_users WHERE id = ?', [req.user.id]);
+    ? db.all('SELECT id, prenom, nom, actif, coach_id FROM app_users WHERE masque = 0 ORDER BY prenom, nom')
+    : db.all('SELECT id, prenom, nom, actif, coach_id FROM app_users WHERE id = ?', [req.user.id]);
 
   const rows = db.all(
     `SELECT employe_id, date, type, debut, fin FROM personnel_creneaux
@@ -95,7 +95,24 @@ router.get('/recap', (req, res) => {
 
   const toMin = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
   const map = {};
-  for (const e of employes) map[e.id] = { ...e, mois: {}, total: 0, cpMois: {}, cpTotal: 0 };
+  for (const e of employes) map[e.id] = { ...e, mois: {}, total: 0, cpMois: {}, cpTotal: 0, coursMois: {}, coursTotal: 0 };
+
+  // Heures de cours des salariés reliés à une fiche coach (séances non annulées). Elles
+  // s'affichent à part : le planning du personnel couvre déjà leur présence, on ne les additionne pas.
+  const parCoach = new Map(employes.filter(e => e.coach_id).map(e => [e.coach_id, e.id]));
+  if (parCoach.size) {
+    const cours = db.all(
+      `SELECT coach_id, SUBSTR(date, 1, 7) AS mois, SUM(duree_minutes) AS minutes FROM seances
+       WHERE statut != 'annule' AND date BETWEEN ? AND ? AND coach_id IN (${[...parCoach.keys()].map(() => '?').join(',')})
+       GROUP BY coach_id, mois`,
+      [debut, fin, ...parCoach.keys()]
+    );
+    for (const c of cours) {
+      const employe = map[parCoach.get(c.coach_id)];
+      employe.coursMois[c.mois] = c.minutes / 60;
+      employe.coursTotal += c.minutes / 60;
+    }
+  }
 
   for (const r of rows) {
     const employe = map[r.employe_id];
@@ -117,6 +134,8 @@ router.get('/recap', (req, res) => {
       ...e,
       total: round2(e.total),
       mois: Object.fromEntries(Object.entries(e.mois).map(([k, v]) => [k, round2(v)])),
+      coursMois: Object.fromEntries(Object.entries(e.coursMois).map(([k, v]) => [k, round2(v)])),
+      coursTotal: round2(e.coursTotal),
     }))
     .sort((a, b) => b.total - a.total);
 

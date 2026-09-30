@@ -42,6 +42,8 @@ const appUsersRouter  = require('./routes/appUsers');
 const tachesRouter    = require('./routes/taches');
 const equipeRouter    = require('./routes/equipe');
 const personnelCreneauxRouter = require('./routes/personnelCreneaux');
+const checklistsRouter = require('./routes/checklists');
+const incidentsRouter  = require('./routes/incidents');
 const demandesCongesRouter = require('./routes/demandesConges');
 const annuaireRouter  = require('./routes/annuaire');
 const adminRouter     = require('./routes/admin');
@@ -53,6 +55,7 @@ const ticketsRouter = require('./routes/tickets');
 const changelogRouter = require('./routes/changelog');
 const preferencesRouter = require('./routes/preferences');
 const { scheduleDailyBackup } = require('./lib/backup');
+const { genererChecklists } = require('./lib/checklists');
 const { scheduleStatusPolling } = require('./lib/subscriptionStatus');
 const { requireSubscriptionActive } = require('./middleware/subscriptionGate');
 
@@ -118,6 +121,8 @@ app.use('/api/taches',      requireAuth, requireWriteAccess, tachesRouter);
 app.use('/api/equipe',      requireAuth, equipeRouter);
 app.use('/api/personnel-creneaux',  requireAuth, requireWriteAccess, personnelCreneauxRouter);
 app.use('/api/demandes-conges', requireAuth, requireWriteAccess, demandesCongesRouter);
+app.use('/api/checklists', requireAuth, requireWriteAccess, checklistsRouter);
+app.use('/api/incidents', requireAuth, requireWriteAccess, incidentsRouter);
 // Annuaire : contient des coordonnées personnelles, ni lecture ni écriture hors accès privilégié.
 app.use('/api/annuaire',   requireAuth, requireAnnuaireAccess, annuaireRouter);
 app.use('/api/admin', adminRouter);
@@ -155,6 +160,11 @@ function startServer() {
   const server = app.listen(PORT, () => {
     console.log(`🚀 Flyder — http://localhost:${PORT}`);
     scheduleDailyBackup();
+    // Checklists du jour : générées au démarrage puis toutes les 10 min (le planning peut
+    // être saisi ou corrigé à tout moment) ; les pages Tâches et Ma journée les régénèrent aussi.
+    const genererSansBruit = () => { try { genererChecklists(); } catch (e) { console.error('checklists:', e.message); } };
+    genererSansBruit();
+    setInterval(genererSansBruit, 10 * 60 * 1000).unref();
     scheduleStatusPolling();
   });
   server.on('error', (err) => {

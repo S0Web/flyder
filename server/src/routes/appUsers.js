@@ -6,6 +6,23 @@ const { isPrivileged } = require('../middleware/ipAccess');
 const { soldeCp, prisDepuisContrat } = require('../lib/cp');
 const { getPreference } = require('../lib/preferences');
 
+const CHAMPS_USER = 'id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine, coach_id';
+
+// Fiche coach reliée au profil : vide = aucune ; sinon une fiche coach existante, pas déjà
+// reliée à un autre profil. `idUser` exclut le profil lui-même de la recherche de doublon.
+// Renvoie undefined si la valeur est absente de la requête (champ à laisser inchangé).
+function lireCoachId(v, idUser) {
+  if (v === undefined) return { valeur: undefined };
+  if (v === null || v === '') return { valeur: null };
+  const id = Number(v);
+  if (!Number.isInteger(id)) return { erreur: 'Fiche coach invalide.' };
+  if (!db.get('SELECT id FROM coaches WHERE id = ? AND supprime = 0', [id])) return { erreur: 'Fiche coach introuvable.' };
+  const autre = db.get(
+    'SELECT prenom, nom FROM app_users WHERE coach_id = ? AND supprime = 0 AND id != ?', [id, idUser ?? 0]);
+  if (autre) return { erreur: `Cette fiche coach est déjà reliée au profil de ${`${autre.prenom} ${autre.nom || ''}`.trim()}.`, statut: 409 };
+  return { valeur: id };
+}
+
 // Heures de contrat hebdomadaires : vide = pas de suivi ; sinon un nombre d'heures entre 0 et 80.
 // Renvoie undefined si la valeur est absente de la requête (champ à laisser inchangé).
 function lireHeuresContrat(v) {
@@ -18,7 +35,7 @@ function lireHeuresContrat(v) {
 
 // GET /api/app-users — liste (manager seulement) — hors profils supprimés
 router.get('/', requireManager, (req, res) => {
-  const users = db.all('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine, created_at FROM app_users WHERE supprime = 0 AND masque = 0 ORDER BY prenom, nom');
+  const users = db.all(`SELECT ${CHAMPS_USER}, created_at FROM app_users WHERE supprime = 0 AND masque = 0 ORDER BY prenom, nom`);
   res.json(users);
 });
 
@@ -56,7 +73,7 @@ router.get('/:id', requireAuth, (req, res) => {
   const isManager = req.user.role === 'manager';
   const isSelf = req.user.id === Number(req.params.id);
   if (!isManager && !isSelf) return res.status(403).json({ error: 'Accès refusé' });
-  const user = db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine, created_at FROM app_users WHERE id = ? AND supprime = 0', [req.params.id]);
+  const user = db.get(`SELECT ${CHAMPS_USER}, created_at FROM app_users WHERE id = ? AND supprime = 0`, [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
   res.json(user);
 });
@@ -95,12 +112,14 @@ router.post('/', requireManager, (req, res) => {
   if (!prenom) return res.status(400).json({ error: 'Le prénom est requis' });
   const heures = lireHeuresContrat(req.body.heures_contrat_semaine);
   if (heures.erreur) return res.status(400).json({ error: heures.erreur });
+  const coach = lireCoachId(req.body.coach_id);
+  if (coach.erreur) return res.status(coach.statut || 400).json({ error: coach.erreur });
   try {
     const result = db.run(
-      'INSERT INTO app_users (prenom, nom, email, role, date_debut_contrat, heures_contrat_semaine) VALUES (?, ?, ?, ?, ?, ?)',
-      [prenom.trim(), (nom || '').trim(), email ? email.trim().toLowerCase() : null, role === 'manager' ? 'manager' : 'user', date_debut_contrat || null, heures.valeur ?? null]
+      'INSERT INTO app_users (prenom, nom, email, role, date_debut_contrat, heures_contrat_semaine, coach_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [prenom.trim(), (nom || '').trim(), email ? email.trim().toLowerCase() : null, role === 'manager' ? 'manager' : 'user', date_debut_contrat || null, heures.valeur ?? null, coach.valeur ?? null]
     );
-    const user = db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine FROM app_users WHERE id = ?', [result.lastInsertRowid]);
+    const user = db.get(`SELECT ${CHAMPS_USER} FROM app_users WHERE id = ?`, [result.lastInsertRowid]);
     db.run('INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?)',
       [req.user.id, 'create_user', 'app_users', user.id, `${user.prenom} ${user.nom}`]);
     res.status(201).json(user);
@@ -134,18 +153,23 @@ router.put('/:id', requireAuth, (req, res) => {
   if (heures.erreur) return res.status(400).json({ error: heures.erreur });
   const newHeures = heures.valeur !== undefined ? heures.valeur : user.heures_contrat_semaine;
 
+  // La fiche coach reliée au profil non plus : seul un manager la change.
+  const coach = isManager ? lireCoachId(req.body.coach_id, user.id) : { valeur: undefined };
+  if (coach.erreur) return res.status(coach.statut || 400).json({ error: coach.erreur });
+  const newCoachId = coach.valeur !== undefined ? coach.valeur : user.coach_id;
+
   db.run(
-    'UPDATE app_users SET prenom=?, nom=?, email=?, role=?, actif=?, date_debut_contrat=?, heures_contrat_semaine=? WHERE id=?',
+    'UPDATE app_users SET prenom=?, nom=?, email=?, role=?, actif=?, date_debut_contrat=?, heures_contrat_semaine=?, coach_id=? WHERE id=?',
     [
       (prenom || user.prenom).trim(),
       (nom !== undefined ? nom : user.nom).trim(),
       newEmail,
-      newRole, newActif, newDateDebut, newHeures,
+      newRole, newActif, newDateDebut, newHeures, newCoachId,
       req.params.id
     ]
   );
   if (!newActif) db.run('DELETE FROM sessions WHERE user_id = ?', [req.params.id]);
-  res.json(db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine FROM app_users WHERE id = ?', [req.params.id]));
+  res.json(db.get(`SELECT ${CHAMPS_USER} FROM app_users WHERE id = ?`, [req.params.id]));
 });
 
 // DELETE /api/app-users/:id — suppression définitive (soft : la ligne reste en DB

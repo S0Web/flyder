@@ -8,22 +8,43 @@ router.get('/', (req, res) => {
   res.json(rows);
 });
 
+// Capacité : nombre entier de places, ou absente/vide quand elle n'est pas connue.
+function lireCapacite(valeur) {
+  if (valeur === undefined || valeur === null || valeur === '') return { ok: true, valeur: null };
+  const n = Number(valeur);
+  if (!Number.isInteger(n) || n < 1 || n > 500) return { ok: false };
+  return { ok: true, valeur: n };
+}
+
 // POST /api/cours-types
 router.post('/', (req, res) => {
   const { nom, categorie } = req.body;
   if (!nom || !categorie) return res.status(400).json({ error: 'nom et categorie requis' });
   const valid = ['aqua', 'fitness'];
   if (!valid.includes(categorie)) return res.status(400).json({ error: 'categorie invalide' });
+  const cap = lireCapacite(req.body.capacite);
+  if (!cap.ok) return res.status(400).json({ error: 'La capacité doit être un entier entre 1 et 500.' });
   try {
     const result = db.run(
-      'INSERT INTO cours_types (nom, categorie) VALUES (?, ?)',
-      [nom.trim(), categorie]
+      'INSERT INTO cours_types (nom, categorie, capacite) VALUES (?, ?, ?)',
+      [nom.trim(), categorie, cap.valeur]
     );
     res.status(201).json(db.get('SELECT * FROM cours_types WHERE id = ?', [result.lastInsertRowid]));
   } catch (err) {
     if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'Ce cours existe déjà' });
     throw err;
   }
+});
+
+// PATCH /api/cours-types/:id — { capacite } (null pour l'effacer)
+router.patch('/:id', (req, res) => {
+  const existant = db.get('SELECT id FROM cours_types WHERE id = ?', [req.params.id]);
+  if (!existant) return res.status(404).json({ error: 'Cours introuvable' });
+  if (!('capacite' in req.body)) return res.status(400).json({ error: 'capacite requise' });
+  const cap = lireCapacite(req.body.capacite);
+  if (!cap.ok) return res.status(400).json({ error: 'La capacité doit être un entier entre 1 et 500.' });
+  db.run('UPDATE cours_types SET capacite = ? WHERE id = ?', [cap.valeur, existant.id]);
+  res.json(db.get('SELECT * FROM cours_types WHERE id = ?', [existant.id]));
 });
 
 module.exports = router;

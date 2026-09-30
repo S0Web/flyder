@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
+const { alertesComplet } = require('../lib/remplissage');
 
 const SEANCE_SELECT = `
   SELECT
     s.id, s.date, s.horaire, s.duree_minutes, s.statut, s.nb_presents, s.notes,
-    s.cours_type_id, ct.nom AS cours_nom, ct.categorie,
+    s.cours_type_id, ct.nom AS cours_nom, ct.categorie, ct.capacite,
     s.coach_id, c.prenom AS coach_prenom, c.nom AS coach_nom,
     s.pointeur_user_id,
     TRIM(pu.prenom || ' ' || pu.nom) AS pointeur_nom
@@ -55,6 +56,11 @@ router.get('/', (req, res) => {
     [lundi, dimanche]
   );
   res.json(rows);
+});
+
+// GET /api/seances/alertes-remplissage — créneaux complets plusieurs fois de suite
+router.get('/alertes-remplissage', (req, res) => {
+  res.json(alertesComplet());
 });
 
 // GET /api/seances/:id

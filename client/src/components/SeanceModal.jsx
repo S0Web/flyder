@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { STATUT_CONFIG } from '../lib/utils';
 import { useDismiss } from '../lib/useDismiss';
 import CoursCombobox from './CoursCombobox';
+import { api } from '../lib/api';
 
 // Convertit "9h30" ou "18:15" → "09:30" pour <input type="time">
 function toTimeInput(h) {
@@ -17,7 +18,7 @@ function toTimeInput(h) {
   return h;
 }
 
-export default function SeanceModal({ seance, coaches, coursTypes, appUsers = [], onSave, onClose, onCoursCreated, aquaActive = true }) {
+export default function SeanceModal({ seance, coaches, coursTypes, appUsers = [], onSave, onClose, onCoursCreated, onCoursUpdated, aquaActive = true }) {
   const [form, setForm] = useState({
     statut:           seance?.statut           || 'programme',
     nb_presents:      seance?.nb_presents       ?? '',
@@ -29,18 +30,35 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
     duree_minutes:    seance?.duree_minutes     || 60,
     date:             seance?.date              || '',
   });
+  const coursChoisi = coursTypes.find(ct => ct.id === Number(form.cours_type_id));
+  // Capacité du cours (places) : propre au type de cours, donc partagée par toutes ses séances.
+  const [capacite, setCapacite] = useState(coursChoisi?.capacite ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState(null);
   const { closing, dismiss } = useDismiss(onClose);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
+  function choisirCours(v) {
+    set('cours_type_id', v);
+    setCapacite(coursTypes.find(ct => ct.id === Number(v))?.capacite ?? '');
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
     if (!form.cours_type_id) { setError('Choisis un cours.'); return; }
+    const capaciteSaisie = capacite === '' ? null : Number(capacite);
+    if (capaciteSaisie !== null && (!Number.isInteger(capaciteSaisie) || capaciteSaisie < 1 || capaciteSaisie > 500)) {
+      setError('La capacité doit être un entier entre 1 et 500.');
+      return;
+    }
     setSaving(true);
     try {
+      if (capaciteSaisie !== (coursChoisi?.capacite ?? null)) {
+        const maj = await api.patchCoursType(Number(form.cours_type_id), { capacite: capaciteSaisie });
+        onCoursUpdated?.(maj);
+      }
       const payload = {
         ...form,
         nb_presents:      form.nb_presents      === '' ? null : Number(form.nb_presents),
@@ -95,11 +113,30 @@ export default function SeanceModal({ seance, coaches, coursTypes, appUsers = []
             <CoursCombobox
               value={form.cours_type_id}
               coursTypes={coursTypes}
-              onChange={v => set('cours_type_id', v)}
+              onChange={choisirCours}
               onCreated={onCoursCreated}
               aquaActive={aquaActive}
             />
           </div>
+
+          {/* Capacité du cours */}
+          {coursChoisi && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Capacité du cours <span className="font-normal text-gray-400">(places, facultatif)</span>
+              </label>
+              <input
+                type="number" min="1" max="500" step="1" inputMode="numeric"
+                value={capacite}
+                onChange={e => setCapacite(e.target.value)}
+                placeholder="Ex. 20"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Valable pour toutes les séances de « {coursChoisi.nom} ». Sert au taux de remplissage.
+              </p>
+            </div>
+          )}
 
           {/* Coach */}
           <div>

@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { TachePanneau } from '../../components/equipe/Taches';
 import { DemandesEnAttente } from '../../components/equipe/DemandesConges';
+import IncidentPanneau from '../../components/equipe/IncidentPanneau';
 import TimelineJour from '../../components/equipe/TimelineJour';
 import { CompteRenduCarte } from '../../components/equipe/ComptesRendus';
 import { Rubrique, Feuille, Intertitre, Compteurs, Rien, Lien } from '../../components/equipe/kit';
@@ -170,6 +171,7 @@ export default function VueEnsemble() {
   const [data, setData] = useState(null);
   const [erreur, setErreur] = useState(null);
   const [problemeATraiter, setProblemeATraiter] = useState(null); // problème dont on crée la tâche
+  const [problemeIncident, setProblemeIncident] = useState(null); // problème repris comme incident
 
   const charger = useCallback(() => {
     api.getVueEnsemble().then(setData).catch(e => setErreur(e.message));
@@ -237,7 +239,7 @@ export default function VueEnsemble() {
       <Rubrique numero="05" titre="Terrain" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
-          <Intertitre>
+          <Intertitre actions={<Lien as={Link} to="/equipe/incidents">incidents · {data.incidents.ouverts} ouvert{data.incidents.ouverts > 1 ? 's' : ''}{data.incidents.sans_responsable ? ` (${data.incidents.sans_responsable} sans responsable)` : ''}</Lien>}>
             Problèmes à traiter <span className="font-mono text-xs font-normal text-fitness ml-1">{String(data.problemes.length).padStart(2, '0')}</span>
           </Intertitre>
           {data.problemes.length === 0 ? <Rien>aucun problème en attente</Rien> : (
@@ -256,6 +258,7 @@ export default function VueEnsemble() {
                       ) : (
                         <Lien onClick={() => setProblemeATraiter(p)}>créer une tâche</Lien>
                       )}
+                      <Lien onClick={() => setProblemeIncident(p)}>suivre comme incident</Lien>
                       <Lien onClick={() => resoudre(p)}>marquer résolu</Lien>
                     </div>
                   </div>
@@ -279,6 +282,18 @@ export default function VueEnsemble() {
           )}
         </section>
       </div>
+
+      {problemeIncident && (
+        <IncidentPanneau incident={null} membres={membres}
+          initial={{
+            titre: problemeIncident.probleme.split('\n')[0].slice(0, 120),
+            description: problemeIncident.probleme,
+            compte_rendu_id: problemeIncident.id,
+            sousTitre: `signalé par ${problemeIncident.prenom} le ${jjmm(problemeIncident.date)}`,
+          }}
+          onClose={() => setProblemeIncident(null)}
+          onSaved={() => { charger(); rafraichirCompteurs?.(); }} />
+      )}
 
       {problemeATraiter && (
         <TachePanneau tache={null} membres={membres}

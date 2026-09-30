@@ -599,9 +599,53 @@ Deuxième lot de l'audit du 30/09/2026, centré sur l'onglet Équipe.
   écrire. Reste aussi la charte des autres onglets, la capacité par cours, le lien salarié ↔ coach et les
   checklists d'ouverture/fermeture.
 
+### 52. ✅ Capacité et remplissage, salarié ↔ coach, checklists du service, incidents
+Troisième lot de l'audit du 30/09/2026, après décisions du propriétaire : les quatre propositions validées.
+- **Capacité par cours et remplissage.** `cours_types.capacite` (facultative, entier de 1 à 500), saisie dans la fiche
+  d'une séance (elle vaut pour tout le cours : `PATCH /cours-types/:id`). L'effectif s'affiche « 12/20 » sur le planning
+  (grille et liste), en ambre quand la séance est pleine. Analyse : tuile « Taux de remplissage » (présents ÷ places, sur
+  les séances réalisées dont l'effectif **et** la capacité sont connus), carte « Quels cours sont les mieux remplis ? » et
+  carte « Créneaux souvent complets ».
+- **Alerte « complet 3 fois de suite ».** Par **créneau** (cours + jour de semaine + heure de début, `lib/remplissage.js`),
+  pas par cours : un cours donné à plusieurs horaires se mélangerait sinon. Série comptée sur les séances réalisées des
+  180 derniers jours, en partant de la plus récente ; ignorée si la dernière séance pleine date de plus de 60 jours.
+  Exposée par `GET /seances/alertes-remplissage` et dans `GET /analytics` (filtrée par catégorie) ; mention « Complet ×N »
+  sur les séances programmées du créneau.
+- **Lien salarié ↔ fiche coach.** `app_users.coach_id` (un coach n'est relié qu'à un profil, 409 sinon ; modifiable par un
+  manager uniquement, dans « Modifier » de la fiche). `GET /equipe/ma-journee` renvoie `cours` (séances non annulées des
+  7 prochains jours, `null` si pas de lien) : section « Mes cours » au-dessus des tâches + compteur « cours aujourd'hui ».
+  Le récap mensuel ajoute `coursMois` / `coursTotal` (séances non annulées) et une colonne CSV. **Les heures de cours ne
+  sont pas additionnées aux heures planifiées** : on suppose que le planning du personnel couvre déjà la présence du
+  coach ; à revoir si ce n'est pas la pratique de la salle.
+- **Checklists d'ouverture / fermeture / bassin.** Table `checklist_modeles` (moment, titre, précisions, priorité, jours) ;
+  chaque jour concerné, `lib/checklists.js` crée une vraie tâche (`taches.moment`, `taches.modele_id`, index unique
+  `(modele_id, echeance)` : aucun doublon) pour la personne planifiée. **Règles, à valider à l'usage** : ouverture = première
+  personne planifiée si elle commence au plus tard 2 h après l'heure d'ouverture (Préférences) ; fermeture = dernière si elle
+  finit au plus tôt 2 h avant la fermeture ; bassin = la personne qui ouvre. Personne sur le créneau : rien n'est créé et le
+  panneau le dit. Tant qu'une tâche est « à faire », elle suit le planning (réassignée si celui-ci change) ; commencée ou
+  faite, elle ne bouge plus. Génération au démarrage, toutes les 10 min, et à l'ouverture de Tâches et de Ma journée.
+  Une tâche non faite reste « en retard » les jours suivants (pas d'expiration automatique : ce serait cacher un oubli).
+  Aucun champ Ouverture/Milieu/Fermeture n'est ajouté aux créneaux du personnel (écarté le 9/7/2026) : tout est déduit des
+  horaires déjà saisis. Gestion : bouton « Checklists du service » de la page Tâches (managers).
+- **Incidents.** Table `incidents` (type bassin / matériel / autre, statut ouvert / en cours / résolu, responsable, signalé
+  par, mesure prise, dates), `routes/incidents.js`, onglet Incidents pour tous. Tout le monde signale et consulte ;
+  un manager désigne le responsable, modifie et supprime ; le responsable change le statut et note la mesure prise.
+  Un manager reprend un « problème signalé » d'un bilan (`comptes_rendus.probleme_incident_id`) : il quitte « Problèmes à
+  traiter » et disparaît de « À savoir en arrivant » une fois l'incident résolu. Pastille Équipe : incidents ouverts sans
+  responsable (manager), incidents ouverts dont on est responsable (salarié). Résolus consultables 12 mois.
+- **Boîte à idées.** `IDEES.md` garde les propositions mises en attente : disponibilités et accès des vacataires (après le
+  lien Flyder ↔ Flyder Talents), notifications e-mail/push (quand le produit sera vendu à d'autres salles), semaines
+  modèles, note de satisfaction. Disciplines configurables : écarté (Aqua = eau, Fitness = tout le reste).
+- **En attente de réponse.** Remplacement de coach depuis une séance sans coach ou annulée, avec trace
+  (`modifications_ponctuelles`, toujours vide) : le propriétaire a demandé une explication avant de décider.
+- **Vérifié.** Lint sans erreur (mêmes avertissements qu'avant), build, 94 contrôles d'API sur base vierge (capacité,
+  alertes, lien coach, checklists, incidents, droits) et 30 contrôles Chromium (planning, Analyse, récap, fiche, checklists,
+  incidents, Ma journée d'un coach salarié) sans erreur JavaScript.
+
 ---
 
 ## Idées écartées (ne pas implémenter sans demande explicite)
+Les idées mises en attente (pas écartées) sont dans `IDEES.md`.
 - Drag & drop des séances entre jours (gros chantier, faible demande).
 - Vue mensuelle du planning personnel (le rythme de saisie est hebdomadaire).
 - Multi-salles / multi-tenant (hors périmètre : outil interne).

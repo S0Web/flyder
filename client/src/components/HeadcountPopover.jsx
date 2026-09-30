@@ -11,7 +11,7 @@ function UsersIcon({ className }) {
   );
 }
 
-export default function HeadcountPopover({ value, onSelect }) {
+export default function HeadcountPopover({ value, onSelect, capacite = null }) {
   const [open, setOpen] = useState(false);
   const [autre, setAutre] = useState('');
   const ref = useRef(null);
@@ -45,21 +45,27 @@ export default function HeadcountPopover({ value, onSelect }) {
     if (Number.isFinite(n) && n >= 0) handlePick(n);
   }
 
+  const complet = capacite != null && value != null && value >= capacite;
+
   return (
     <span className="relative inline-block" ref={ref}>
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-        title="Renseigner l'effectif"
+        title={capacite != null ? `Renseigner l'effectif (capacité : ${capacite})` : "Renseigner l'effectif"}
         aria-label="Renseigner l'effectif"
         className={`flex items-center gap-1 rounded px-1.5 py-0.5 leading-none transition-colors active:scale-90
-          ${value != null
-            ? 'text-sky-700 bg-sky-50 hover:bg-sky-100'
-            : 'text-gray-400 hover:text-sky-600 hover:bg-gray-100'}`}
+          ${complet
+            ? 'text-amber-800 bg-amber-100 hover:bg-amber-200'
+            : value != null
+              ? 'text-sky-700 bg-sky-50 hover:bg-sky-100'
+              : 'text-gray-400 hover:text-sky-600 hover:bg-gray-100'}`}
       >
         <UsersIcon className="h-3.5 w-3.5 flex-shrink-0" />
         {value != null && (
-          <span className={`text-[11px] font-bold tabular-nums inline-block ${valueFlash ? 'animate-pop' : ''}`}>{value}</span>
+          <span className={`text-[11px] font-bold tabular-nums inline-block ${valueFlash ? 'animate-pop' : ''}`}>
+            {value}{capacite != null && <span className="font-medium opacity-70">/{capacite}</span>}
+          </span>
         )}
       </button>
 

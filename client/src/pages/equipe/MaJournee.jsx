@@ -6,6 +6,7 @@ import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache } from '../../c
 import { CompteRenduPanneau } from '../../components/equipe/ComptesRendus';
 import SemaineHoraires from '../../components/equipe/SemaineHoraires';
 import TimelineJour from '../../components/equipe/TimelineJour';
+import MesCours from '../../components/equipe/MesCours';
 import { DemandeCongePanneau } from '../../components/equipe/DemandesConges';
 import { Feuille, Intertitre, Compteurs, Tampon, BoutonCorail, Lien, Rien } from '../../components/equipe/kit';
 import { salutation, fmtHeure, aujourdhuiISO, jourCourt, TYPES_ABSENCE } from '../../lib/equipe';
@@ -78,6 +79,7 @@ export default function MaJournee() {
       <Feuille>
         <Compteurs items={[
           { label: "à faire aujourd'hui", valeur: duJour },
+          ...(Array.isArray(data.cours) ? [{ label: "cours aujourd'hui", valeur: data.cours.filter(c => c.date === auj).length }] : []),
           { label: 'en retard', valeur: enRetard, ton: enRetard ? 'corail' : undefined },
           { label: 'terminées · 7 jours', valeur: data.faites_7j, ton: 'vert' },
           ...(data.cp_restant != null ? [{ label: 'congés restants', valeur: String(data.cp_restant).replace('.', ',') }] : []),
@@ -118,6 +120,7 @@ export default function MaJournee() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-8">
         <section>
+          <MesCours cours={data.cours} />
           <Intertitre actions={<Lien as={Link} to="/equipe/taches">toutes mes tâches</Lien>}>Mes tâches</Intertitre>
           <div className="mb-5"><AjoutRapide assigneParDefaut={user.id} onCree={charger} placeholder="Ajouter une tâche pour moi…" /></div>
           <ListeTaches taches={data.taches} onOpen={setTacheOuverte} onToggle={basculer} faitesOuvertes
