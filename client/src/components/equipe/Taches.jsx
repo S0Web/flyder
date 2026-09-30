@@ -32,13 +32,13 @@ function Case({ statut, onClick }) {
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-      aria-label={fait ? 'Marquer comme à faire' : 'Marquer comme terminée'}
+      aria-label={fait ? 'Marquer comme à faire' : statut === 'en_cours' ? 'En cours : marquer comme terminée' : 'Marquer comme terminée'}
       className={`relative h-[18px] w-[18px] flex-shrink-0 rounded-[3px] flex items-center justify-center transition-colors ${
-        fait ? 'bg-brand-ink' : 'border-2 border-brand-ink/30 hover:border-brand-ink bg-white'
+        fait ? 'bg-brand-ink' : statut === 'en_cours' ? 'border-2 border-fitness bg-white' : 'border-2 border-brand-ink/30 hover:border-brand-ink bg-white'
       }`}
     >
       {fait && <Check className="h-3 w-3 text-white animate-pop" strokeWidth={3.5} />}
-      {statut === 'en_cours' && <span className="h-[2px] w-2 bg-fitness" />}
+      {statut === 'en_cours' && <span className="h-2 w-2 rounded-[1px] bg-fitness" />}
     </button>
   );
 }
@@ -203,7 +203,7 @@ function horodatage(s) {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-export function TachePanneau({ tache, membres, assigneParDefaut, onClose, onSaved, onDeleted }) {
+export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClose, onSaved, onDeleted }) {
   const { user } = useAuth();
   const toast = useToast();
   const isManager = user?.role === 'manager';
@@ -211,8 +211,8 @@ export function TachePanneau({ tache, membres, assigneParDefaut, onClose, onSave
   const peutEditer = nouvelle || isManager || tache.cree_par === user.id;
 
   const [form, setForm] = useState(() => ({
-    titre: tache?.titre || '',
-    description: tache?.description || '',
+    titre: tache?.titre || initial?.titre || '',
+    description: tache?.description || initial?.description || '',
     assigne_a: tache?.assigne_a || assigneParDefaut || user.id,
     echeance: tache?.echeance ?? '',
     priorite: tache?.priorite || 'normale',

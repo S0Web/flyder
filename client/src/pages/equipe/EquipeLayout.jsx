@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { dateDepuisISO, aujourdhuiISO } from '../../lib/equipe';
-import { rafraichirPastille, usePastilleCompteur } from '../../lib/useEquipePastille';
+import { rafraichirPastille } from '../../lib/useEquipePastille';
 
 // Onglet « Équipe » : remplace l'ancien « Planning personnel » et regroupe tout
 // ce qui concerne le personnel de la salle — planning, tâches, comptes rendus,
@@ -14,7 +14,6 @@ export default function EquipeLayout() {
   const isManager = user?.role === 'manager';
   const location = useLocation();
   const [membres, setMembres] = useState([]);
-  const pastille = usePastilleCompteur();
 
   // Liste des membres actifs (pour assigner une tâche, filtrer…) : la liste
   // publique des profils suffit, elle ne contient ni email ni donnée RH.
@@ -28,10 +27,10 @@ export default function EquipeLayout() {
     { to: '/equipe/ma-journee', label: 'Ma journée' },
     { to: '/equipe/planning', label: 'Planning' },
     { to: '/equipe/taches', label: 'Tâches' },
-    { to: '/equipe/comptes-rendus', label: 'Comptes rendus', badge: pastille },
+    { to: '/equipe/comptes-rendus', label: 'Comptes rendus' },
     { to: '/equipe/membres', label: 'Effectif' },
   ] : [
-    { to: '/equipe', label: 'Ma journée', end: true, badge: pastille },
+    { to: '/equipe', label: 'Ma journée', end: true },
     { to: '/equipe/planning', label: 'Planning' },
     { to: '/equipe/taches', label: 'Mes tâches' },
     { to: '/equipe/comptes-rendus', label: 'Mes comptes rendus' },
@@ -65,7 +64,6 @@ export default function EquipeLayout() {
               {({ isActive }) => (
                 <>
                   {o.label}
-                  {o.badge > 0 && <sup className="ml-0.5 font-mono text-[11px] font-semibold text-fitness">{o.badge}</sup>}
                   {isActive && <span className="absolute left-0 right-0 -bottom-px h-[3px] bg-fitness" />}
                 </>
               )}

@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { useToast } from '../../context/ToastContext';
+import { TachePanneau } from '../../components/equipe/Taches';
+import { DemandesEnAttente } from '../../components/equipe/DemandesConges';
 import TimelineJour from '../../components/equipe/TimelineJour';
 import { CompteRenduCarte } from '../../components/equipe/ComptesRendus';
 import { Rubrique, Feuille, Intertitre, Compteurs, Rien, Lien } from '../../components/equipe/kit';
-import { TYPES_ABSENCE, jourCourt, dateDepuisISO, aujourdhuiISO } from '../../lib/equipe';
+import { TYPES_ABSENCE, STATUTS_TACHE, jourCourt, dateDepuisISO, aujourdhuiISO } from '../../lib/equipe';
 
 // Grille « qui a rendu son bilan » : une ligne par membre, une case par jour.
 // Plein encre = validé · plein corail = à valider · barré = à revoir ·
@@ -66,6 +69,52 @@ function SuiviComptesRendus({ suivi }) {
   );
 }
 
+// Chiffres saisis dans les bilans (indicateurs de type « nombre »), additionnés par
+// membre : cette semaine, la semaine précédente et les 30 derniers jours.
+const fmtNombre = (n) => String(n).replace('.', ',');
+
+function ChiffresTerrain({ chiffres }) {
+  if (chiffres.length === 0) {
+    return <Rien>aucun chiffre saisi — dans une fiche de poste, choisis le type « nombre » pour les indicateurs à additionner</Rien>;
+  }
+  const entete = 'font-mono text-[10px] text-gray-400 font-normal pb-2';
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[520px] border-collapse">
+        <thead>
+          <tr className="border-b-2 border-brand-ink">
+            <th className={`${entete} text-left`}>membre · chiffre</th>
+            <th className={`${entete} text-right w-28`}>cette semaine</th>
+            <th className={`${entete} text-right w-28`}>sem. dernière</th>
+            <th className={`${entete} text-right w-24`}>30 jours</th>
+          </tr>
+        </thead>
+        <tbody>
+          {chiffres.map(c => {
+            const tendance = c.semaine_prec > 0 ? c.semaine - c.semaine_prec : null;
+            return (
+              <tr key={`${c.user_id}|${c.libelle}`} className="border-b border-brand-ink/[0.08]">
+                <td className="py-2.5 pr-3">
+                  <Link to={`/equipe/membres/${c.user_id}`} className="text-sm text-brand-ink hover:underline decoration-fitness underline-offset-4">{c.prenom}</Link>
+                  <span className="text-sm text-gray-500"> · {c.libelle}</span>
+                </td>
+                <td className="py-2.5 text-right font-mono text-sm font-semibold tabular-nums text-brand-ink">
+                  {fmtNombre(c.semaine)}
+                  {tendance != null && tendance !== 0 && (
+                    <span className={`ml-1.5 text-[10px] font-normal ${tendance > 0 ? 'text-[#0B7A3E]' : 'text-fitness'}`}>{tendance > 0 ? '▲' : '▼'}</span>
+                  )}
+                </td>
+                <td className="py-2.5 text-right font-mono text-sm tabular-nums text-gray-500">{fmtNombre(c.semaine_prec)}</td>
+                <td className="py-2.5 text-right font-mono text-sm tabular-nums text-gray-500">{fmtNombre(c.trente_jours)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // Charge de chacun : une case par tâche ouverte (corail = en retard).
 function ChargeMembres({ charge }) {
   const tri = [...charge].sort((a, b) => b.en_retard - a.en_retard || b.ouvertes - a.ouvertes);
@@ -116,9 +165,11 @@ function regrouperAbsences(lignes) {
 const jjmm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
 
 export default function VueEnsemble() {
-  const { rafraichirCompteurs } = useOutletContext();
+  const { rafraichirCompteurs, membres } = useOutletContext();
+  const toast = useToast();
   const [data, setData] = useState(null);
   const [erreur, setErreur] = useState(null);
+  const [problemeATraiter, setProblemeATraiter] = useState(null); // problème dont on crée la tâche
 
   const charger = useCallback(() => {
     api.getVueEnsemble().then(setData).catch(e => setErreur(e.message));
@@ -130,6 +181,7 @@ export default function VueEnsemble() {
 
   const k = data.kpi;
   const onDecision = () => { charger(); rafraichirCompteurs(); };
+  const resoudre = (p) => api.marquerProbleme(p.id, { resolu: true }).then(charger).catch(e => toast.error(e.message));
 
   return (
     <div>
@@ -140,7 +192,6 @@ export default function VueEnsemble() {
           { label: 'tâches ouvertes', valeur: k.taches_ouvertes },
           { label: 'en retard', valeur: k.taches_en_retard, ton: k.taches_en_retard ? 'corail' : undefined },
           { label: 'tâches tenues · 7 j', valeur: k.taux_7j == null ? '—' : `${k.taux_7j}%`, note: k.taches_echues_7j ? `${k.taches_tenues_7j}/${k.taches_echues_7j} échues terminées` : 'aucune échue' },
-          { label: 'bilans à valider', valeur: k.cr_a_valider, ton: k.cr_a_valider ? 'corail' : undefined, note: `${k.cr_du_jour} reçu${k.cr_du_jour > 1 ? 's' : ''} aujourd'hui` },
           { label: 'docs non ouverts', valeur: k.docs_non_consultes },
         ]} />
       </Feuille>
@@ -165,22 +216,31 @@ export default function VueEnsemble() {
         </div>
       </div>
 
+      <DemandesEnAttente onChange={rafraichirCompteurs} />
+
       <Rubrique numero="02" titre="Bilans de fin de journée" sous="Sur les 14 derniers jours, croisés avec le planning : une case en pointillés est un jour travaillé sans bilan." />
       <Feuille className="p-4 sm:p-5">
         <SuiviComptesRendus suivi={data.suivi_cr} />
       </Feuille>
 
-      <Rubrique numero="03" titre="Charge de l'équipe" />
+      <Rubrique numero="03" titre="Chiffres du terrain" sous="Les chiffres saisis chaque soir dans les bilans envoyés, additionnés par membre." />
+      <Feuille className="p-4 sm:p-5">
+        <ChiffresTerrain chiffres={data.chiffres} />
+      </Feuille>
+
+      <Rubrique numero="04" titre="Charge de l'équipe" />
       <Feuille className="p-4 sm:p-5 max-w-3xl">
         <Intertitre>Tâches ouvertes par personne</Intertitre>
         <ChargeMembres charge={data.charge} />
       </Feuille>
 
-      <Rubrique numero="04" titre="Terrain" />
+      <Rubrique numero="05" titre="Terrain" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
-          <Intertitre>Problèmes signalés · 7 jours</Intertitre>
-          {data.problemes.length === 0 ? <Rien>aucun problème remonté</Rien> : (
+          <Intertitre>
+            Problèmes à traiter <span className="font-mono text-xs font-normal text-fitness ml-1">{String(data.problemes.length).padStart(2, '0')}</span>
+          </Intertitre>
+          {data.problemes.length === 0 ? <Rien>aucun problème en attente</Rien> : (
             <ol>
               {data.problemes.map(p => (
                 <li key={p.id} className="grid grid-cols-[20px_1fr] gap-2 py-2.5 border-b border-brand-ink/[0.08]">
@@ -188,6 +248,16 @@ export default function VueEnsemble() {
                   <div>
                     <p className="text-sm text-brand-ink leading-snug">{p.probleme}</p>
                     <p className="font-mono text-[11px] text-gray-500 mt-1">{p.prenom} · {jjmm(p.date)}</p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                      {p.tache_id ? (
+                        <span className="font-mono text-[11px] text-brand-ink">
+                          → tâche pour {p.tache_prenom} · {STATUTS_TACHE[p.tache_statut]?.label.toLowerCase()}
+                        </span>
+                      ) : (
+                        <Lien onClick={() => setProblemeATraiter(p)}>créer une tâche</Lien>
+                      )}
+                      <Lien onClick={() => resoudre(p)}>marquer résolu</Lien>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -209,6 +279,19 @@ export default function VueEnsemble() {
           )}
         </section>
       </div>
+
+      {problemeATraiter && (
+        <TachePanneau tache={null} membres={membres}
+          initial={{
+            titre: `Problème : ${problemeATraiter.probleme.split('\n')[0].slice(0, 100)}`,
+            description: `Signalé par ${problemeATraiter.prenom} le ${jjmm(problemeATraiter.date)} :\n${problemeATraiter.probleme}`,
+          }}
+          onClose={() => setProblemeATraiter(null)}
+          onSaved={async (t) => {
+            try { await api.marquerProbleme(problemeATraiter.id, { tache_id: t.id }); } catch (e) { toast.error(e.message); }
+            charger();
+          }} />
+      )}
     </div>
   );
 }

@@ -76,7 +76,7 @@ router.post('/profiles', (req, res) => {
 
   const count = db.get('SELECT COUNT(*) as n FROM app_users').n;
   if (count > 0) {
-    return res.status(403).json({ error: 'La création de profil se fait depuis Paramètres > Utilisateurs (manager).' });
+    return res.status(403).json({ error: 'La création de profil se fait depuis Équipe > Effectif (manager).' });
   }
   const role = 'manager';
 

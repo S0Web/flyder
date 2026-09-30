@@ -6,8 +6,9 @@ import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache } from '../../c
 import { CompteRenduPanneau } from '../../components/equipe/ComptesRendus';
 import SemaineHoraires from '../../components/equipe/SemaineHoraires';
 import TimelineJour from '../../components/equipe/TimelineJour';
+import { DemandeCongePanneau } from '../../components/equipe/DemandesConges';
 import { Feuille, Intertitre, Compteurs, Tampon, BoutonCorail, Lien, Rien } from '../../components/equipe/kit';
-import { salutation, fmtHeure, aujourdhuiISO, TYPES_ABSENCE } from '../../lib/equipe';
+import { salutation, fmtHeure, aujourdhuiISO, jourCourt, TYPES_ABSENCE } from '../../lib/equipe';
 
 const jjmm = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
 
@@ -18,6 +19,7 @@ export default function MaJournee() {
   const [panneauCr, setPanneauCr] = useState(null); // date
   const [tacheOuverte, setTacheOuverte] = useState(null);
   const [missionsOuvertes, setMissionsOuvertes] = useState(false);
+  const [congeOuvert, setCongeOuvert] = useState(false);
 
   const charger = useCallback(() => {
     api.getMaJournee().then(setData).catch(() => {});
@@ -83,13 +85,23 @@ export default function MaJournee() {
       </Feuille>
 
       {/* ── Ce qui attend : une ligne par alerte, pas d'encadré ─────── */}
-      {(data.cr_a_revoir.length > 0 || data.docs_non_consultes > 0) && (
+      {(data.cr_a_revoir.length > 0 || data.docs_non_consultes > 0 || data.demandes_conges.length > 0) && (
         <ul className="border-y-2 border-brand-ink divide-y divide-brand-ink/10">
           {data.cr_a_revoir.map(r => (
             <li key={r.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
               <span className="font-mono text-[11px] text-fitness w-20">⚑ à revoir</span>
               <span className="flex-1 min-w-[200px] text-sm text-brand-ink">Bilan du {jjmm(r.date)} — {r.retour_manager}</span>
               <Lien onClick={() => setPanneauCr(r.date)}>corriger</Lien>
+            </li>
+          ))}
+          {data.demandes_conges.map(d => (
+            <li key={d.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
+              <span className="font-mono text-[11px] text-fitness w-20">✎ congé</span>
+              <span className="flex-1 min-w-[200px] text-sm text-brand-ink">
+                {d.date_debut === d.date_fin ? jjmm(d.date_debut) : `${jjmm(d.date_debut)} → ${jjmm(d.date_fin)}`}
+                {' : '}{d.statut === 'en_attente' ? 'en attente de réponse' : d.statut === 'acceptee' ? 'accepté' : 'refusé'}
+                {d.retour_manager ? ` — ${d.retour_manager}` : ''}
+              </span>
             </li>
           ))}
           {data.docs_non_consultes > 0 && (
@@ -130,8 +142,26 @@ export default function MaJournee() {
         </section>
 
         <section className="space-y-8">
+          {data.transmission.length > 0 && (
+            <div>
+              <Intertitre>À savoir en arrivant</Intertitre>
+              <ul className="divide-y divide-brand-ink/[0.08] border-y border-brand-ink/10 bg-white">
+                {data.transmission.map(t => (
+                  <li key={t.id} className="px-4 py-3">
+                    <div className="font-mono text-[11px] text-gray-500">{t.prenom} · {jourCourt(t.date)}</div>
+                    {t.priorite_demain && (
+                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="font-mono text-fitness">→</span> {t.priorite_demain}</p>
+                    )}
+                    {t.probleme && (
+                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="font-mono text-fitness">⚑</span> {t.probleme}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div>
-            <Intertitre actions={<Lien as={Link} to="/equipe/planning">planning complet</Lien>}>Ma semaine</Intertitre>
+            <Intertitre actions={<span className="flex gap-4"><Lien onClick={() => setCongeOuvert(true)}>demander un congé</Lien><Lien as={Link} to="/equipe/planning">planning complet</Lien></span>}>Ma semaine</Intertitre>
             <SemaineHoraires creneaux={data.mes_creneaux} />
           </div>
           <div>
@@ -141,6 +171,7 @@ export default function MaJournee() {
         </section>
       </div>
 
+      {congeOuvert && <DemandeCongePanneau onClose={() => setCongeOuvert(false)} onChange={charger} />}
       {panneauCr && <CompteRenduPanneau date={panneauCr} onClose={() => setPanneauCr(null)} onSaved={charger} />}
       {tacheOuverte && (
         <TachePanneau tache={tacheOuverte} membres={membres} onClose={() => setTacheOuverte(null)}

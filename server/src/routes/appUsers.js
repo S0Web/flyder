@@ -6,9 +6,19 @@ const { isPrivileged } = require('../middleware/ipAccess');
 const { soldeCp, prisDepuisContrat } = require('../lib/cp');
 const { getPreference } = require('../lib/preferences');
 
+// Heures de contrat hebdomadaires : vide = pas de suivi ; sinon un nombre d'heures entre 0 et 80.
+// Renvoie undefined si la valeur est absente de la requête (champ à laisser inchangé).
+function lireHeuresContrat(v) {
+  if (v === undefined) return { valeur: undefined };
+  if (v === null || v === '') return { valeur: null };
+  const n = Number(String(v).replace(',', '.'));
+  if (!Number.isFinite(n) || n <= 0 || n > 80) return { erreur: 'Heures de contrat invalides : un nombre d\'heures par semaine entre 0 et 80.' };
+  return { valeur: Math.round(n * 100) / 100 };
+}
+
 // GET /api/app-users — liste (manager seulement) — hors profils supprimés
 router.get('/', requireManager, (req, res) => {
-  const users = db.all('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, created_at FROM app_users WHERE supprime = 0 AND masque = 0 ORDER BY prenom, nom');
+  const users = db.all('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine, created_at FROM app_users WHERE supprime = 0 AND masque = 0 ORDER BY prenom, nom');
   res.json(users);
 });
 
@@ -46,7 +56,7 @@ router.get('/:id', requireAuth, (req, res) => {
   const isManager = req.user.role === 'manager';
   const isSelf = req.user.id === Number(req.params.id);
   if (!isManager && !isSelf) return res.status(403).json({ error: 'Accès refusé' });
-  const user = db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, created_at FROM app_users WHERE id = ? AND supprime = 0', [req.params.id]);
+  const user = db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine, created_at FROM app_users WHERE id = ? AND supprime = 0', [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
   res.json(user);
 });
@@ -83,12 +93,14 @@ router.patch('/:id/cp-ajuste', requireManager, (req, res) => {
 router.post('/', requireManager, (req, res) => {
   const { prenom, nom, email, role, date_debut_contrat } = req.body;
   if (!prenom) return res.status(400).json({ error: 'Le prénom est requis' });
+  const heures = lireHeuresContrat(req.body.heures_contrat_semaine);
+  if (heures.erreur) return res.status(400).json({ error: heures.erreur });
   try {
     const result = db.run(
-      'INSERT INTO app_users (prenom, nom, email, role, date_debut_contrat) VALUES (?, ?, ?, ?, ?)',
-      [prenom.trim(), (nom || '').trim(), email ? email.trim().toLowerCase() : null, role === 'manager' ? 'manager' : 'user', date_debut_contrat || null]
+      'INSERT INTO app_users (prenom, nom, email, role, date_debut_contrat, heures_contrat_semaine) VALUES (?, ?, ?, ?, ?, ?)',
+      [prenom.trim(), (nom || '').trim(), email ? email.trim().toLowerCase() : null, role === 'manager' ? 'manager' : 'user', date_debut_contrat || null, heures.valeur ?? null]
     );
-    const user = db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat FROM app_users WHERE id = ?', [result.lastInsertRowid]);
+    const user = db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine FROM app_users WHERE id = ?', [result.lastInsertRowid]);
     db.run('INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?)',
       [req.user.id, 'create_user', 'app_users', user.id, `${user.prenom} ${user.nom}`]);
     res.status(201).json(user);
@@ -117,18 +129,23 @@ router.put('/:id', requireAuth, (req, res) => {
 
   const newEmail = email !== undefined ? (email ? email.trim().toLowerCase() : null) : user.email;
 
+  // Les heures de contrat ne se modifient que par un manager (comme la date de contrat).
+  const heures = isManager ? lireHeuresContrat(req.body.heures_contrat_semaine) : { valeur: undefined };
+  if (heures.erreur) return res.status(400).json({ error: heures.erreur });
+  const newHeures = heures.valeur !== undefined ? heures.valeur : user.heures_contrat_semaine;
+
   db.run(
-    'UPDATE app_users SET prenom=?, nom=?, email=?, role=?, actif=?, date_debut_contrat=? WHERE id=?',
+    'UPDATE app_users SET prenom=?, nom=?, email=?, role=?, actif=?, date_debut_contrat=?, heures_contrat_semaine=? WHERE id=?',
     [
       (prenom || user.prenom).trim(),
       (nom !== undefined ? nom : user.nom).trim(),
       newEmail,
-      newRole, newActif, newDateDebut,
+      newRole, newActif, newDateDebut, newHeures,
       req.params.id
     ]
   );
   if (!newActif) db.run('DELETE FROM sessions WHERE user_id = ?', [req.params.id]);
-  res.json(db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat FROM app_users WHERE id = ?', [req.params.id]));
+  res.json(db.get('SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine FROM app_users WHERE id = ?', [req.params.id]));
 });
 
 // DELETE /api/app-users/:id — suppression définitive (soft : la ligne reste en DB

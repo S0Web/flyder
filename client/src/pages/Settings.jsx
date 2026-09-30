@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { useConfig } from '../context/ConfigContext';
 import { useToast } from '../context/ToastContext';
 import { parseServerDate, colorForUser } from '../lib/utils';
 import UserModal from '../components/UserModal';
-import ImportFichesDePaieModal from '../components/ImportFichesDePaieModal';
 import Preferences from './Preferences';
 
 const AUDIT_PAGE = 50;
@@ -18,6 +15,7 @@ const ACTION_LABELS = {
   update_seance: 'Séance modifiée',
   update_personnel_creneau: 'Planning personnel modifié',
   dupliquer_semaine_personnel: 'Semaine dupliquée (personnel)',
+  decision_conge: 'Demande de congé traitée',
 };
 
 // Traduit les valeurs brutes présentes dans le champ "détails"
@@ -36,7 +34,6 @@ function prettyDetails(details) {
 export default function Settings() {
   const navigate = useNavigate();
   const { user: me } = useAuth();
-  const { salleNom } = useConfig();
   const toast = useToast();
   const isManager = me?.role === 'manager';
   const [tab, setTab]     = useState('profil');
@@ -45,25 +42,8 @@ export default function Settings() {
   const [auditHasMore, setAuditHasMore] = useState(false);
   const [auditFilters, setAuditFilters] = useState({ action: '', user_id: '', from: '', to: '', order: 'desc' });
   const [modal, setModal] = useState(null);
-  const [importModal, setImportModal] = useState(false);
-  const [seedingDemo, setSeedingDemo] = useState(false);
-  const [seedDemoResult, setSeedDemoResult] = useState(null);
 
   
-
-  async function handleSeedDemo() {
-    if (!confirm('Réinitialiser les données de démonstration ? Les coachs et séances fictifs actuels seront effacés puis régénérés.')) return;
-    setSeedingDemo(true);
-    setSeedDemoResult(null);
-    try {
-      const res = await api.seedDemo(true);
-      setSeedDemoResult({ ok: true, message: `${res.coachsCrees} coach(s) fictif(s) et ${res.seancesCreees} séance(s) régénérés.` });
-    } catch (err) {
-      setSeedDemoResult({ ok: false, message: err.message });
-    } finally {
-      setSeedingDemo(false);
-    }
-  }
 
   const loadAudit = (offset = 0) => {
     api.getAuditLog({ ...auditFilters, limit: AUDIT_PAGE, offset }).then(rows => {
@@ -95,30 +75,9 @@ export default function Settings() {
     }
   }
 
-  async function handleToggleActif(u) {
-    try {
-      await api.updateAppUser(u.id, { actif: u.actif ? 0 : 1 });
-      api.getAppUsers().then(setUsers);
-    } catch (e) {
-      toast.error('Échec : ' + e.message);
-    }
-  }
-
-  async function handleDeleteUser(u) {
-    if (!confirm(`Supprimer définitivement ${u.prenom} ${u.nom} ?\n\nIl disparaît de la liste mais son nom reste visible sur les plannings passés où il apparaît.`)) return;
-    try {
-      await api.deleteAppUser(u.id);
-      api.getAppUsers().then(setUsers);
-      toast.success('Profil supprimé');
-    } catch (e) {
-      toast.error('Échec : ' + e.message);
-    }
-  }
-
   const TABS = [
     { id: 'profil', label: 'Mon profil' },
     ...(isManager ? [
-      { id: 'users', label: 'Utilisateurs' },
       { id: 'audit', label: 'Historique' },
       { id: 'preferences', label: 'Préférences' },
     ] : []),
@@ -168,78 +127,6 @@ export default function Settings() {
               Ouvrir ma fiche
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Utilisateurs */}
-      {tab === 'users' && isManager && (
-        <div className="motion-safe:animate-fadeIn">
-          <div className="flex justify-between items-center mb-3 gap-3">
-            <span className="text-sm text-gray-500">{users.length} utilisateur(s)</span>
-            <div className="flex gap-2">
-              <button onClick={() => setImportModal(true)}
-                className="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
-                Importer les fiches de paie
-              </button>
-              <button onClick={() => setModal({})}
-                className="flex items-center gap-1.5 text-white px-4 py-2 rounded text-sm font-medium"
-                style={{ backgroundColor: '#3D5AFE' }}>
-                <Plus className="h-4 w-4" /> Nouveau
-              </button>
-            </div>
-          </div>
-          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <table className="w-full border-collapse text-sm min-w-[520px]">
-            <thead>
-              <tr style={{ backgroundColor: '#3D5AFE', color: '#fff' }}>
-                {['Nom', 'Email', 'Rôle', 'Statut', ''].map(h => (
-                  <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, i) => (
-                <tr key={u.id} style={{ backgroundColor: i % 2 === 0 ? '#f9fafb' : '#fff' }} className={u.actif ? '' : 'opacity-40'}>
-                  <td className="px-3 py-2 font-medium">{u.prenom} {u.nom}</td>
-                  <td className="px-3 py-2 text-gray-500">{u.email}</td>
-                  <td className="px-3 py-2">{u.role === 'manager' ? 'Manager' : 'Utilisateur'}</td>
-                  <td className="px-3 py-2">
-                    <button onClick={() => handleToggleActif(u)}
-                      title="Cliquer pour changer le statut"
-                      className={`text-xs px-2 py-0.5 rounded font-medium transition-colors ${u.actif ? 'text-green-700 bg-green-50 hover:bg-green-100' : 'text-gray-500 bg-gray-100 hover:bg-gray-200'}`}>
-                      {u.actif ? 'Actif' : 'Inactif'}
-                    </button>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <button onClick={() => navigate(`/equipe/membres/${u.id}`)} className="text-xs text-sky-600 hover:underline">Ouvrir la fiche</button>
-                    {!u.actif && u.id !== me?.id && (
-                      <button onClick={() => handleDeleteUser(u)} className="ml-3 text-xs text-red-500 hover:underline">
-                        Supprimer définitivement
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-
-          {/* Données de démo — visible uniquement sur l'instance "Demo-Portfolio" dédiée,
-              jamais sur une vraie salle. Permet de régénérer un jeu de données 100%
-              fictif avant de montrer l'appli (ex. entretien). */}
-          {salleNom === 'Demo-Portfolio' && (
-            <div className="mt-6 text-right">
-              <button onClick={handleSeedDemo} disabled={seedingDemo}
-                className="text-xs text-gray-400 hover:text-gray-600 hover:underline disabled:opacity-50">
-                {seedingDemo ? 'Génération…' : '⟳ Régénérer les données de démonstration'}
-              </button>
-              {seedDemoResult && (
-                <div className={`text-xs mt-1 ${seedDemoResult.ok ? 'text-green-600' : 'text-red-500'}`}>
-                  {seedDemoResult.ok ? '' : 'Erreur : '}{seedDemoResult.message}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -330,13 +217,6 @@ export default function Settings() {
         />
       )}
 
-      {importModal && (
-        <ImportFichesDePaieModal
-          users={users}
-          onClose={() => setImportModal(false)}
-          onImported={() => {}}
-        />
-      )}
     </div>
   );
 }

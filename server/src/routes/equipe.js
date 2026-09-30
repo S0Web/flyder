@@ -3,8 +3,7 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { requireManager } = require('../middleware/auth');
 const { requireWriteAccess } = require('../middleware/ipAccess');
-const { soldeCp, prisDepuisContrat } = require('../lib/cp');
-const { getPreference } = require('../lib/preferences');
+const { cpRestantPour: cpRestant } = require('../lib/cp');
 const { dateLocaleISO, ajouterJours, lundiDe } = require('../lib/dates');
 
 // Onglet Équipe : fiches de poste, comptes rendus de fin de journée, notes
@@ -20,6 +19,19 @@ function parseListe(json) {
   try { const v = JSON.parse(json); return Array.isArray(v) ? v : []; } catch { return []; }
 }
 
+// Un indicateur de bilan a un libellé et un type : « nombre » (additionné par semaine
+// dans la Vue d'ensemble), « oui_non » ou « texte ». Les anciennes fiches stockaient
+// de simples chaînes : elles sont lues comme des indicateurs de type texte.
+const TYPES_INDICATEUR = ['nombre', 'oui_non', 'texte'];
+
+function normaliserIndicateurs(liste) {
+  return (Array.isArray(liste) ? liste : [])
+    .map(i => (typeof i === 'string' ? { libelle: i, type: 'texte' } : { libelle: i?.libelle, type: i?.type }))
+    .map(i => ({ libelle: String(i.libelle ?? '').trim(), type: TYPES_INDICATEUR.includes(i.type) ? i.type : 'texte' }))
+    .filter(i => i.libelle)
+    .slice(0, 40);
+}
+
 function nettoyerListe(liste) {
   return (Array.isArray(liste) ? liste : [])
     .map(s => String(s ?? '').trim())
@@ -32,7 +44,7 @@ function nettoyerListe(liste) {
 function lireFiche(userId) {
   const f = db.get('SELECT * FROM fiches_poste WHERE user_id = ?', [userId]);
   if (!f) return { user_id: Number(userId), intitule: '', objectif: '', missions: [], indicateurs: [], rappel: '', updated_at: null };
-  return { ...f, missions: parseListe(f.missions), indicateurs: parseListe(f.indicateurs) };
+  return { ...f, missions: parseListe(f.missions), indicateurs: normaliserIndicateurs(parseListe(f.indicateurs)) };
 }
 
 router.get('/fiches-poste/:userId', (req, res) => {
@@ -51,7 +63,7 @@ router.put('/fiches-poste/:userId', requireManager, (req, res) => {
        missions=excluded.missions, indicateurs=excluded.indicateurs, rappel=excluded.rappel,
        updated_by=excluded.updated_by, updated_at=excluded.updated_at`,
     [userId, String(intitule || '').trim(), String(objectif || '').trim(),
-     JSON.stringify(nettoyerListe(missions)), JSON.stringify(nettoyerListe(indicateurs)),
+     JSON.stringify(nettoyerListe(missions)), JSON.stringify(normaliserIndicateurs(indicateurs)),
      String(rappel || '').trim(), req.user.id]
   );
   res.json(lireFiche(userId));
@@ -112,9 +124,22 @@ router.put('/comptes-rendus/moi/:date', requireWriteAccess, (req, res) => {
   const b = req.body;
   const missions = (Array.isArray(b.missions) ? b.missions : [])
     .map(m => ({ texte: String(m?.texte || '').trim(), fait: !!m?.fait })).filter(m => m.texte).slice(0, 40);
-  const indicateurs = (Array.isArray(b.indicateurs) ? b.indicateurs : [])
-    .map(i => ({ libelle: String(i?.libelle || '').trim(), valeur: String(i?.valeur ?? '').trim().slice(0, 200) }))
-    .filter(i => i.libelle).slice(0, 40);
+  const indicateurs = [];
+  for (const i of (Array.isArray(b.indicateurs) ? b.indicateurs : []).slice(0, 40)) {
+    const libelle = String(i?.libelle || '').trim();
+    if (!libelle) continue;
+    const type = TYPES_INDICATEUR.includes(i?.type) ? i.type : 'texte';
+    let valeur = String(i?.valeur ?? '').trim().slice(0, 200);
+    if (valeur && type === 'nombre') {
+      const n = Number(valeur.replace(/\s/g, '').replace(',', '.'));
+      if (!Number.isFinite(n)) return res.status(400).json({ error: `« ${libelle} » doit être un nombre.` });
+      valeur = String(n);
+    } else if (valeur && type === 'oui_non') {
+      valeur = valeur.toLowerCase();
+      if (valeur !== 'oui' && valeur !== 'non') return res.status(400).json({ error: `« ${libelle} » : réponds par oui ou par non.` });
+    }
+    indicateurs.push({ libelle, type, valeur });
+  }
   const soumettre = !!b.soumettre;
   const statut = soumettre ? 'soumis' : (existant?.statut === 'a_revoir' ? 'a_revoir' : (existant?.statut || 'brouillon'));
   const valeurs = [
@@ -137,7 +162,26 @@ router.put('/comptes-rendus/moi/:date', requireWriteAccess, (req, res) => {
       [req.user.id, date, ...valeurs, soumettre ? 1 : 0]
     );
   }
+  if (existant && existant.probleme !== String(b.probleme || '').trim()) {
+    db.run('UPDATE comptes_rendus SET probleme_resolu = 0, probleme_tache_id = NULL WHERE id = ?', [existant.id]);
+  }
   res.json(formaterCr(db.get(`${SELECT_CR} WHERE cr.user_id = ? AND cr.date = ?`, [req.user.id, date])));
+});
+
+// POST /api/equipe/comptes-rendus/:id/probleme — { resolu?: bool, tache_id?: number|null }
+// Suivi du problème signalé dans un bilan : le marquer résolu, ou le relier à une tâche.
+router.post('/comptes-rendus/:id/probleme', requireManager, (req, res) => {
+  const cr = db.get('SELECT id, statut, probleme FROM comptes_rendus WHERE id = ?', [req.params.id]);
+  if (!cr || cr.statut === 'brouillon' || !cr.probleme.trim()) return res.status(404).json({ error: 'Problème introuvable' });
+  const { resolu, tache_id: tacheId } = req.body;
+  if (tacheId !== undefined) {
+    if (tacheId !== null && !db.get('SELECT 1 FROM taches WHERE id = ?', [tacheId])) {
+      return res.status(400).json({ error: 'Tâche introuvable' });
+    }
+    db.run('UPDATE comptes_rendus SET probleme_tache_id = ? WHERE id = ?', [tacheId, cr.id]);
+  }
+  if (resolu !== undefined) db.run('UPDATE comptes_rendus SET probleme_resolu = ? WHERE id = ?', [resolu ? 1 : 0, cr.id]);
+  res.json({ ok: true });
 });
 
 // POST /api/equipe/comptes-rendus/:id/decision — { decision: 'valide'|'a_revoir', retour }
@@ -187,14 +231,47 @@ router.delete('/notes/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// ─── Tableaux de bord ─────────────────────────────────────────────────────────
+// ─── Notes de suivi d'un membre (managers uniquement) ─────────────────────────
+// Un manager ne lit ni n'écrit les notes qui le concernent lui-même.
 
-function cpRestant(userId) {
-  const u = db.get('SELECT date_debut_contrat, cp_ajuste FROM app_users WHERE id = ?', [userId]);
-  if (!u?.date_debut_contrat) return null;
-  const taux = parseFloat(getPreference('conges_taux_mensuel'));
-  return soldeCp(u.date_debut_contrat, u.cp_ajuste, prisDepuisContrat(userId, u.date_debut_contrat), taux).restant;
+const SELECT_NOTE_SUIVI = `
+  SELECT n.id, n.user_id, n.contenu, n.created_at, n.auteur_id, a.prenom AS auteur_prenom
+  FROM notes_suivi n JOIN app_users a ON a.id = n.auteur_id
+`;
+
+function refuserSiSujet(req, res) {
+  if (Number(req.params.id) === req.user.id) {
+    res.status(403).json({ error: 'Ces notes ne sont pas visibles par la personne concernée.' });
+    return true;
+  }
+  return false;
 }
+
+router.get('/membres/:id/notes-suivi', requireManager, (req, res) => {
+  if (refuserSiSujet(req, res)) return;
+  res.json(db.all(`${SELECT_NOTE_SUIVI} WHERE n.user_id = ? ORDER BY n.created_at DESC, n.id DESC`, [req.params.id]));
+});
+
+router.post('/membres/:id/notes-suivi', requireManager, (req, res) => {
+  if (refuserSiSujet(req, res)) return;
+  const contenu = String(req.body.contenu || '').trim().slice(0, 4000);
+  if (!contenu) return res.status(400).json({ error: 'La note est vide.' });
+  if (!db.get('SELECT 1 FROM app_users WHERE id = ? AND supprime = 0', [req.params.id])) {
+    return res.status(404).json({ error: 'Membre introuvable' });
+  }
+  const result = db.run('INSERT INTO notes_suivi (user_id, auteur_id, contenu) VALUES (?, ?, ?)', [req.params.id, req.user.id, contenu]);
+  res.status(201).json(db.get(`${SELECT_NOTE_SUIVI} WHERE n.id = ?`, [result.lastInsertRowid]));
+});
+
+router.delete('/notes-suivi/:id', requireManager, (req, res) => {
+  const note = db.get('SELECT id, user_id FROM notes_suivi WHERE id = ?', [req.params.id]);
+  if (!note) return res.status(404).json({ error: 'Note introuvable' });
+  if (note.user_id === req.user.id) return res.status(403).json({ error: 'Ces notes ne sont pas visibles par la personne concernée.' });
+  db.run('DELETE FROM notes_suivi WHERE id = ?', [note.id]);
+  res.json({ ok: true });
+});
+
+// ─── Tableaux de bord ─────────────────────────────────────────────────────────
 
 function creneauxEntre(debut, fin, userId) {
   return db.all(
@@ -223,6 +300,39 @@ function presencesDuJour(date) {
   return [...parPersonne.values()]
     .map(p => ({ ...p, intitule: intitules.get(p.id) || '' }))
     .sort((a, b) => (a.creneaux[0]?.debut || '99').localeCompare(b.creneaux[0]?.debut || '99'));
+}
+
+// Chiffres du terrain : somme, par membre et par indicateur de type « nombre », des
+// valeurs saisies dans les bilans envoyés (soumis ou validés) — cette semaine, la
+// semaine précédente et les 30 derniers jours.
+function chiffresTerrain(membres, aujourdhui) {
+  const lundi = lundiDe(aujourdhui);
+  const lundiPrec = ajouterJours(lundi, -7);
+  const debut30 = ajouterJours(aujourdhui, -29);
+  const prenoms = new Map(membres.map(m => [m.id, m.prenom]));
+  const rows = db.all(
+    "SELECT user_id, date, indicateurs FROM comptes_rendus WHERE statut IN ('soumis','valide') AND date >= ?",
+    [debut30 < lundiPrec ? debut30 : lundiPrec]
+  );
+  const cumul = new Map();
+  for (const r of rows) {
+    if (!prenoms.has(r.user_id)) continue;
+    for (const ind of parseListe(r.indicateurs)) {
+      if (ind.type !== 'nombre' || ind.valeur === '' || ind.valeur == null) continue;
+      const n = Number(ind.valeur);
+      if (!Number.isFinite(n)) continue;
+      const cle = `${r.user_id}|${ind.libelle}`;
+      const e = cumul.get(cle) || { user_id: r.user_id, prenom: prenoms.get(r.user_id), libelle: ind.libelle, semaine: 0, semaine_prec: 0, trente_jours: 0 };
+      if (r.date >= lundi) e.semaine += n;
+      else if (r.date >= lundiPrec) e.semaine_prec += n;
+      if (r.date >= debut30) e.trente_jours += n;
+      cumul.set(cle, e);
+    }
+  }
+  const arrondi = (x) => Math.round(x * 100) / 100;
+  return [...cumul.values()]
+    .map(e => ({ ...e, semaine: arrondi(e.semaine), semaine_prec: arrondi(e.semaine_prec), trente_jours: arrondi(e.trente_jours) }))
+    .sort((a, b) => a.prenom.localeCompare(b.prenom) || a.libelle.localeCompare(b.libelle));
 }
 
 // GET /api/equipe/vue-ensemble — tableau de bord manager.
@@ -285,11 +395,19 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
     [aujourdhui, ajouterJours(aujourdhui, 21)]
   );
 
+  // Problèmes à traiter : signalés ces 30 derniers jours, ni marqués résolus, ni reliés à
+  // une tâche déjà terminée.
   const problemes = db.all(
-    `${SELECT_CR} WHERE cr.statut != 'brouillon' AND trim(cr.probleme) != '' AND cr.date >= ?
-     ORDER BY cr.date DESC LIMIT 8`,
-    [septJours]
-  ).map(formaterCr);
+    `SELECT cr.id, cr.date, cr.probleme, u.prenom, t.id AS tache_id, t.statut AS tache_statut, ta.prenom AS tache_prenom
+     FROM comptes_rendus cr
+     JOIN app_users u ON u.id = cr.user_id
+     LEFT JOIN taches t ON t.id = cr.probleme_tache_id
+     LEFT JOIN app_users ta ON ta.id = t.assigne_a
+     WHERE cr.statut != 'brouillon' AND trim(cr.probleme) != '' AND cr.date >= ?
+       AND cr.probleme_resolu = 0 AND (t.id IS NULL OR t.statut != 'fait')
+     ORDER BY cr.date DESC LIMIT 20`,
+    [ajouterJours(aujourdhui, -30)]
+  );
 
   const docsNonConsultes = db.get(
     `SELECT COUNT(*) AS n FROM employe_documents d JOIN app_users u ON u.id = d.user_id
@@ -315,6 +433,7 @@ router.get('/vue-ensemble', requireManager, (req, res) => {
     presents,
     cr_a_valider: crAValider,
     charge,
+    chiffres: chiffresTerrain(membres, aujourdhui),
     suivi_cr: { jours, membres: suiviCr },
     absences_a_venir: absencesAVenir,
     problemes,
@@ -327,7 +446,7 @@ router.get('/membres', requireManager, (req, res) => {
   const aujourdhui = dateLocaleISO();
   const lundi = lundiDe(aujourdhui);
   const membres = db.all(
-    `SELECT id, prenom, nom, email, role, actif, date_debut_contrat FROM app_users
+    `SELECT id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine FROM app_users
      WHERE supprime = 0 AND masque = 0 ORDER BY actif DESC, prenom, nom`
   );
   const heuresSemaine = new Map(db.all(
@@ -421,8 +540,41 @@ router.get('/ma-journee', (req, res) => {
     [me]
   );
 
+  // Cahier de transmission : la « priorité de demain » et le « problème signalé » des bilans
+  // envoyés hier et aujourd'hui par les collègues, visibles de toute l'équipe (le reste du
+  // bilan, notamment « ma journée en deux mots », reste réservé à son auteur et aux managers).
+  const actifs = new Set(db.all(`SELECT id FROM app_users WHERE ${MEMBRES_ACTIFS}`).map(r => r.id));
+  const transmission = db.all(
+    `SELECT cr.id, cr.user_id, cr.date, cr.priorite_demain, cr.probleme, cr.probleme_resolu, u.prenom, t.statut AS tache_statut
+     FROM comptes_rendus cr
+     JOIN app_users u ON u.id = cr.user_id
+     LEFT JOIN taches t ON t.id = cr.probleme_tache_id
+     WHERE cr.statut IN ('soumis','valide') AND cr.user_id != ? AND cr.date >= ?
+       AND (trim(cr.priorite_demain) != '' OR trim(cr.probleme) != '')
+     ORDER BY cr.date DESC, cr.soumis_le DESC LIMIT 12`,
+    [me, ajouterJours(aujourdhui, -1)]
+  )
+    .filter(r => actifs.has(r.user_id))
+    .map(r => ({
+      id: r.id, date: r.date, prenom: r.prenom,
+      priorite_demain: r.priorite_demain.trim(),
+      probleme: r.probleme_resolu || r.tache_statut === 'fait' ? '' : r.probleme.trim(),
+    }))
+    .filter(r => r.priorite_demain || r.probleme)
+    .slice(0, 6);
+
+  // Mes demandes de congé : en attente, ou décidées ces 7 derniers jours.
+  const demandesConges = db.all(
+    `SELECT id, date_debut, date_fin, statut, retour_manager FROM demandes_conges
+     WHERE user_id = ? AND (statut = 'en_attente' OR (statut IN ('acceptee','refusee') AND substr(decide_le, 1, 10) >= ?))
+     ORDER BY date_debut`,
+    [me, ajouterJours(aujourdhui, -7)]
+  );
+
   res.json({
     date: aujourdhui,
+    transmission,
+    demandes_conges: demandesConges,
     fiche: lireFiche(me),
     mes_creneaux: creneauxEntre(lundi, ajouterJours(lundi, 6), me),
     collegues: presencesDuJour(aujourdhui),
@@ -442,7 +594,10 @@ router.get('/ma-journee', (req, res) => {
 // comptes rendus à valider (manager), sinon ce qui attend le salarié.
 router.get('/pastille', (req, res) => {
   if (estManager(req)) {
-    return res.json({ count: db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE statut = 'soumis'").n });
+    return res.json({
+      count: db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE statut = 'soumis'").n
+        + db.get("SELECT COUNT(*) AS n FROM demandes_conges WHERE statut = 'en_attente'").n,
+    });
   }
   const aujourdhui = dateLocaleISO();
   const n = db.get("SELECT COUNT(*) AS n FROM taches WHERE assigne_a = ? AND statut != 'fait' AND echeance < ?", [req.user.id, aujourdhui]).n

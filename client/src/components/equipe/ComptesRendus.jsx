@@ -45,7 +45,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
       // Missions/indicateurs : ceux du compte rendu existant (tels qu'ils étaient ce
       // jour-là), sinon ceux de la fiche de poste actuelle.
       const missions = cr ? cr.missions : d.fiche.missions.map(texte => ({ texte, fait: false }));
-      const indicateurs = cr?.indicateurs?.length ? cr.indicateurs : d.fiche.indicateurs.map(libelle => ({ libelle, valeur: '' }));
+      const indicateurs = cr?.indicateurs?.length ? cr.indicateurs : d.fiche.indicateurs.map(ind => ({ libelle: ind.libelle, type: ind.type, valeur: '' }));
       setForm({
         missions, indicateurs,
         resume: cr?.resume || '', priorite_demain: cr?.priorite_demain || '', probleme: cr?.probleme || '',
@@ -140,20 +140,40 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
             <section>
               <TitreSection n="02">Mes chiffres</TitreSection>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-4">
-                {form.indicateurs.map((ind, i) => (
-                  <label key={i} className="block">
-                    <span className="block font-mono text-[11px] text-gray-500 leading-tight min-h-[26px]">{ind.libelle}</span>
-                    <input value={ind.valeur} disabled={verrouille} placeholder="—"
-                      onChange={e => setForm(f => ({ ...f, indicateurs: f.indicateurs.map((x, j) => j === i ? { ...x, valeur: e.target.value } : x) }))}
-                      className="w-full font-mono text-2xl font-semibold text-brand-ink bg-transparent border-0 border-b-2 border-brand-ink/20 px-0 py-1 focus:outline-none focus:ring-0 focus:border-fitness placeholder:text-gray-300" />
-                  </label>
-                ))}
+                {form.indicateurs.map((ind, i) => {
+                  const maj = (valeur) => setForm(f => ({ ...f, indicateurs: f.indicateurs.map((x, j) => j === i ? { ...x, valeur } : x) }));
+                  const Tag = ind.type === 'oui_non' ? 'div' : 'label';
+                  return (
+                    <Tag key={i} className="block">
+                      <span className="block font-mono text-[11px] text-gray-500 leading-tight min-h-[26px]">{ind.libelle}</span>
+                      {ind.type === 'oui_non' ? (
+                        <div className="flex gap-2 pt-1.5">
+                          {['oui', 'non'].map(v => (
+                            <button key={v} type="button" disabled={verrouille} onClick={() => maj(ind.valeur === v ? '' : v)}
+                              className={`font-mono text-sm px-3 py-1.5 rounded-[3px] border transition-colors disabled:opacity-60 ${
+                                ind.valeur === v ? 'bg-brand-ink text-white border-brand-ink' : 'border-brand-ink/25 text-gray-600 hover:border-brand-ink'
+                              }`}>{v === 'oui' ? 'Oui' : 'Non'}</button>
+                          ))}
+                        </div>
+                      ) : (
+                        <input value={ind.valeur} disabled={verrouille} placeholder="—"
+                          inputMode={ind.type === 'nombre' ? 'decimal' : undefined}
+                          onChange={e => maj(e.target.value)}
+                          className="w-full font-mono text-2xl font-semibold text-brand-ink bg-transparent border-0 border-b-2 border-brand-ink/20 px-0 py-1 focus:outline-none focus:ring-0 focus:border-fitness placeholder:text-gray-300" />
+                      )}
+                    </Tag>
+                  );
+                })}
               </div>
             </section>
           )}
 
           <section className="space-y-4">
             <TitreSection n="03">Pour finir</TitreSection>
+            <p className="text-xs text-gray-500 -mt-1">
+              La priorité de demain et le problème signalé sont transmis à tes collègues et au manager.
+              Ta journée en deux mots reste réservée au manager.
+            </p>
             <label className="block">
               <span className="font-mono text-[11px] text-gray-500">ma journée en deux mots</span>
               <textarea rows={2} value={form.resume} disabled={verrouille} onChange={e => setForm(f => ({ ...f, resume: e.target.value }))}
@@ -230,7 +250,9 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
           <div className={`mt-4 grid ${compact ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-5'} border-y border-brand-ink/10`}>
             {cr.indicateurs.map((ind, i) => (
               <div key={i} className="px-2.5 py-2.5 border-r border-brand-ink/10 last:border-r-0 min-w-0">
-                <div className="font-mono text-xl font-semibold text-brand-ink leading-none truncate" title={ind.valeur}>{ind.valeur || '—'}</div>
+                <div className="font-mono text-xl font-semibold text-brand-ink leading-none truncate" title={ind.valeur}>
+                  {ind.type === 'oui_non' && ind.valeur ? ind.valeur.charAt(0).toUpperCase() + ind.valeur.slice(1) : (ind.valeur || '—')}
+                </div>
                 <div className="text-[11px] text-gray-500 mt-1.5 leading-tight line-clamp-2" title={ind.libelle}>{ind.libelle}</div>
               </div>
             ))}

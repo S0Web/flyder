@@ -7,6 +7,7 @@ import UserModal from '../../components/UserModal';
 import FichePoste from '../../components/equipe/FichePoste';
 import CoffreDocuments from '../../components/equipe/CoffreDocuments';
 import NotesPrivees from '../../components/equipe/NotesPrivees';
+import NotesSuivi from '../../components/equipe/NotesSuivi';
 import CongesCarte from '../../components/equipe/CongesCarte';
 import SemaineHoraires from '../../components/equipe/SemaineHoraires';
 import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache } from '../../components/equipe/Taches';
@@ -119,6 +120,7 @@ export default function FicheMembre() {
     { id: 'taches', label: 'Tâches', count: resume?.taches_ouvertes },
     { id: 'bilans', label: 'Comptes rendus' },
     { id: 'documents', label: 'Documents', count: resume?.docs_non_consultes, alerte: true },
+    ...(isManager && !estMoi ? [{ id: 'suivi', label: 'Suivi' }] : []),
     ...(estMoi ? [{ id: 'notes', label: 'Carnet privé' }] : []),
   ];
   const onglet = onglets.some(o => o.id === params.get('onglet')) ? params.get('onglet') : 'apercu';
@@ -179,6 +181,7 @@ export default function FicheMembre() {
               onConsulte={() => { api.getMembreResume(id).then(setResume).catch(() => {}); rafraichirCompteurs?.(); }} />
           </div>
         )}
+        {onglet === 'suivi' && isManager && !estMoi && <NotesSuivi membre={membre} />}
         {onglet === 'notes' && estMoi && <NotesPrivees />}
       </div>
 

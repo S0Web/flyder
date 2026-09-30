@@ -42,6 +42,7 @@ const appUsersRouter  = require('./routes/appUsers');
 const tachesRouter    = require('./routes/taches');
 const equipeRouter    = require('./routes/equipe');
 const personnelCreneauxRouter = require('./routes/personnelCreneaux');
+const demandesCongesRouter = require('./routes/demandesConges');
 const annuaireRouter  = require('./routes/annuaire');
 const adminRouter     = require('./routes/admin');
 const ipAutoriseesRouter = require('./routes/ipAutorisees');
@@ -116,6 +117,7 @@ app.use('/api/taches',      requireAuth, requireWriteAccess, tachesRouter);
 // route gère son niveau d'accès (voir routes/equipe.js).
 app.use('/api/equipe',      requireAuth, equipeRouter);
 app.use('/api/personnel-creneaux',  requireAuth, requireWriteAccess, personnelCreneauxRouter);
+app.use('/api/demandes-conges', requireAuth, requireWriteAccess, demandesCongesRouter);
 // Annuaire : contient des coordonnées personnelles, ni lecture ni écriture hors accès privilégié.
 app.use('/api/annuaire',   requireAuth, requireAnnuaireAccess, annuaireRouter);
 app.use('/api/admin', adminRouter);

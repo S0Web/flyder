@@ -145,7 +145,13 @@ export default function Taches() {
       {taches === null ? (
         <p className="py-16 text-center font-mono text-xs text-gray-400">chargement…</p>
       ) : vue === 'tableau' ? (
-        <Tableau taches={filtrees} onOpen={setOuverte} onDeplacer={deplacer} montrerAssigne={montrerAssigne} />
+        <>
+          <div className="mb-6 max-w-4xl">
+            <AjoutRapide membres={membres} assigneParDefaut={membre ? Number(membre) : (isManager ? null : user.id)} onCree={charger}
+              placeholder={membreActif ? `Nouvelle tâche pour ${membreActif.prenom}…` : 'Nouvelle tâche…'} />
+          </div>
+          <Tableau taches={filtrees} onOpen={setOuverte} onDeplacer={deplacer} montrerAssigne={montrerAssigne} />
+        </>
       ) : (
         <div className="max-w-4xl">
           <div className="mb-6">

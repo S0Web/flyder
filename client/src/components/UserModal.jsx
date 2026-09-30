@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useDismiss } from '../lib/useDismiss';
+import { useAuth } from '../context/AuthContext';
 
 export default function UserModal({ user, onSave, onClose }) {
   const isNew = !user?.id;
+  const { user: me } = useAuth();
+  const isManager = me?.role === 'manager'; // contrat : réservé aux managers (le serveur l'ignore sinon)
   const [form, setForm] = useState({
     prenom:   user?.prenom   || '',
     nom:      user?.nom      || '',
@@ -10,6 +13,7 @@ export default function UserModal({ user, onSave, onClose }) {
     role:     user?.role     || 'user',
     actif:    user?.actif    !== undefined ? user.actif : 1,
     date_debut_contrat: user?.date_debut_contrat || '',
+    heures_contrat_semaine: user?.heures_contrat_semaine ?? '',
   });
   const [error, setError]   = useState(null);
   const [saving, setSaving] = useState(false);
@@ -20,7 +24,7 @@ export default function UserModal({ user, onSave, onClose }) {
     setSaving(true);
     setError(null);
     try {
-      await onSave(form);
+      await onSave({ ...form, heures_contrat_semaine: form.heures_contrat_semaine === '' ? null : form.heures_contrat_semaine });
       dismiss();
     } catch(err) { setError(err.message); }
     finally { setSaving(false); }
@@ -75,13 +79,24 @@ export default function UserModal({ user, onSave, onClose }) {
               </div>
             )}
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Date de début de contrat</label>
-            <input type="date" value={form.date_debut_contrat}
-              onChange={e => setForm(f => ({ ...f, date_debut_contrat: e.target.value }))}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-            <p className="text-[11px] text-gray-400 mt-1">Sert à calculer le cumul de CP (2,5 jours acquis par mois).</p>
-          </div>
+          {isManager && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Date de début de contrat</label>
+                <input type="date" value={form.date_debut_contrat}
+                  onChange={e => setForm(f => ({ ...f, date_debut_contrat: e.target.value }))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                <p className="text-[11px] text-gray-400 mt-1">Sert à calculer le cumul de CP (2,5 jours acquis par mois).</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Heures de contrat par semaine</label>
+                <input type="number" min="0" max="80" step="0.5" inputMode="decimal" placeholder="Ex. 35" value={form.heures_contrat_semaine}
+                  onChange={e => setForm(f => ({ ...f, heures_contrat_semaine: e.target.value }))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                <p className="text-[11px] text-gray-400 mt-1">Facultatif. Sert à comparer les heures planifiées au contrat (Effectif, Planning). Vide : pas de suivi.</p>
+              </div>
+            </>
+          )}
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={dismiss}
               className="flex-1 border border-gray-300 text-gray-600 rounded py-2 text-sm hover:bg-gray-50 active:scale-[0.98] transition-transform">Annuler</button>

@@ -17,7 +17,7 @@ const ROLE_STYLE = {
 
 // Formulaire de démarrage : uniquement affiché quand la salle n'a encore aucun profil
 // (bootstrap du tout premier compte, forcément manager). Une fois un profil créé, cette
-// route se ferme côté serveur — toute création ultérieure passe par Paramètres > Utilisateurs.
+// route se ferme côté serveur — toute création ultérieure passe par Équipe > Effectif.
 function FirstProfileForm({ onCreated }) {
   const [form, setForm] = useState({ prenom: '', nom: '' });
   const [error, setError] = useState(null);
@@ -295,7 +295,7 @@ export default function ProfilePicker() {
 
           <button
             type="button"
-            onClick={() => toast.info('La création de profil se fait dans Paramètres > Utilisateurs (manager).')}
+            onClick={() => toast.info('La création de profil se fait dans Équipe > Effectif (manager).')}
             disabled={selecting !== null}
             className="flex flex-col items-center gap-2 group disabled:opacity-50"
           >
