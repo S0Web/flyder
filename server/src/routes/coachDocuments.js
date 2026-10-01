@@ -6,6 +6,13 @@ const multer = require('multer');
 const router = express.Router();
 const db = require('../db/database');
 const { requireManager } = require('../middleware/auth');
+const { logAudit } = require('../lib/audit');
+
+const TYPE_LABELS = { cni_passeport: 'CNI / passeport', diplome: 'Diplôme', carte_pro: 'Carte professionnelle', autre: 'Document' };
+function nomCoach(coachId) {
+  const c = db.get('SELECT prenom, nom FROM coaches WHERE id = ?', [coachId]);
+  return c ? `${c.prenom} ${c.nom || ''}`.trim() : `#${coachId}`;
+}
 
 // Documents des coachs (CNI/passeport, diplômes, carte professionnelle, autre) —
 // les coachs n'ont pas de compte de connexion (pas de lien avec app_users), donc
@@ -66,6 +73,8 @@ router.post('/:coachId', requireManager, (req, res) => {
       `INSERT INTO coach_documents (coach_id, type, nom_fichier, chemin) VALUES (?, ?, ?, ?)`,
       [req.params.coachId, type, req.file.originalname, req.file.path]
     );
+    logAudit({ userId: req.user.id, action: 'ajouter_document_coach', entity: 'coach_documents', entityId: result.lastInsertRowid,
+      details: `${nomCoach(req.params.coachId)} — ${TYPE_LABELS[type]} ajouté(e)` });
     res.status(201).json(
       db.get('SELECT id, type, nom_fichier, date_upload FROM coach_documents WHERE id = ?', [result.lastInsertRowid])
     );
@@ -78,6 +87,8 @@ router.delete('/:id', requireManager, (req, res) => {
   if (!doc) return res.status(404).json({ error: 'Document introuvable' });
   db.run('DELETE FROM coach_documents WHERE id = ?', [req.params.id]);
   fs.unlink(doc.chemin, () => {});
+  logAudit({ userId: req.user.id, action: 'supprimer_document_coach', entity: 'coach_documents', entityId: doc.id,
+    details: `${nomCoach(doc.coach_id)} — ${TYPE_LABELS[doc.type] || doc.type} supprimé(e)` });
   res.json({ ok: true });
 });
 

@@ -3,6 +3,7 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { requireManager } = require('../middleware/auth');
 const { upsertJour } = require('../db/personnelWrite');
+const { logAudit } = require('../lib/audit');
 const { cpRestantPour } = require('../lib/cp');
 const { dateLocaleISO, ajouterJours } = require('../lib/dates');
 
@@ -84,6 +85,8 @@ router.post('/', (req, res) => {
     'INSERT INTO demandes_conges (user_id, date_debut, date_fin, motif) VALUES (?, ?, ?, ?)',
     [req.user.id, debut, fin, motif]
   );
+  logAudit({ userId: req.user.id, action: 'demande_conge', entity: 'demandes_conges', entityId: result.lastInsertRowid,
+    details: `${debut} → ${fin}` });
   res.status(201).json(formater(db.get(`${SELECT} WHERE d.id = ?`, [result.lastInsertRowid]), req));
 });
 

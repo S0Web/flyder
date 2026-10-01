@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
 const { dateLocaleISO, ajouterJours } = require('../lib/dates');
+const { logAudit } = require('../lib/audit');
 
 // Incidents du terrain (bassin, matériel…). Tout le monde peut en signaler et les consulter
 // (pas de doublons, l'équipe sait ce qui est en cours) ; un manager attribue, modifie et supprime ;
@@ -9,6 +10,8 @@ const { dateLocaleISO, ajouterJours } = require('../lib/dates');
 
 const TYPES   = ['bassin', 'materiel', 'autre'];
 const STATUTS = ['ouvert', 'en_cours', 'resolu'];
+const TYPE_LABELS = { bassin: 'Bassin', materiel: 'Matériel', autre: 'Autre' };
+const STATUT_LABELS = { ouvert: 'ouvert', en_cours: 'en cours', resolu: 'résolu' };
 
 const SELECT_INCIDENT = `
   SELECT i.*,
@@ -83,6 +86,8 @@ router.post('/', (req, res) => {
     [b.type, String(titre).trim(), String(description || '').trim(), responsable, signalePar, date, compteRenduId]
   );
   if (compteRenduId) db.run('UPDATE comptes_rendus SET probleme_incident_id = ? WHERE id = ?', [result.lastInsertRowid, compteRenduId]);
+  logAudit({ userId: req.user.id, action: 'creer_incident', entity: 'incidents', entityId: result.lastInsertRowid,
+    details: `${TYPE_LABELS[b.type]} — ${String(titre).trim()}` });
   res.status(201).json(db.get(`${SELECT_INCIDENT} WHERE i.id = ?`, [result.lastInsertRowid]));
 });
 
@@ -132,16 +137,23 @@ router.patch('/:id', (req, res) => {
        resolu_le=?, resolu_par=?, updated_at=datetime('now') WHERE id=?`,
     [next.type, next.titre, next.description, next.statut, next.responsable_id, next.resolution, next.resolu_le, next.resolu_par, inc.id]
   );
+  const resume = next.statut !== inc.statut
+    ? `${STATUT_LABELS[inc.statut]} → ${STATUT_LABELS[next.statut]}`
+    : 'modifié';
+  logAudit({ userId: req.user.id, action: 'modifier_incident', entity: 'incidents', entityId: inc.id,
+    details: `${TYPE_LABELS[next.type]} — ${next.titre} : ${resume}` });
   res.json(db.get(`${SELECT_INCIDENT} WHERE i.id = ?`, [inc.id]));
 });
 
 // DELETE /api/incidents/:id — manager
 router.delete('/:id', (req, res) => {
   if (!estManager(req)) return res.status(403).json({ error: 'Réservé aux managers.' });
-  const inc = db.get('SELECT id FROM incidents WHERE id = ?', [req.params.id]);
+  const inc = db.get('SELECT * FROM incidents WHERE id = ?', [req.params.id]);
   if (!inc) return res.status(404).json({ error: 'Incident introuvable' });
   db.run('UPDATE comptes_rendus SET probleme_incident_id = NULL WHERE probleme_incident_id = ?', [inc.id]);
   db.run('DELETE FROM incidents WHERE id = ?', [inc.id]);
+  logAudit({ userId: req.user.id, action: 'supprimer_incident', entity: 'incidents', entityId: inc.id,
+    details: `${TYPE_LABELS[inc.type]} — ${inc.titre}` });
   res.json({ ok: true });
 });
 

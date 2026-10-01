@@ -9,6 +9,13 @@ const db = require('../db/database');
 const { requireAuth, requireManager } = require('../middleware/auth');
 const { analyserFichesDePaie } = require('../lib/payslipParser');
 const { requireDeverrouillage } = require('../lib/deverrouillage');
+const { logAudit } = require('../lib/audit');
+
+const TYPE_LABELS = { fiche_paie: 'Fiche de paie', contrat: 'Contrat', arret_maladie: 'Arrêt maladie', autre: 'Document' };
+function nomDe(userId) {
+  const u = db.get('SELECT prenom, nom FROM app_users WHERE id = ?', [userId]);
+  return u ? `${u.prenom} ${u.nom || ''}`.trim() : `#${userId}`;
+}
 
 // Documents des salariés (fiches de paie, contrat, arrêt maladie, autre) — sur le
 // volume persistant, jamais dans server/public. Contrairement aux images Formation,
@@ -108,6 +115,8 @@ router.post('/:userId', requireManager, (req, res) => {
       `INSERT INTO employe_documents (user_id, type, periode, nom_fichier, chemin, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)`,
       [req.params.userId, type, periode || null, req.file.originalname, req.file.path, req.user.id]
     );
+    logAudit({ userId: req.user.id, action: 'ajouter_document_employe', entity: 'employe_documents', entityId: result.lastInsertRowid,
+      details: `${nomDe(req.params.userId)} — ${TYPE_LABELS[type]}${periode ? ` (${periode})` : ''} ajouté(e)` });
     res.status(201).json(
       db.get('SELECT id, type, periode, nom_fichier, date_upload, vu_le FROM employe_documents WHERE id = ?', [result.lastInsertRowid])
     );
@@ -120,6 +129,8 @@ router.delete('/:id', requireManager, (req, res) => {
   if (!doc) return res.status(404).json({ error: 'Document introuvable' });
   db.run('DELETE FROM employe_documents WHERE id = ?', [req.params.id]);
   fs.unlink(doc.chemin, () => {});
+  logAudit({ userId: req.user.id, action: 'supprimer_document_employe', entity: 'employe_documents', entityId: doc.id,
+    details: `${nomDe(doc.user_id)} — ${TYPE_LABELS[doc.type] || doc.type}${doc.periode ? ` (${doc.periode})` : ''} supprimé(e)` });
   res.json({ ok: true });
 });
 
@@ -182,6 +193,10 @@ router.post('/import/confirmer', requireManager, async (req, res) => {
     }
 
     fs.unlink(tempPath, () => {});
+    if (count > 0) {
+      logAudit({ userId: req.user.id, action: 'import_fiches_paie', entity: 'employe_documents',
+        details: `${count} fiche(s) de paie importée(s)` });
+    }
     res.json({ ok: true, count });
   } catch (e) {
     res.status(500).json({ error: "Échec de l'import : " + e.message });

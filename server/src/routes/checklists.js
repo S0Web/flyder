@@ -4,6 +4,9 @@ const db      = require('../db/database');
 const { requireManager } = require('../middleware/auth');
 const { dateLocaleISO } = require('../lib/dates');
 const { genererChecklists, responsablesDuJour, lireJours, MOMENTS } = require('../lib/checklists');
+const { logAudit } = require('../lib/audit');
+
+const MOMENT_LABELS = { ouverture: 'ouverture', fermeture: 'fermeture', bassin: 'bassin' };
 
 // Modèles de checklist (ouverture, fermeture, bassin) : gérés par les managers. Les tâches
 // qui en découlent sont de simples tâches (Équipe > Tâches, Ma journée).
@@ -38,6 +41,8 @@ router.post('/', requireManager, (req, res) => {
     [moment, String(titre).trim(), String(description || '').trim(), PRIORITES.includes(priorite) ? priorite : 'normale', jours.valeur, req.user.id]
   );
   genererChecklists();
+  logAudit({ userId: req.user.id, action: 'create_checklist_modele', entity: 'checklist_modeles', entityId: result.lastInsertRowid,
+    details: `${String(titre).trim()} (${MOMENT_LABELS[moment]})` });
   res.status(201).json(exposer(db.get('SELECT * FROM checklist_modeles WHERE id = ?', [result.lastInsertRowid])));
 });
 
@@ -77,16 +82,20 @@ router.put('/:id', requireManager, (req, res) => {
     }
   }
   genererChecklists();
+  logAudit({ userId: req.user.id, action: 'update_checklist_modele', entity: 'checklist_modeles', entityId: m.id,
+    details: `${next.titre} (${MOMENT_LABELS[next.moment]})${next.actif ? '' : ' — désactivé'}` });
   res.json(exposer(db.get('SELECT * FROM checklist_modeles WHERE id = ?', [m.id])));
 });
 
 // DELETE /api/checklists/:id — supprime le modèle et ses tâches pas encore commencées ;
 // l'historique (tâches faites ou en cours) reste.
 router.delete('/:id', requireManager, (req, res) => {
-  const m = db.get('SELECT id FROM checklist_modeles WHERE id = ?', [req.params.id]);
+  const m = db.get('SELECT * FROM checklist_modeles WHERE id = ?', [req.params.id]);
   if (!m) return res.status(404).json({ error: 'Modèle introuvable' });
   db.run("DELETE FROM taches WHERE modele_id = ? AND statut = 'a_faire'", [m.id]);
   db.run('DELETE FROM checklist_modeles WHERE id = ?', [m.id]);
+  logAudit({ userId: req.user.id, action: 'delete_checklist_modele', entity: 'checklist_modeles', entityId: m.id,
+    details: `${m.titre} (${MOMENT_LABELS[m.moment]})` });
   res.json({ ok: true });
 });
 

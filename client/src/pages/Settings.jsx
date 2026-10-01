@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CalendarDays, UserCog, Users as UsersIcon, LogIn } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, UserCog, Users as UsersIcon, LogIn, Briefcase, Settings as SettingsIcon } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -15,23 +15,52 @@ const AUDIT_PAGE = 50;
 // changé sur le planning du personnel", pas en nom technique d'action ;
 // regrouper par catégorie plutôt que par action brute colle à cette question.
 const CATEGORIES = [
-  { id: 'cours',      label: 'Planning des cours',    icon: CalendarDays, color: '#3D5AFE', bg: '#EEF1FF' },
-  { id: 'personnel',  label: 'Planning du personnel', icon: UserCog,      color: '#7C3AED', bg: '#F3EEFF' },
-  { id: 'comptes',    label: 'Comptes utilisateurs',  icon: UsersIcon,    color: '#0F8A5F', bg: '#E8F7F0' },
-  { id: 'connexions', label: 'Connexions',            icon: LogIn,        color: '#6B7280', bg: '#F3F4F6' },
+  { id: 'cours',      label: 'Planning des cours',    icon: CalendarDays,  color: '#3D5AFE', bg: '#EEF1FF' },
+  { id: 'personnel',  label: 'Planning du personnel', icon: UserCog,       color: '#7C3AED', bg: '#F3EEFF' },
+  { id: 'equipe',     label: 'Équipe',                icon: Briefcase,     color: '#0E7490', bg: '#E0F7FA' },
+  { id: 'comptes',    label: 'Comptes utilisateurs',  icon: UsersIcon,     color: '#0F8A5F', bg: '#E8F7F0' },
+  { id: 'parametres', label: 'Paramètres',            icon: SettingsIcon, color: '#92400E', bg: '#FEF3C7' },
+  { id: 'connexions', label: 'Connexions',            icon: LogIn,         color: '#6B7280', bg: '#F3F4F6' },
 ];
 const CATEGORY_BY_ACTION = {
   update_seance: 'cours',
   update_personnel_creneau: 'personnel',
   dupliquer_semaine_personnel: 'personnel',
   decision_conge: 'personnel',
+  demande_conge: 'personnel',
   create_user: 'comptes',
   delete_user: 'comptes',
   create_profile: 'comptes',
   seed_admin_account: 'comptes',
   recover_manager: 'comptes',
+  update_user: 'comptes',
+  cp_ajuste: 'comptes',
   switch_profile: 'connexions',
   dev_access_login: 'connexions',
+  update_fiche_poste: 'equipe',
+  soumettre_compte_rendu: 'equipe',
+  decision_compte_rendu: 'equipe',
+  creer_tache: 'equipe',
+  modifier_tache: 'equipe',
+  supprimer_tache: 'equipe',
+  creer_incident: 'equipe',
+  modifier_incident: 'equipe',
+  supprimer_incident: 'equipe',
+  ajouter_document_employe: 'equipe',
+  supprimer_document_employe: 'equipe',
+  import_fiches_paie: 'equipe',
+  ajouter_document_coach: 'equipe',
+  supprimer_document_coach: 'equipe',
+  ajouter_note_suivi: 'equipe',
+  supprimer_note_suivi: 'equipe',
+  update_preferences: 'parametres',
+  create_ip_autorisee: 'parametres',
+  delete_ip_autorisee: 'parametres',
+  create_cours_type: 'parametres',
+  update_cours_type: 'parametres',
+  create_checklist_modele: 'parametres',
+  update_checklist_modele: 'parametres',
+  delete_checklist_modele: 'parametres',
 };
 
 const ACTION_LABELS = {
@@ -42,11 +71,48 @@ const ACTION_LABELS = {
   delete_user: 'Profil supprimé',
   seed_admin_account: 'Compte créé (système)',
   recover_manager: 'Manager promu (système)',
+  update_user: 'Profil modifié',
+  cp_ajuste: 'Congés payés ajustés',
   update_seance: 'Séance modifiée',
   update_personnel_creneau: 'Planning personnel modifié',
   dupliquer_semaine_personnel: 'Semaine dupliquée (personnel)',
   decision_conge: 'Demande de congé traitée',
+  demande_conge: 'Demande de congé déposée',
+  update_fiche_poste: 'Fiche de poste modifiée',
+  soumettre_compte_rendu: 'Compte rendu enregistré',
+  decision_compte_rendu: 'Compte rendu : décision',
+  creer_tache: 'Tâche créée',
+  modifier_tache: 'Tâche modifiée',
+  supprimer_tache: 'Tâche supprimée',
+  creer_incident: 'Incident signalé',
+  modifier_incident: 'Incident modifié',
+  supprimer_incident: 'Incident supprimé',
+  ajouter_document_employe: 'Document ajouté',
+  supprimer_document_employe: 'Document supprimé',
+  import_fiches_paie: 'Fiches de paie importées',
+  ajouter_document_coach: 'Document coach ajouté',
+  supprimer_document_coach: 'Document coach supprimé',
+  ajouter_note_suivi: 'Note de suivi ajoutée',
+  supprimer_note_suivi: 'Note de suivi supprimée',
+  update_preferences: 'Préférences modifiées',
+  create_ip_autorisee: 'IP autorisée ajoutée',
+  delete_ip_autorisee: 'IP autorisée retirée',
+  create_cours_type: 'Type de cours créé',
+  update_cours_type: 'Type de cours modifié',
+  create_checklist_modele: 'Modèle de checklist créé',
+  update_checklist_modele: 'Modèle de checklist modifié',
+  delete_checklist_modele: 'Modèle de checklist supprimé',
 };
+
+// La plupart des nouvelles actions écrivent leur détail au format
+// "Personne concernée — reste de la phrase" (voir les routes serveur) : on
+// sépare les deux au premier tiret cadratin plutôt que de refaire une lecture
+// sur mesure pour chacune.
+function parsePersonne(details, libelleParDefaut) {
+  const i = (details || '').indexOf(' — ');
+  if (i === -1) return { cible: libelleParDefaut, resume: details || '—' };
+  return { cible: details.slice(0, i), resume: details.slice(i + 3) };
+}
 
 const STATUT_LABELS = { programme: 'Programmé', effectue: 'Effectué', annule: 'Annulé', paye: 'Payé' };
 const TYPE_PERSONNEL_LABELS = { travail: 'Travail', cp: 'CP', ecole: 'École', ferie: 'Férié', arret: 'Arrêt', repos: 'Repos' };
@@ -104,6 +170,46 @@ function lireEntree(a, usersById) {
       return { cible: a.user_nom || '—', resume: a.details || 'Promu manager automatiquement' };
     case 'decision_conge':
       return { cible: a.conge_demandeur || `Demande #${a.entity_id}`, resume: a.details || '—' };
+    case 'demande_conge': {
+      const m = (a.details || '').match(/^(\d{4}-\d{2}-\d{2}) → (\d{4}-\d{2}-\d{2})(?: : (.*))?$/);
+      return {
+        cible: a.user_nom || '—',
+        resume: m ? `${formatDate(m[1])} → ${formatDate(m[2])}${m[3] ? ` : ${m[3]}` : ''}` : (a.details || '—'),
+      };
+    }
+    case 'update_user':
+    case 'cp_ajuste':
+    case 'update_fiche_poste':
+    case 'soumettre_compte_rendu':
+    case 'decision_compte_rendu':
+    case 'creer_tache':
+    case 'modifier_tache':
+    case 'supprimer_tache':
+    case 'ajouter_document_employe':
+    case 'supprimer_document_employe':
+    case 'ajouter_document_coach':
+    case 'supprimer_document_coach':
+    case 'ajouter_note_suivi':
+    case 'supprimer_note_suivi':
+      return parsePersonne(a.details, ACTION_LABELS[a.action]);
+    case 'creer_incident':
+    case 'modifier_incident':
+    case 'supprimer_incident':
+      return parsePersonne(a.details, 'Incident');
+    case 'import_fiches_paie':
+      return { cible: 'Fiches de paie', resume: a.details || '—' };
+    case 'update_preferences':
+      return { cible: 'Préférences de la salle', resume: a.details || '—' };
+    case 'create_ip_autorisee':
+    case 'delete_ip_autorisee':
+      return { cible: 'Adresse IP autorisée', resume: a.details || '—' };
+    case 'create_cours_type':
+    case 'update_cours_type':
+      return { cible: 'Type de cours', resume: a.details || '—' };
+    case 'create_checklist_modele':
+    case 'update_checklist_modele':
+    case 'delete_checklist_modele':
+      return { cible: 'Modèle de checklist', resume: a.details || '—' };
     default:
       return { cible: a.entity || '—', resume: a.details || '—' };
   }

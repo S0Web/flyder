@@ -3,6 +3,13 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { dateLocaleISO, ajouterJours, ajouterMois } = require('../lib/dates');
 const { genererChecklists } = require('../lib/checklists');
+const { logAudit } = require('../lib/audit');
+
+const STATUT_LABELS = { a_faire: 'à faire', en_cours: 'en cours', fait: 'fait' };
+function nomDe(userId) {
+  const u = db.get('SELECT prenom, nom FROM app_users WHERE id = ?', [userId]);
+  return u ? `${u.prenom} ${u.nom || ''}`.trim() : `#${userId}`;
+}
 
 // Tâches de l'équipe. Le manager voit et gère tout ; un salarié ne voit que les
 // tâches qui lui sont assignées, peut s'en créer lui-même (la tâche garde son
@@ -98,6 +105,8 @@ router.post('/', (req, res) => {
       RECURRENCES.includes(recurrence) ? recurrence : 'aucune',
     ]
   );
+  logAudit({ userId: req.user.id, action: 'creer_tache', entity: 'taches', entityId: result.lastInsertRowid,
+    details: `${nomDe(cible)} — tâche créée : ${titre.trim()}` });
   res.status(201).json(db.get(`${SELECT_TACHE} WHERE t.id = ?`, [result.lastInsertRowid]));
 });
 
@@ -141,6 +150,17 @@ router.patch('/:id', (req, res) => {
      next.statut, next.fait_le, next.fait_par, tache.id]
   );
   if (next.statut === 'fait' && tache.statut !== 'fait') creerOccurrenceSuivante(next);
+
+  const statutChange = next.statut !== tache.statut;
+  const contenuChange = champsContenu.some((k) => b[k] !== undefined);
+  const resume = statutChange && !contenuChange
+    ? `${STATUT_LABELS[tache.statut]} → ${STATUT_LABELS[next.statut]}`
+    : statutChange
+      ? `modifiée, ${STATUT_LABELS[tache.statut]} → ${STATUT_LABELS[next.statut]}`
+      : 'modifiée';
+  logAudit({ userId: req.user.id, action: 'modifier_tache', entity: 'taches', entityId: tache.id,
+    details: `${nomDe(next.assigne_a)} — ${next.titre} : ${resume}` });
+
   res.json(db.get(`${SELECT_TACHE} WHERE t.id = ?`, [tache.id]));
 });
 
@@ -152,6 +172,8 @@ router.delete('/:id', (req, res) => {
     return res.status(403).json({ error: "Seul l'auteur de la tâche ou un manager peut la supprimer." });
   }
   db.run('DELETE FROM taches WHERE id = ?', [tache.id]);
+  logAudit({ userId: req.user.id, action: 'supprimer_tache', entity: 'taches', entityId: tache.id,
+    details: `${nomDe(tache.assigne_a)} — tâche supprimée : ${tache.titre}` });
   res.json({ ok: true });
 });
 

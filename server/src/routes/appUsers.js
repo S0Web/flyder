@@ -5,6 +5,7 @@ const { requireAuth, requireManager } = require('../middleware/auth');
 const { isPrivileged } = require('../middleware/ipAccess');
 const { soldeCp, prisDepuisContrat } = require('../lib/cp');
 const { getPreference } = require('../lib/preferences');
+const { logAudit } = require('../lib/audit');
 
 const CHAMPS_USER = 'id, prenom, nom, email, role, actif, date_debut_contrat, heures_contrat_semaine, coach_id';
 
@@ -44,10 +45,28 @@ router.get('/', requireManager, (req, res) => {
 // à un manager, "Planning des cours" si. Le mapping inverse (action -> clé)
 // sert à construire le IN (...) ci-dessous.
 const CATEGORIES = {
-  cours:     ['update_seance'],
-  personnel: ['update_personnel_creneau', 'dupliquer_semaine_personnel', 'decision_conge'],
-  comptes:   ['create_user', 'delete_user', 'create_profile', 'seed_admin_account', 'recover_manager'],
-  connexions:['switch_profile', 'dev_access_login'],
+  cours:      ['update_seance'],
+  personnel:  ['update_personnel_creneau', 'dupliquer_semaine_personnel', 'decision_conge', 'demande_conge'],
+  comptes:    ['create_user', 'delete_user', 'create_profile', 'seed_admin_account', 'recover_manager', 'update_user', 'cp_ajuste'],
+  connexions: ['switch_profile', 'dev_access_login'],
+  // Interventions dans l'onglet Équipe qui ne touchent pas directement la ligne
+  // app_users (sinon elles seraient dans "comptes") : fiches de poste, bilans,
+  // tâches, incidents, documents, notes de suivi. Les notes privées (strictement
+  // personnelles, même pour les autres managers) ne sont volontairement jamais
+  // journalisées.
+  equipe: [
+    'update_fiche_poste', 'soumettre_compte_rendu', 'decision_compte_rendu',
+    'creer_tache', 'modifier_tache', 'supprimer_tache',
+    'creer_incident', 'modifier_incident', 'supprimer_incident',
+    'ajouter_document_employe', 'supprimer_document_employe', 'import_fiches_paie',
+    'ajouter_document_coach', 'supprimer_document_coach',
+    'ajouter_note_suivi', 'supprimer_note_suivi',
+  ],
+  parametres: [
+    'update_preferences', 'create_ip_autorisee', 'delete_ip_autorisee',
+    'create_cours_type', 'update_cours_type',
+    'create_checklist_modele', 'update_checklist_modele', 'delete_checklist_modele',
+  ],
 };
 
 // GET /api/app-users/audit — historique (manager), paginé + filtres/tri
@@ -125,11 +144,15 @@ router.get('/:id/cp', requireAuth, (req, res) => {
 
 // PATCH /api/app-users/:id/cp-ajuste — ajustement manuel du cumul de CP (+1/-1, manager)
 router.patch('/:id/cp-ajuste', requireManager, (req, res) => {
-  const user = db.get('SELECT id, cp_ajuste FROM app_users WHERE id = ?', [req.params.id]);
+  const user = db.get('SELECT id, prenom, nom, cp_ajuste FROM app_users WHERE id = ?', [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
   const delta = Number(req.body.delta) || 0;
   const newVal = Math.round(((user.cp_ajuste || 0) + delta) * 100) / 100;
   db.run('UPDATE app_users SET cp_ajuste = ? WHERE id = ?', [newVal, user.id]);
+  if (delta) {
+    logAudit({ userId: req.user.id, action: 'cp_ajuste', entity: 'app_users', entityId: user.id,
+      details: `${user.prenom} ${user.nom || ''}`.trim() + ` — CP ajustés : ${delta > 0 ? '+' : ''}${delta}` });
+  }
   res.json(cpDetail(req.params.id));
 });
 
@@ -185,17 +208,33 @@ router.put('/:id', requireAuth, (req, res) => {
   if (coach.erreur) return res.status(coach.statut || 400).json({ error: coach.erreur });
   const newCoachId = coach.valeur !== undefined ? coach.valeur : user.coach_id;
 
+  const newPrenom = (prenom || user.prenom).trim();
+  const newNom = (nom !== undefined ? nom : user.nom).trim();
+
   db.run(
     'UPDATE app_users SET prenom=?, nom=?, email=?, role=?, actif=?, date_debut_contrat=?, heures_contrat_semaine=?, coach_id=? WHERE id=?',
-    [
-      (prenom || user.prenom).trim(),
-      (nom !== undefined ? nom : user.nom).trim(),
-      newEmail,
-      newRole, newActif, newDateDebut, newHeures, newCoachId,
-      req.params.id
-    ]
+    [newPrenom, newNom, newEmail, newRole, newActif, newDateDebut, newHeures, newCoachId, req.params.id]
   );
   if (!newActif) db.run('DELETE FROM sessions WHERE user_id = ?', [req.params.id]);
+
+  // Résumé de ce qui a réellement changé — pas de ligne d'historique si rien n'a bougé
+  // (ex. un salarié qui rouvre puis renvoie sa propre fiche sans rien modifier).
+  const changements = [];
+  if (newRole !== user.role) changements.push(`Rôle → ${newRole === 'manager' ? 'Manager' : 'Utilisateur'}`);
+  if (newActif !== user.actif) changements.push(newActif ? 'Réactivé' : 'Désactivé');
+  if (newDateDebut !== user.date_debut_contrat) changements.push(`Date de contrat → ${newDateDebut || '—'}`);
+  if (newEmail !== user.email) changements.push('Email modifié');
+  if (newHeures !== user.heures_contrat_semaine) changements.push(`Heures de contrat → ${newHeures != null ? newHeures + 'h/semaine' : 'non suivi'}`);
+  if (newCoachId !== user.coach_id) {
+    const coach = newCoachId ? db.get('SELECT prenom, nom FROM coaches WHERE id = ?', [newCoachId]) : null;
+    changements.push(newCoachId ? `Fiche coach reliée (${coach ? `${coach.prenom} ${coach.nom || ''}`.trim() : `#${newCoachId}`})` : 'Fiche coach déliée');
+  }
+  if (newPrenom !== user.prenom || newNom !== user.nom) changements.push(`Nom → ${newPrenom} ${newNom}`.trim());
+  if (changements.length) {
+    logAudit({ userId: req.user.id, action: 'update_user', entity: 'app_users', entityId: Number(req.params.id),
+      details: `${user.prenom} ${user.nom || ''}`.trim() + ` — ${changements.join(' · ')}` });
+  }
+
   res.json(db.get(`SELECT ${CHAMPS_USER} FROM app_users WHERE id = ?`, [req.params.id]));
 });
 

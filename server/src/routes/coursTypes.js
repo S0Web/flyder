@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
+const { logAudit } = require('../lib/audit');
 
 // GET /api/cours-types
 router.get('/', (req, res) => {
@@ -29,6 +30,8 @@ router.post('/', (req, res) => {
       'INSERT INTO cours_types (nom, categorie, capacite) VALUES (?, ?, ?)',
       [nom.trim(), categorie, cap.valeur]
     );
+    logAudit({ userId: req.user.id, action: 'create_cours_type', entity: 'cours_types', entityId: result.lastInsertRowid,
+      details: `${nom.trim()} (${categorie})` });
     res.status(201).json(db.get('SELECT * FROM cours_types WHERE id = ?', [result.lastInsertRowid]));
   } catch (err) {
     if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'Ce cours existe déjà' });
@@ -38,12 +41,14 @@ router.post('/', (req, res) => {
 
 // PATCH /api/cours-types/:id — { capacite } (null pour l'effacer)
 router.patch('/:id', (req, res) => {
-  const existant = db.get('SELECT id FROM cours_types WHERE id = ?', [req.params.id]);
+  const existant = db.get('SELECT * FROM cours_types WHERE id = ?', [req.params.id]);
   if (!existant) return res.status(404).json({ error: 'Cours introuvable' });
   if (!('capacite' in req.body)) return res.status(400).json({ error: 'capacite requise' });
   const cap = lireCapacite(req.body.capacite);
   if (!cap.ok) return res.status(400).json({ error: 'La capacité doit être un entier entre 1 et 500.' });
   db.run('UPDATE cours_types SET capacite = ? WHERE id = ?', [cap.valeur, existant.id]);
+  logAudit({ userId: req.user.id, action: 'update_cours_type', entity: 'cours_types', entityId: existant.id,
+    details: `${existant.nom} : capacité → ${cap.valeur ?? 'non renseignée'}` });
   res.json(db.get('SELECT * FROM cours_types WHERE id = ?', [existant.id]));
 });
 

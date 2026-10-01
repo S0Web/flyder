@@ -6,6 +6,12 @@ const { requireWriteAccess } = require('../middleware/ipAccess');
 const { cpRestantPour: cpRestant } = require('../lib/cp');
 const { genererChecklists } = require('../lib/checklists');
 const { dateLocaleISO, ajouterJours, lundiDe, horaireEnMinutes } = require('../lib/dates');
+const { logAudit } = require('../lib/audit');
+
+function nomDe(userId) {
+  const u = db.get('SELECT prenom, nom FROM app_users WHERE id = ?', [userId]);
+  return u ? `${u.prenom} ${u.nom || ''}`.trim() : `#${userId}`;
+}
 
 // Onglet Équipe : fiches de poste, comptes rendus de fin de journée, notes
 // privées, et les deux tableaux de bord (vue d'ensemble manager / ma journée).
@@ -67,6 +73,8 @@ router.put('/fiches-poste/:userId', requireManager, (req, res) => {
      JSON.stringify(nettoyerListe(missions)), JSON.stringify(normaliserIndicateurs(indicateurs)),
      String(rappel || '').trim(), req.user.id]
   );
+  logAudit({ userId: req.user.id, action: 'update_fiche_poste', entity: 'fiches_poste', entityId: userId,
+    details: `${nomDe(userId)} — ${String(intitule || '').trim() || 'fiche mise à jour'}` });
   res.json(lireFiche(userId));
 });
 
@@ -167,7 +175,10 @@ router.put('/comptes-rendus/moi/:date', requireWriteAccess, (req, res) => {
     db.run('UPDATE comptes_rendus SET probleme_resolu = 0, probleme_tache_id = NULL WHERE id = ?', [existant.id]);
     // Un incident déjà ouvert à partir de l'ancien texte reste suivi dans Incidents : on garde le lien.
   }
-  res.json(formaterCr(db.get(`${SELECT_CR} WHERE cr.user_id = ? AND cr.date = ?`, [req.user.id, date])));
+  const cr = db.get(`${SELECT_CR} WHERE cr.user_id = ? AND cr.date = ?`, [req.user.id, date]);
+  logAudit({ userId: req.user.id, action: 'soumettre_compte_rendu', entity: 'comptes_rendus', entityId: cr.id,
+    details: `${nomDe(req.user.id)} — ${date} : ${soumettre ? 'bilan soumis' : 'brouillon enregistré'}` });
+  res.json(formaterCr(cr));
 });
 
 // POST /api/equipe/comptes-rendus/:id/probleme — { resolu?: bool, tache_id?: number|null }
@@ -200,6 +211,8 @@ router.post('/comptes-rendus/:id/decision', requireManager, (req, res) => {
      WHERE id = ?`,
     [decision, retour, req.user.id, cr.id]
   );
+  logAudit({ userId: req.user.id, action: 'decision_compte_rendu', entity: 'comptes_rendus', entityId: cr.id,
+    details: `${nomDe(cr.user_id)} — ${cr.date} : ${decision === 'valide' ? 'validé' : `à revoir${retour ? ' : ' + retour : ''}`}` });
   res.json(formaterCr(db.get(`${SELECT_CR} WHERE cr.id = ?`, [cr.id])));
 });
 
@@ -262,6 +275,10 @@ router.post('/membres/:id/notes-suivi', requireManager, (req, res) => {
     return res.status(404).json({ error: 'Membre introuvable' });
   }
   const result = db.run('INSERT INTO notes_suivi (user_id, auteur_id, contenu) VALUES (?, ?, ?)', [req.params.id, req.user.id, contenu]);
+  // Le contenu de la note n'apparaît pas dans l'historique : seul le fait qu'une
+  // note ait été ajoutée, pas ce qu'elle dit.
+  logAudit({ userId: req.user.id, action: 'ajouter_note_suivi', entity: 'notes_suivi', entityId: result.lastInsertRowid,
+    details: `${nomDe(req.params.id)} — note de suivi ajoutée` });
   res.status(201).json(db.get(`${SELECT_NOTE_SUIVI} WHERE n.id = ?`, [result.lastInsertRowid]));
 });
 
@@ -270,6 +287,8 @@ router.delete('/notes-suivi/:id', requireManager, (req, res) => {
   if (!note) return res.status(404).json({ error: 'Note introuvable' });
   if (note.user_id === req.user.id) return res.status(403).json({ error: 'Ces notes ne sont pas visibles par la personne concernée.' });
   db.run('DELETE FROM notes_suivi WHERE id = ?', [note.id]);
+  logAudit({ userId: req.user.id, action: 'supprimer_note_suivi', entity: 'notes_suivi', entityId: note.id,
+    details: `${nomDe(note.user_id)} — note de suivi supprimée` });
   res.json({ ok: true });
 });
 
