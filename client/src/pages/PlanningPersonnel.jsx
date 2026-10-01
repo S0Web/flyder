@@ -15,71 +15,93 @@ import { useHorairesSalle, graduations } from '../lib/useHorairesSalle';
 
 const heures = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h + m / 60; };
 
-// Frise de la semaine : une ligne par jour, une barre colorée par créneau de travail
-// (heure réelle, initiales de l'employé) sur un axe borné par les heures d'ouverture de la
-// salle (Préférences) — pour voir d'un coup d'œil qui est présent et quand. Travail
-// uniquement (pas les absences) ; cliquer une barre ouvre la même fiche que le tableau.
+// Frise de la semaine : une carte à part pour chaque jour, nettement espacées —
+// pas un simple filet entre deux jours, un vrai bloc qu'on distingue d'un coup
+// d'œil — avec une barre colorée par créneau de travail (heure affichée dans la
+// barre, comme dans Ma journée) sur un axe borné par les heures d'ouverture de la
+// salle (Préférences). Travail uniquement (pas les absences) ; cliquer une barre
+// ouvre la même fiche que le tableau. Aujourd'hui reprend le repère "heure
+// actuelle" de TimelineJour (Ma journée), pour la cohérence entre les deux vues.
 function PersonnelTimeline({ semaine, creneaux, today, onOpenCell }) {
   const { debut: DEBUT, fin: FIN } = useHorairesSalle();
   const ticks = graduations(DEBUT, FIN);
   const pct = (h) => Math.max(0, Math.min(100, ((h - DEBUT) / (FIN - DEBUT)) * 100));
+  const [maintenant, setMaintenant] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setMaintenant(new Date()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  const hNow = maintenant.getHours() + maintenant.getMinutes() / 60;
+  const Col = 'w-16 sm:w-24 flex-shrink-0';
 
   return (
-    <Feuille className="mt-6 overflow-hidden">
-      <div className="flex border-b border-gray-200 bg-gray-50">
-        <div className="w-16 sm:w-24 flex-shrink-0" />
-        <div className="relative flex-1 h-7 mr-10 sm:mr-14">
+    <div className="mt-6">
+      {/* Axe des heures, partagé par toutes les cartes ci-dessous — mêmes largeurs
+          de colonnes que chaque jour pour que les graduations restent alignées. */}
+      <div className="flex">
+        <div className={Col} />
+        <div className="relative flex-1 h-6 mr-10 sm:mr-14">
           {ticks.map(h => (
-            <span key={h} className="absolute top-2 text-[10px] text-gray-400 -translate-x-1/2" style={{ left: `${pct(h)}%` }}>{h}</span>
+            <span key={h} className="absolute text-[10px] text-gray-400 -translate-x-1/2" style={{ left: `${pct(h)}%` }}>{h}</span>
           ))}
         </div>
       </div>
 
-      {semaine.map(date => {
-        const iso = toISO(date);
-        const estAuj = iso === today;
-        const parJour = new Map();
-        creneaux
-          .filter(c => c.date === iso && c.type === 'travail' && c.debut && c.fin)
-          .forEach(c => {
-            if (!parJour.has(c.employe_id)) parJour.set(c.employe_id, { emp: { id: c.employe_id, prenom: c.prenom, nom: c.nom }, segments: [] });
-            parJour.get(c.employe_id).segments.push(c);
-          });
-        const lignes = [...parJour.values()].sort((a, b) => a.emp.prenom.localeCompare(b.emp.prenom));
+      <div className="space-y-4 sm:space-y-5">
+        {semaine.map(date => {
+          const iso = toISO(date);
+          const estAuj = iso === today;
+          const parJour = new Map();
+          creneaux
+            .filter(c => c.date === iso && c.type === 'travail' && c.debut && c.fin)
+            .forEach(c => {
+              if (!parJour.has(c.employe_id)) parJour.set(c.employe_id, { emp: { id: c.employe_id, prenom: c.prenom, nom: c.nom }, segments: [] });
+              parJour.get(c.employe_id).segments.push(c);
+            });
+          const lignes = [...parJour.values()].sort((a, b) => a.emp.prenom.localeCompare(b.emp.prenom));
 
-        return (
-          <div key={iso} className={`flex border-b border-gray-200 last:border-b-0 ${estAuj ? 'bg-sky-50' : ''}`}>
-            <div className={`w-16 sm:w-24 flex-shrink-0 px-2 sm:px-3 py-2 text-[11px] uppercase ${estAuj ? 'text-sky-600 font-semibold' : 'text-gray-500'}`}>
-              {date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}
-              <span className="ml-1.5 text-brand-ink">{date.getDate()}</span>
-            </div>
-            <div className="relative flex-1 py-2 pl-2 mr-10 sm:mr-14 space-y-2">
-              {lignes.length === 0 && <div className="h-5" />}
-              {lignes.map(({ emp, segments }) => (
-                <div key={emp.id} className="relative h-5">
-                  {segments.map(seg => {
-                    const left = pct(heures(seg.debut)), width = Math.max(pct(heures(seg.fin)) - left, 2);
-                    return (
-                      <button
-                        key={seg.id}
-                        onClick={() => onOpenCell(emp, iso)}
-                        title={`${emp.prenom} ${emp.nom || ''} : ${fmtHeure(seg.debut)} – ${fmtHeure(seg.fin)}`}
-                        className="absolute inset-y-0 rounded hover:opacity-90 transition-opacity flex items-center pl-1.5"
-                        style={{ left: `${left}%`, width: `${width}%`, backgroundColor: colorForUser(emp.id) }}
-                      >
-                        <span className="absolute right-full top-1/2 -translate-y-1/2 pr-1 text-[10px] text-gray-500 whitespace-nowrap tabular-nums">{fmtHeure(seg.debut)}</span>
-                        <span className="text-white text-[10px] font-semibold whitespace-nowrap">{emp.prenom?.[0]}{emp.nom?.[0]}</span>
-                        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-1 text-[10px] text-gray-500 whitespace-nowrap tabular-nums">{fmtHeure(seg.fin)}</span>
-                      </button>
-                    );
-                  })}
+          return (
+            <Feuille key={iso} className={`overflow-hidden ${estAuj ? 'ring-1 ring-sky-300' : ''}`}>
+              <div className="flex">
+                <div className={`${Col} py-3 px-2 sm:px-3 border-r border-gray-100 ${estAuj ? 'bg-sky-50' : 'bg-gray-50'}`}>
+                  <div className={`text-[10px] uppercase font-semibold ${estAuj ? 'text-sky-600' : 'text-gray-400'}`}>
+                    {date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}
+                  </div>
+                  <div className={`font-display text-xl font-bold leading-none mt-0.5 ${estAuj ? 'text-sky-600' : 'text-brand-ink'}`}>{date.getDate()}</div>
                 </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </Feuille>
+                <div className="relative flex-1 py-3 pl-2 mr-10 sm:mr-14 space-y-2.5">
+                  {ticks.map(h => <span key={h} className="absolute inset-y-0 w-px bg-gray-100" style={{ left: `${pct(h)}%` }} />)}
+                  {estAuj && hNow >= DEBUT && hNow <= FIN && (
+                    <span className="absolute top-0 bottom-0 w-[2px] bg-red-400 z-10" style={{ left: `${pct(hNow)}%` }} />
+                  )}
+                  {lignes.length === 0 ? (
+                    <p className="relative text-xs text-gray-300 italic py-1">Personne de prévu</p>
+                  ) : lignes.map(({ emp, segments }) => (
+                    <div key={emp.id} className="relative h-6">
+                      {segments.map(seg => {
+                        const left = pct(heures(seg.debut)), width = Math.max(pct(heures(seg.fin)) - left, 3);
+                        return (
+                          <button
+                            key={seg.id}
+                            onClick={() => onOpenCell(emp, iso)}
+                            title={`${emp.prenom} ${emp.nom || ''} : ${fmtHeure(seg.debut)} – ${fmtHeure(seg.fin)}`}
+                            className="absolute inset-y-0 rounded-md hover:opacity-90 transition-opacity flex items-center gap-1 px-1.5 overflow-hidden"
+                            style={{ left: `${left}%`, width: `${width}%`, backgroundColor: colorForUser(emp.id) }}
+                          >
+                            <span className="text-white text-[10px] font-bold whitespace-nowrap flex-shrink-0">{emp.prenom?.[0]}{emp.nom?.[0]}</span>
+                            <span className="text-white/90 text-[10px] font-medium whitespace-nowrap tabular-nums">{fmtHeure(seg.debut)}–{fmtHeure(seg.fin)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Feuille>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
