@@ -66,9 +66,10 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
       {/* Trait d'accent (catégorie / alerte) */}
       <span className="absolute left-1.5 top-1.5 bottom-1.5 w-1 rounded-full" style={{ backgroundColor: accent }} />
 
-      {/* Alerte sans coach */}
+      {/* Alerte sans coach — pas d'uppercase/tracking : ça passait sur 2 lignes dans une
+          colonne étroite (grille à 7 jours sur un écran autour de 1024-1300px). */}
       {sansCoach && (
-        <div className="text-[10px] font-bold text-red-600 uppercase tracking-wide mb-0.5">
+        <div className="text-[10px] font-bold text-red-600 whitespace-nowrap mb-0.5">
           ⚠ Sans coach
         </div>
       )}
@@ -116,8 +117,7 @@ export default function SeanceCard({ seance, profils = [], onPatch, onDelete, on
             ${statut.bg} ${statut.text} hover:opacity-80 transition-opacity active:scale-90
             ${statutFlash ? 'animate-pop' : ''}`}
         >
-          <span className="sm:hidden">{statut.shortLabel || statut.label}</span>
-          <span className="hidden sm:inline">{statut.label}</span>
+          {statut.shortLabel || statut.label}
         </button>
 
         <div className="flex-shrink-0 ml-auto flex flex-col items-end gap-1.5">

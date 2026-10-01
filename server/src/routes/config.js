@@ -19,6 +19,8 @@ router.get('/', (req, res) => {
     corbeilHistoriqueImporte,
     abonnementAvertissement: abonnement.avertissement,
     abonnementJoursRestants: abonnement.joursRestants,
+    equipeActif: getPreference('onglet_equipe_actif') !== '0',
+    annuaireActif: getPreference('onglet_annuaire_actif') !== '0',
   });
 });
 

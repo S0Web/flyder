@@ -12,6 +12,11 @@ const DEFAULTS = {
   ouverture_heure: () => '7',  // bornes des frises horaires de l'onglet Équipe (n'a aucun effet sur la saisie des cours)
   fermeture_heure: () => '22',
   aqua_active: () => '1', // '1' = affiché partout (défaut), '0' = masqué (salles sans piscine)
+  // Certaines salles n'ont pas d'équipe à encadrer dans l'outil (juste le planning des
+  // cours) ou pas d'annuaire de contacts à tenir — activés par défaut, désactivables
+  // par salle depuis Préférences > Onglets actifs.
+  onglet_equipe_actif: () => '1',
+  onglet_annuaire_actif: () => '1',
 };
 
 const EDITABLE_KEYS = Object.keys(DEFAULTS);

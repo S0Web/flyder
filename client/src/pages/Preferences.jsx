@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LifeBuoy, Download, Upload, AlertTriangle } from 'lucide-react';
 import { api } from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import { useConfig } from '../context/ConfigContext';
 import AccesTab from '../components/AccesTab';
 
 const BACKUP_RECENTE_MS = 15 * 60 * 1000;
@@ -105,6 +106,7 @@ function Field({ label, hint, children }) {
 
 export default function Preferences() {
   const toast = useToast();
+  const { refetch: refetchConfig } = useConfig();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [backing, setBacking] = useState(false);
@@ -133,6 +135,7 @@ export default function Preferences() {
     try {
       const updated = await api.updatePreferences(form);
       setForm(updated);
+      refetchConfig();
       toast.success('Préférences enregistrées');
     } catch (err) {
       toast.error('Échec : ' + err.message);
@@ -153,6 +156,26 @@ export default function Preferences() {
           </Field>
           <Field label="Adresse de facturation" hint="Reprise sur les exports PDF du récapitulatif d'heures.">
             <textarea rows={2} className={INPUT_CLASS} value={form.salle_adresse} onChange={e => set('salle_adresse', e.target.value)} />
+          </Field>
+        </div>
+      </div>
+
+      <div>
+        <SectionTitle>Onglets actifs</SectionTitle>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+          <Field label="Équipe" hint="Planning du personnel, tâches, comptes rendus, documents RH… Désactive l'onglet si la salle n'a pas d'équipe à encadrer dans l'outil.">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={form.onglet_equipe_actif === '1'}
+                onChange={e => set('onglet_equipe_actif', e.target.checked ? '1' : '0')} className="rounded accent-sky-500" />
+              Activer l'onglet Équipe
+            </label>
+          </Field>
+          <Field label="Annuaire" hint="Carnet de contacts (fournisseurs, prestataires…), indépendant du planning des cours.">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={form.onglet_annuaire_actif === '1'}
+                onChange={e => set('onglet_annuaire_actif', e.target.checked ? '1' : '0')} className="rounded accent-sky-500" />
+              Activer l'onglet Annuaire
+            </label>
           </Field>
         </div>
       </div>

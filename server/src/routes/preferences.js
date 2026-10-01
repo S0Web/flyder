@@ -21,10 +21,13 @@ const LABELS = {
   ouverture_heure: "Heure d'ouverture (frises Équipe)",
   fermeture_heure: 'Heure de fermeture (frises Équipe)',
   aqua_active: 'Cours Aqua',
+  onglet_equipe_actif: 'Onglet Équipe',
+  onglet_annuaire_actif: 'Onglet Annuaire',
 };
 
 function fmtValeur(cle, v) {
   if (cle === 'aqua_active') return v === '1' ? 'activés' : 'désactivés';
+  if (cle === 'onglet_equipe_actif' || cle === 'onglet_annuaire_actif') return v === '1' ? 'activé' : 'désactivé';
   if (cle === 'deconnexion_delai_min') return v === '0' ? 'jamais' : v === 'jour' ? 'fin de journée' : `${v} min`;
   if (cle === 'ouverture_heure' || cle === 'fermeture_heure') return `${v}h`;
   return v;

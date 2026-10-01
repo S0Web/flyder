@@ -121,7 +121,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, tick
 
 export default function Layout({ children }) {
   const { user, switchProfile } = useAuth();
-  const { salleNom, abonnementAvertissement, abonnementJoursRestants } = useConfig();
+  const { salleNom, abonnementAvertissement, abonnementJoursRestants, equipeActif, annuaireActif } = useConfig();
   const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
   const { count: changelogNonLus } = useChangelogUnread(!!user);
   const { count: equipeCount } = useEquipePastille(!!user);
@@ -129,7 +129,10 @@ export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const restricted = user?.privileged === false;
-  const links = restricted ? ALL_LINKS.filter(l => l.to !== '/annuaire') : ALL_LINKS;
+  const links = ALL_LINKS.filter(l =>
+    (l.to !== '/annuaire' || (annuaireActif !== false && !restricted)) &&
+    (l.to !== '/equipe' || equipeActif !== false)
+  );
 
   return (
     <div className="min-h-screen bg-brand-cream flex">

@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import { ConfigProvider } from './context/ConfigContext';
+import { ConfigProvider, useConfig } from './context/ConfigContext';
 import Layout from './components/Layout';
 import ProfilePicker from './pages/ProfilePicker';
 import Planning from './pages/Planning';
@@ -54,7 +54,7 @@ function ProtectedRoutes() {
         <Routes>
           <Route path="/"                   element={<Planning />} />
           {/* Équipe : remplace « Planning personnel » (ancienne URL redirigée). */}
-          <Route path="/equipe" element={<EquipeLayout />}>
+          <Route path="/equipe" element={<EquipeOuRedirection />}>
             <Route index element={<EquipeAccueil />} />
             <Route path="ma-journee" element={<MaJournee />} />
             <Route path="planning" element={<PlanningPersonnel />} />
@@ -70,7 +70,7 @@ function ProtectedRoutes() {
           <Route path="/coaches"            element={<Navigate to="/coachs" replace />} />
           <Route path="/recapitulatif"      element={<Navigate to="/coachs" replace />} />
           <Route path="/analyse"            element={<Analyse />} />
-          <Route path="/annuaire"           element={<Annuaire />} />
+          <Route path="/annuaire"           element={<AnnuaireOuRedirection />} />
           <Route path="/formation"                        element={<Formation />} />
           <Route path="/formation/:categorieId"           element={<FormationCategorie />} />
           <Route path="/formation/:categorieId/:articleId" element={<FormationCategorie />} />
@@ -107,6 +107,20 @@ export default function App() {
       </ToastProvider>
     </ConfigProvider>
   );
+}
+
+// Onglets désactivables par salle (Préférences > Onglets actifs) — bloque aussi
+// l'accès direct par URL/favori, pas juste le lien de nav masqué dans Layout.
+function EquipeOuRedirection() {
+  const { equipeActif } = useConfig();
+  if (equipeActif === false) return <Navigate to="/" replace />;
+  return <EquipeLayout />;
+}
+
+function AnnuaireOuRedirection() {
+  const { annuaireActif } = useConfig();
+  if (annuaireActif === false) return <Navigate to="/" replace />;
+  return <Annuaire />;
 }
 
 // Accueil de l'onglet Équipe : vue d'ensemble pour un manager, sa journée sinon.

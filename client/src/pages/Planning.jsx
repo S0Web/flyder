@@ -431,7 +431,11 @@ export default function Planning() {
     <div className="flex gap-4">
 
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
-      <aside className="hidden lg:block w-48 flex-shrink-0">
+      {/* Seuil custom (ni lg ni xl) : 1024-1366px est la plage des écrans muraux
+          carrés/presque carrés des salles (souvent 1280×1024). Avec la nav principale
+          fixe (w-60) déjà prise sur cette largeur, garder ce panneau en plus ne laisse
+          plus la place pour les 7 jours de la grille sans scroll horizontal. */}
+      <aside className="hidden min-[1440px]:block w-48 flex-shrink-0">
         <MiniCalendar lundi={lundi} onSelectDate={(d) => setLundi(getLundi(d))} />
 
         {/* Filtrer par cours */}
