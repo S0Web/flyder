@@ -39,8 +39,19 @@ router.get('/', requireManager, (req, res) => {
   res.json(users);
 });
 
+// Regroupement des actions en grandes catégories lisibles pour le filtre
+// "Portée" côté client — une action technique (ex. update_seance) ne dit rien
+// à un manager, "Planning des cours" si. Le mapping inverse (action -> clé)
+// sert à construire le IN (...) ci-dessous.
+const CATEGORIES = {
+  cours:     ['update_seance'],
+  personnel: ['update_personnel_creneau', 'dupliquer_semaine_personnel', 'decision_conge'],
+  comptes:   ['create_user', 'delete_user', 'create_profile', 'seed_admin_account', 'recover_manager'],
+  connexions:['switch_profile', 'dev_access_login'],
+};
+
 // GET /api/app-users/audit — historique (manager), paginé + filtres/tri
-// Params : limit, offset, action, user_id, from (YYYY-MM-DD), to (YYYY-MM-DD), order (asc|desc)
+// Params : limit, offset, categorie, user_id, from (YYYY-MM-DD), to (YYYY-MM-DD), order (asc|desc)
 // Déclarée avant /:id : sinon "/audit" serait capturé par :id="audit" (Express matche
 // les routes dans l'ordre d'enregistrement).
 router.get('/audit', requireManager, (req, res) => {
@@ -50,21 +61,37 @@ router.get('/audit', requireManager, (req, res) => {
 
   const where = [];
   const params = [];
-  if (req.query.action)  { where.push('a.action = ?');           params.push(req.query.action); }
-  if (req.query.user_id) { where.push('a.user_id = ?');          params.push(Number(req.query.user_id)); }
+  if (req.query.categorie && CATEGORIES[req.query.categorie]) {
+    const actions = CATEGORIES[req.query.categorie];
+    where.push(`a.action IN (${actions.map(() => '?').join(',')})`);
+    params.push(...actions);
+  }
+  if (req.query.user_id) { where.push('a.user_id = ?');           params.push(Number(req.query.user_id)); }
   if (req.query.from)    { where.push('date(a.created_at) >= ?'); params.push(req.query.from); }
   if (req.query.to)      { where.push('date(a.created_at) <= ?'); params.push(req.query.to); }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+  const total = db.get(`SELECT COUNT(*) AS n FROM audit_log a ${whereSql}`, params).n;
+
+  // Jointures sur seances/cours_types (update_seance) et demandes_conges
+  // (decision_conge) — sans effet sur les autres lignes puisque la condition
+  // sur a.entity empêche tout faux match (entity_id n'a pas le même sens
+  // d'une action à l'autre dans cette table).
   const logs = db.all(`
-    SELECT a.*, u.prenom || ' ' || u.nom AS user_nom
+    SELECT a.*, u.prenom || ' ' || u.nom AS user_nom,
+           ct.nom AS cours_nom, s.date AS seance_date, s.horaire AS seance_horaire,
+           cu.prenom || ' ' || cu.nom AS conge_demandeur
     FROM audit_log a
-    LEFT JOIN app_users u ON u.id = a.user_id
+    LEFT JOIN app_users u        ON u.id = a.user_id
+    LEFT JOIN seances s          ON a.entity = 'seances' AND s.id = a.entity_id
+    LEFT JOIN cours_types ct     ON ct.id = s.cours_type_id
+    LEFT JOIN demandes_conges dc ON a.entity = 'demandes_conges' AND dc.id = a.entity_id
+    LEFT JOIN app_users cu       ON cu.id = dc.user_id
     ${whereSql}
     ORDER BY a.created_at ${order}
     LIMIT ? OFFSET ?
   `, [...params, limit, offset]);
-  res.json(logs);
+  res.json({ rows: logs, total });
 });
 
 // GET /api/app-users/:id — fiche d'un salarié (le manager voit tout le monde, un
