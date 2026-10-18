@@ -43,6 +43,22 @@ function Case({ statut, onClick }) {
   );
 }
 
+// Avatars empilés : l'assigné principal, puis les co-assignés — légèrement
+// chevauchés avec un liseré blanc pour rester lisibles côte à côte.
+export function PlaquesAssignes({ tache, size = 22 }) {
+  const personnes = [
+    { id: tache.assigne_a, prenom: tache.assigne_prenom, nom: tache.assigne_nom },
+    ...(tache.co_assignes || []),
+  ];
+  return (
+    <span className="flex items-center">
+      {personnes.map((p, i) => (
+        <Plaque key={p.id} user={p} size={size} className={i > 0 ? '-ml-2 ring-2 ring-white' : ''} />
+      ))}
+    </span>
+  );
+}
+
 export function TacheLigne({ tache, onOpen, onToggle, montrerAssigne = false }) {
   const fait = tache.statut === 'fait';
   const ech = echeanceCourte(tache.echeance, fait);
@@ -72,8 +88,10 @@ export function TacheLigne({ tache, onOpen, onToggle, montrerAssigne = false }) 
       </div>
       {montrerAssigne && (
         <span className="flex items-center gap-2 flex-shrink-0 pt-0.5">
-          <span className="hidden sm:inline text-xs text-gray-500">{tache.assigne_prenom}</span>
-          <Plaque user={{ id: tache.assigne_a, prenom: tache.assigne_prenom, nom: tache.assigne_nom }} size={22} />
+          <span className="hidden sm:inline text-xs text-gray-500">
+            {tache.assigne_prenom}{tache.co_assignes?.length > 0 && ` +${tache.co_assignes.length}`}
+          </span>
+          <PlaquesAssignes tache={tache} size={22} />
         </span>
       )}
     </div>
@@ -215,6 +233,7 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
     titre: tache?.titre || initial?.titre || '',
     description: tache?.description || initial?.description || '',
     assigne_a: tache?.assigne_a || assigneParDefaut || user.id,
+    co_assignes: (tache?.co_assignes || []).map(p => p.id),
     echeance: tache?.echeance ?? '',
     priorite: tache?.priorite || 'normale',
     recurrence: tache?.recurrence || 'aucune',
@@ -230,6 +249,24 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
   }, [nouvelle, tache?.id]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Le principal (assigne_a) et les co-assignés forment un seul ensemble à l'écran :
+  // décocher le principal promeut le premier co-assigné restant, pour toujours
+  // garder au moins une personne assignée.
+  function toggleAssigne(id) {
+    setForm(f => {
+      const tousId = [f.assigne_a, ...f.co_assignes];
+      if (tousId.includes(id)) {
+        if (tousId.length === 1) return f;
+        if (id === f.assigne_a) {
+          const [nouveauPrincipal, ...reste] = f.co_assignes;
+          return { ...f, assigne_a: nouveauPrincipal, co_assignes: reste };
+        }
+        return { ...f, co_assignes: f.co_assignes.filter(x => x !== id) };
+      }
+      return { ...f, co_assignes: [...f.co_assignes, id] };
+    });
+  }
 
   async function enregistrer(fermer) {
     if (!form.titre.trim()) return toast.error('Donne un titre à la tâche.');
@@ -320,11 +357,21 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
           </Ligne>
           <Ligne label="pour">
             {isManager ? (
-              <select value={form.assigne_a} onChange={e => set('assigne_a', Number(e.target.value))} className={champCls}>
-                {(membres || []).map(m => <option key={m.id} value={m.id}>{nomComplet(m)}{m.id === user.id ? ' (moi)' : ''}</option>)}
-              </select>
+              <div className="flex flex-wrap gap-1.5">
+                {(membres || []).map(m => {
+                  const actif = form.assigne_a === m.id || form.co_assignes.includes(m.id);
+                  return (
+                    <button key={m.id} type="button" onClick={() => toggleAssigne(m.id)} className={choixCls(actif)}>
+                      {nomComplet(m)}{m.id === user.id ? ' (moi)' : ''}
+                    </button>
+                  );
+                })}
+              </div>
             ) : (
-              <span className="text-sm text-brand-ink">{tache?.assigne_prenom || user.prenom}</span>
+              <span className="text-sm text-brand-ink">
+                {tache?.assigne_prenom || user.prenom}
+                {tache?.co_assignes?.length > 0 && `, ${tache.co_assignes.map(p => p.prenom).join(', ')}`}
+              </span>
             )}
           </Ligne>
           <Ligne label="échéance">

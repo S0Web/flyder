@@ -662,6 +662,17 @@ db.run(`
 `);
 db.run('CREATE INDEX IF NOT EXISTS idx_taches_assigne ON taches(assigne_a, statut)');
 
+// Co-assignation : assigne_a reste le responsable principal (checklists, occurrence
+// suivante…), cette table ajoute d'autres personnes sur la même tâche — toutes la
+// voient, une seule case à cocher pour tout le monde (pas de progression par personne).
+db.run(`
+  CREATE TABLE IF NOT EXISTS tache_coassignes (
+    tache_id INTEGER NOT NULL REFERENCES taches(id) ON DELETE CASCADE,
+    user_id  INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    PRIMARY KEY (tache_id, user_id)
+  )
+`);
+
 db.run(`
   CREATE TABLE IF NOT EXISTS tache_commentaires (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,

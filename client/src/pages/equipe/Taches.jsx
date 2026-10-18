@@ -3,9 +3,9 @@ import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache, MARQUE_PRIORITE, echeanceCourte } from '../../components/equipe/Taches';
+import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache, MARQUE_PRIORITE, echeanceCourte, PlaquesAssignes } from '../../components/equipe/Taches';
 import ChecklistsPanneau from '../../components/equipe/Checklists';
-import { Feuille, Compteurs, Compte, Plaque, BoutonEncre, BoutonTrait, Rien, Onglets, selectCls } from '../../components/equipe/kit';
+import { Feuille, Compteurs, Compte, BoutonEncre, BoutonTrait, Rien, Onglets, selectCls } from '../../components/equipe/kit';
 import { STATUTS_TACHE, aujourdhuiISO } from '../../lib/equipe';
 
 const COLONNES = ['a_faire', 'en_cours', 'fait'];
@@ -32,7 +32,7 @@ function Fiche({ tache, onOpen, montrerAssigne }) {
         {tache.recurrence !== 'aucune' && <span>↻</span>}
         {tache.nb_commentaires > 0 && <span>{tache.nb_commentaires} note{tache.nb_commentaires > 1 ? 's' : ''}</span>}
         <span className="flex-1 truncate text-gray-400">par {tache.cree_par_prenom}</span>
-        {montrerAssigne && <Plaque user={{ id: tache.assigne_a, prenom: tache.assigne_prenom, nom: tache.assigne_nom }} size={18} />}
+        {montrerAssigne && <PlaquesAssignes tache={tache} size={18} />}
       </div>
     </div>
   );
