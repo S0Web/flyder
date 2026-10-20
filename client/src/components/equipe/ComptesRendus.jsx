@@ -171,8 +171,8 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
           <section className="space-y-4">
             <TitreSection n="03">Pour finir</TitreSection>
             <p className="text-xs text-gray-500 -mt-1">
-              La priorité de demain et le problème signalé sont transmis à tes collègues et au manager.
-              Ta journée en deux mots reste réservée au manager.
+              Une fois envoyé, ce bilan est visible par toute l'équipe — pratique pour savoir ce qui a été
+              fait la veille. Le brouillon, lui, reste réservé à toi seul.
             </p>
             <label className="block">
               <span className="text-xs font-medium text-gray-500">Ma journée en deux mots</span>

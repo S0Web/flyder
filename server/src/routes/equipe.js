@@ -92,15 +92,14 @@ const SELECT_CR = `
   LEFT JOIN app_users v ON v.id = cr.valide_par
 `;
 
-// GET /api/equipe/comptes-rendus?user_id=&statut=&debut=&fin=
+// GET /api/equipe/comptes-rendus?user_id=&statut=&debut=&fin= — accessible à toute
+// l'équipe (pas seulement au manager) : chacun voit les bilans soumis/validés de
+// chacun, pour savoir ce qui a été fait la veille. Un brouillon reste réservé à
+// son auteur (cf. condition ci-dessous), quel que soit qui interroge la route.
 router.get('/comptes-rendus', (req, res) => {
   const where = ["cr.statut != 'brouillon' OR cr.user_id = ?"];
   const params = [req.user.id];
-  if (!estManager(req)) {
-    where.push('cr.user_id = ?'); params.push(req.user.id);
-  } else if (req.query.user_id) {
-    where.push('cr.user_id = ?'); params.push(Number(req.query.user_id));
-  }
+  if (req.query.user_id) { where.push('cr.user_id = ?'); params.push(Number(req.query.user_id)); }
   if (req.query.statut) { where.push('cr.statut = ?'); params.push(req.query.statut); }
   if (req.query.debut)  { where.push('cr.date >= ?'); params.push(req.query.debut); }
   if (req.query.fin)    { where.push('cr.date <= ?'); params.push(req.query.fin); }

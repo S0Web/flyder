@@ -17,11 +17,11 @@ export default function ComptesRendus() {
   const [aValider, setAValider] = useState([]);
   const [jour, setJour] = useState(''); // '' = tous les comptes rendus
   const [panneau, setPanneau] = useState(null); // date à saisir
-  const onglet = isManager ? (params.get('vue') || 'a_valider') : 'miens';
+  const onglet = isManager ? (params.get('vue') || 'a_valider') : 'historique';
   const membre = params.get('membre') || '';
 
   const charger = useCallback(() => {
-    const filtre = { debut: jour, fin: jour, ...(isManager ? { user_id: membre } : {}) };
+    const filtre = { debut: jour, fin: jour, user_id: membre };
     api.getComptesRendus(filtre).then(setListe).catch(e => toast.error(e.message));
     if (isManager) api.getComptesRendus({ statut: 'soumis' }).then(setAValider).catch(() => {});
     rafraichirCompteurs?.();
@@ -37,8 +37,8 @@ export default function ComptesRendus() {
   const affiches = useMemo(() => {
     if (!liste) return null;
     if (onglet === 'a_valider') return aValider.filter(cr => !membre || String(cr.user_id) === membre);
-    return isManager ? liste : liste.filter(cr => cr.user_id === user.id);
-  }, [liste, aValider, onglet, membre, isManager, user.id]);
+    return liste;
+  }, [liste, aValider, onglet, membre]);
 
   const auj = aujourdhuiISO();
   const monCrDuJour = liste?.find(cr => cr.user_id === user.id && cr.date === auj);
@@ -54,12 +54,10 @@ export default function ComptesRendus() {
             { id: 'historique', label: 'Historique' },
           ]} />
         )}
-        {isManager && (
-          <select value={membre} onChange={e => setParam('membre', e.target.value)} className={selectCls}>
-            <option value="">Toute l'équipe</option>
-            {membres.map(m => <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
-          </select>
-        )}
+        <select value={membre} onChange={e => setParam('membre', e.target.value)} className={selectCls}>
+          <option value="">Toute l'équipe</option>
+          {membres.map(m => <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+        </select>
         {onglet !== 'a_valider' && (
           <div className="flex items-end gap-3">
             <label className="block">
@@ -84,7 +82,7 @@ export default function ComptesRendus() {
       ) : (
         <div className="space-y-3">
           {affiches.map(cr => (
-            <CompteRenduCarte key={cr.id} cr={cr} montrerAuteur={isManager}
+            <CompteRenduCarte key={cr.id} cr={cr} montrerAuteur
               onDecision={charger}
               onModifier={peutModifier(cr) ? () => setPanneau(cr.date) : undefined} />
           ))}
