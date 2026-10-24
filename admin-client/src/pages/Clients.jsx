@@ -13,7 +13,18 @@ const STATUT_CONFIG = {
 const EMPTY_FORM = {
   nom: '', sous_domaine: '', salle_nom_env: '', statut: 'essai', plan: '',
   contact_nom: '', contact_email: '', contact_telephone: '', date_debut: '', notes: '',
+  module_sport: true, module_equipe: true, module_annuaire: true,
 };
+
+// Modules que la salle peut utiliser — géré uniquement ici (jamais depuis la
+// salle elle-même) : Flyder est amené à être livré « sur mesure » à des
+// structures qui n'ont pas besoin de tout (pas de planning de cours, pas
+// d'équipe à encadrer dans l'outil…).
+const MODULES = [
+  { k: 'module_sport',    label: 'Sport', hint: 'Planning des cours, Coachs, Analyse' },
+  { k: 'module_equipe',   label: 'Équipe', hint: 'Planning du personnel, tâches, comptes rendus, documents RH' },
+  { k: 'module_annuaire', label: 'Annuaire', hint: 'Carnet de contacts' },
+];
 
 // Défini hors de ClientModal : un composant redéfini à chaque rendu du parent
 // (comme c'était le cas ici) change d'identité à chaque frappe, ce qui force React
@@ -264,6 +275,21 @@ function ClientModal({ client, onSave, onClose, onKeyGenerated }) {
             </div>
           </div>
           <Field label="Date de début" k="date_debut" type="date" value={form.date_debut} onChange={set} />
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Modules activés</p>
+            <div className="space-y-2">
+              {MODULES.map(m => (
+                <label key={m.k} className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={!!form[m.k]} onChange={e => set(m.k, e.target.checked)}
+                    className="mt-0.5 rounded accent-sky-500" />
+                  <span className="text-sm">
+                    <span className="text-gray-800">{m.label}</span>
+                    <span className="block text-xs text-gray-400">{m.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
             <textarea value={form.notes || ''} onChange={e => set('notes', e.target.value)} rows={3}

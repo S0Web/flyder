@@ -19,8 +19,11 @@ router.get('/', (req, res) => {
     corbeilHistoriqueImporte,
     abonnementAvertissement: abonnement.avertissement,
     abonnementJoursRestants: abonnement.joursRestants,
-    equipeActif: getPreference('onglet_equipe_actif') !== '0',
-    annuaireActif: getPreference('onglet_annuaire_actif') !== '0',
+    // Modules (Sport/Équipe/Annuaire) : réglés exclusivement depuis admin.flyder.fr,
+    // jamais depuis cette salle — cf. lib/subscriptionStatus.js.
+    sportActif: abonnement.modules.sport,
+    equipeActif: abonnement.modules.equipe,
+    annuaireActif: abonnement.modules.annuaire,
   });
 });
 

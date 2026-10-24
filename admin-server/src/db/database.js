@@ -74,6 +74,15 @@ tryAlter('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
 // NULL tant qu'il est à jour ; remis à NULL dès qu'il redevient actif.
 tryAlter('ALTER TABLE clients ADD COLUMN stripe_inactif_depuis TEXT');
 
+// Modules activés côté app pour cette salle — Flyder étant amené à être livré
+// « sur mesure » à des structures qui n'ont pas besoin de tout (ex. pas de
+// planning de cours), ce réglage est volontairement réservé à ce backoffice :
+// jamais modifiable depuis la salle elle-même. Activés par défaut (comportement
+// historique de Flyder, pensé pour une salle de sport classique).
+tryAlter('ALTER TABLE clients ADD COLUMN module_sport INTEGER NOT NULL DEFAULT 1');
+tryAlter('ALTER TABLE clients ADD COLUMN module_equipe INTEGER NOT NULL DEFAULT 1');
+tryAlter('ALTER TABLE clients ADD COLUMN module_annuaire INTEGER NOT NULL DEFAULT 1');
+
 // ─── Tickets de support (un inbox unique pour toutes les salles) ───────────────
 db.run(`
   CREATE TABLE IF NOT EXISTS tickets (

@@ -37,10 +37,12 @@ router.post('/', (req, res) => {
 
   const { nom, sous_domaine, salle_nom_env, statut, plan, contact_nom, contact_email, contact_telephone, date_debut, notes } = req.body;
   const result = db.run(
-    `INSERT INTO clients (nom, sous_domaine, salle_nom_env, statut, plan, contact_nom, contact_email, contact_telephone, date_debut, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO clients (nom, sous_domaine, salle_nom_env, statut, plan, contact_nom, contact_email, contact_telephone, date_debut, notes,
+       module_sport, module_equipe, module_annuaire)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [nom.trim(), sous_domaine || null, salle_nom_env || null, statut || 'essai', plan || null,
-     contact_nom || null, contact_email || null, contact_telephone || null, date_debut || null, notes || null]
+     contact_nom || null, contact_email || null, contact_telephone || null, date_debut || null, notes || null,
+     req.body.module_sport === false ? 0 : 1, req.body.module_equipe === false ? 0 : 1, req.body.module_annuaire === false ? 0 : 1]
   );
   res.status(201).json(sansApiKeyHash(db.get('SELECT * FROM clients WHERE id = ?', [result.lastInsertRowid])));
 });
@@ -54,10 +56,12 @@ router.put('/:id', (req, res) => {
 
   const { nom, sous_domaine, salle_nom_env, statut, plan, contact_nom, contact_email, contact_telephone, date_debut, notes } = req.body;
   db.run(
-    `UPDATE clients SET nom=?, sous_domaine=?, salle_nom_env=?, statut=?, plan=?, contact_nom=?, contact_email=?, contact_telephone=?, date_debut=?, notes=?, updated_at=datetime('now')
+    `UPDATE clients SET nom=?, sous_domaine=?, salle_nom_env=?, statut=?, plan=?, contact_nom=?, contact_email=?, contact_telephone=?, date_debut=?, notes=?,
+       module_sport=?, module_equipe=?, module_annuaire=?, updated_at=datetime('now')
      WHERE id=?`,
     [nom.trim(), sous_domaine || null, salle_nom_env || null, statut || 'essai', plan || null,
      contact_nom || null, contact_email || null, contact_telephone || null, date_debut || null, notes || null,
+     req.body.module_sport ? 1 : 0, req.body.module_equipe ? 1 : 0, req.body.module_annuaire ? 1 : 0,
      req.params.id]
   );
   res.json(sansApiKeyHash(db.get('SELECT * FROM clients WHERE id = ?', [req.params.id])));

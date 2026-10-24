@@ -11,15 +11,21 @@ const GRACE_JOURS = 3;
 // index.js). req.client vient de cette même authentification.
 router.get('/', (req, res) => {
   const client = db.get(
-    `SELECT statut, stripe_inactif_depuis,
+    `SELECT statut, stripe_inactif_depuis, module_sport, module_equipe, module_annuaire,
      (julianday('now') - julianday(stripe_inactif_depuis)) AS jours_ecoules
      FROM clients WHERE id = ?`,
     [req.client.id]
   );
 
+  const modules = {
+    sport: !!client.module_sport,
+    equipe: !!client.module_equipe,
+    annuaire: !!client.module_annuaire,
+  };
+
   const enDefaut = ['suspendu', 'resilie'].includes(client.statut) && client.stripe_inactif_depuis;
   if (!enDefaut) {
-    return res.json({ statut: client.statut, bloque: false, avertissement: false, joursRestants: null });
+    return res.json({ statut: client.statut, bloque: false, avertissement: false, joursRestants: null, modules });
   }
 
   const bloque = client.jours_ecoules >= GRACE_JOURS;
@@ -28,6 +34,7 @@ router.get('/', (req, res) => {
     bloque,
     avertissement: !bloque,
     joursRestants: bloque ? 0 : Math.max(1, Math.ceil(GRACE_JOURS - client.jours_ecoules)),
+    modules,
   });
 });
 

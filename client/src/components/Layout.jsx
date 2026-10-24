@@ -121,7 +121,7 @@ function SidebarContent({ links, salleNom, user, switchProfile, onNavigate, tick
 
 export default function Layout({ children }) {
   const { user, switchProfile } = useAuth();
-  const { salleNom, abonnementAvertissement, abonnementJoursRestants, equipeActif, annuaireActif } = useConfig();
+  const { salleNom, abonnementAvertissement, abonnementJoursRestants, sportActif, equipeActif, annuaireActif } = useConfig();
   const { count: ticketsNonLus } = useTicketsUnreadCount(!!user);
   const { count: changelogNonLus } = useChangelogUnread(!!user);
   const { count: equipeCount } = useEquipePastille(!!user);
@@ -129,7 +129,9 @@ export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const restricted = user?.privileged === false;
+  const SPORT_ROUTES = ['/', '/coachs', '/analyse'];
   const links = ALL_LINKS.filter(l =>
+    (!SPORT_ROUTES.includes(l.to) || sportActif !== false) &&
     (l.to !== '/annuaire' || (annuaireActif !== false && !restricted)) &&
     (l.to !== '/equipe' || equipeActif !== false)
   );

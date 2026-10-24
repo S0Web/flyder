@@ -230,26 +230,6 @@ export default function Preferences() {
       </div>
 
       <div>
-        <SectionTitle>Onglets actifs</SectionTitle>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-          <Field label="Équipe" hint="Planning du personnel, tâches, comptes rendus, documents RH… Désactive l'onglet si la salle n'a pas d'équipe à encadrer dans l'outil.">
-            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-              <input type="checkbox" checked={form.onglet_equipe_actif === '1'}
-                onChange={e => set('onglet_equipe_actif', e.target.checked ? '1' : '0')} className="rounded accent-sky-500" />
-              Activer l'onglet Équipe
-            </label>
-          </Field>
-          <Field label="Annuaire" hint="Carnet de contacts (fournisseurs, prestataires…), indépendant du planning des cours.">
-            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-              <input type="checkbox" checked={form.onglet_annuaire_actif === '1'}
-                onChange={e => set('onglet_annuaire_actif', e.target.checked ? '1' : '0')} className="rounded accent-sky-500" />
-              Activer l'onglet Annuaire
-            </label>
-          </Field>
-        </div>
-      </div>
-
-      <div>
         <SectionTitle>Sécurité &amp; Confidentialité</SectionTitle>
         <div className="space-y-3">
           <AccesTab />

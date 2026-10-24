@@ -52,7 +52,7 @@ function ProtectedRoutes() {
     <Layout>
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          <Route path="/"                   element={<Planning />} />
+          <Route path="/"                   element={<PlanningOuRedirection />} />
           {/* Équipe : remplace « Planning personnel » (ancienne URL redirigée). */}
           <Route path="/equipe" element={<EquipeOuRedirection />}>
             <Route index element={<EquipeAccueil />} />
@@ -65,11 +65,11 @@ function ProtectedRoutes() {
             <Route path="membres/:id" element={<FicheMembre />} />
           </Route>
           <Route path="/planning-personnel" element={<Navigate to="/equipe/planning" replace />} />
-          <Route path="/coachs"             element={<Coaches />} />
+          <Route path="/coachs"             element={<SportOuRedirection><Coaches /></SportOuRedirection>} />
           {/* Anciennes URL : des raccourcis/onglets ouverts pointent encore dessus. */}
           <Route path="/coaches"            element={<Navigate to="/coachs" replace />} />
           <Route path="/recapitulatif"      element={<Navigate to="/coachs" replace />} />
-          <Route path="/analyse"            element={<Analyse />} />
+          <Route path="/analyse"            element={<SportOuRedirection><Analyse /></SportOuRedirection>} />
           <Route path="/annuaire"           element={<AnnuaireOuRedirection />} />
           <Route path="/formation"                        element={<Formation />} />
           <Route path="/formation/:categorieId"           element={<FormationCategorie />} />
@@ -80,7 +80,7 @@ function ProtectedRoutes() {
           <Route path="/nouveautes"         element={<Nouveautes />} />
           <Route path="/parametres"         element={<Settings />} />
           <Route path="/parametres/utilisateurs/:id" element={<RedirectionFiche />} />
-          <Route path="*"                   element={<Navigate to="/" replace />} />
+          <Route path="*"                   element={<RedirectionGenerale />} />
         </Routes>
       </Suspense>
     </Layout>
@@ -109,18 +109,45 @@ export default function App() {
   );
 }
 
-// Onglets désactivables par salle (Préférences > Onglets actifs) — bloque aussi
+// Modules (Sport/Équipe/Annuaire) désactivables par salle — depuis admin.flyder.fr
+// exclusivement, cf. server/src/lib/subscriptionStatus.js. Ces gardes bloquent aussi
 // l'accès direct par URL/favori, pas juste le lien de nav masqué dans Layout.
+// Premier module actif, dans un ordre de préférence stable : sert à savoir où
+// renvoyer quelqu'un quand la page qu'il visait est désactivée.
+function premierOngletDisponible({ sportActif, equipeActif, annuaireActif }) {
+  if (sportActif !== false) return '/';
+  if (equipeActif !== false) return '/equipe';
+  if (annuaireActif !== false) return '/annuaire';
+  return '/parametres'; // toujours accessible, même si tous les modules métier sont coupés
+}
+
+function PlanningOuRedirection() {
+  const config = useConfig();
+  if (config.sportActif === false) return <Navigate to={premierOngletDisponible(config)} replace />;
+  return <Planning />;
+}
+
+function SportOuRedirection({ children }) {
+  const config = useConfig();
+  if (config.sportActif === false) return <Navigate to={premierOngletDisponible(config)} replace />;
+  return children;
+}
+
 function EquipeOuRedirection() {
-  const { equipeActif } = useConfig();
-  if (equipeActif === false) return <Navigate to="/" replace />;
+  const config = useConfig();
+  if (config.equipeActif === false) return <Navigate to={premierOngletDisponible(config)} replace />;
   return <EquipeLayout />;
 }
 
 function AnnuaireOuRedirection() {
-  const { annuaireActif } = useConfig();
-  if (annuaireActif === false) return <Navigate to="/" replace />;
+  const config = useConfig();
+  if (config.annuaireActif === false) return <Navigate to={premierOngletDisponible(config)} replace />;
   return <Annuaire />;
+}
+
+function RedirectionGenerale() {
+  const config = useConfig();
+  return <Navigate to={premierOngletDisponible(config)} replace />;
 }
 
 // Accueil de l'onglet Équipe : vue d'ensemble pour un manager, sa journée sinon.
@@ -142,6 +169,7 @@ function RedirectionFiche() {
 
 function ProfilePickerRoute() {
   const { user } = useAuth();
-  if (user) return <Navigate to="/" replace />;
+  const config = useConfig();
+  if (user) return <Navigate to={premierOngletDisponible(config)} replace />;
   return <ProfilePicker />;
 }
