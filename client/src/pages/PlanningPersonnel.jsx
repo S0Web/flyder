@@ -9,6 +9,7 @@ import {
 } from '../lib/utils';
 import MiniCalendar from '../components/MiniCalendar';
 import PersonnelCreneauModal from '../components/PersonnelCreneauModal';
+import { DemandeCongePanneau } from '../components/equipe/DemandesConges';
 import { Onglets, Feuille, Intertitre, Plaque, BoutonTrait, Rien } from '../components/equipe/kit';
 import { TYPES_ABSENCE, fmtHeure, fmtDuree, ecartContrat, minutesCreneau } from '../lib/equipe';
 import { useHorairesSalle, graduations } from '../lib/useHorairesSalle';
@@ -251,6 +252,7 @@ export default function PlanningPersonnel() {
   const [contrats, setContrats] = useState(() => new Map()); // id -> heures de contrat (manager)
   const [loading, setLoading] = useState(true);
   const [cellModal, setCellModal] = useState(null); // { employe, date }
+  const [demandeCongeDate, setDemandeCongeDate] = useState(null); // date préremplie, ou null si fermé
   const [dupliquer, setDupliquer] = useState(false);
   const [vue, setVue] = useState('semaine'); // 'semaine' | 'recap'
   // Chacun voit le planning de toute l'équipe (qui travaille avec moi, qui me
@@ -474,6 +476,16 @@ export default function PlanningPersonnel() {
           creneaux={creneaux.filter(c => c.employe_id === cellModal.employe.id && c.date === cellModal.date).sort((a, b) => a.ordre - b.ordre)}
           onSave={handleSaveCreneau}
           onClose={() => setCellModal(null)}
+          peutDemanderConge={cellModal.employe.id === user?.id}
+          onDemanderConge={() => setDemandeCongeDate(cellModal.date)}
+        />
+      )}
+
+      {demandeCongeDate && (
+        <DemandeCongePanneau
+          dateInitiale={demandeCongeDate}
+          onClose={() => setDemandeCongeDate(null)}
+          onChange={loadCreneaux}
         />
       )}
     </div>

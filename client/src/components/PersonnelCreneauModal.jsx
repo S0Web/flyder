@@ -18,7 +18,7 @@ const choixCls = (actif) => `text-xs px-2 py-1.5 rounded-lg border transition-co
   actif ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
 }`;
 
-export default function PersonnelCreneauModal({ employe, date, creneaux, onSave, onClose }) {
+export default function PersonnelCreneauModal({ employe, date, creneaux, onSave, onClose, peutDemanderConge, onDemanderConge }) {
   const existing = creneaux || [];
   const isTravail = existing.length === 0 || existing[0].type === 'travail';
 
@@ -79,6 +79,12 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
             <button type="button" onClick={() => effacer(fermer)} disabled={saving}
               className="text-[11px] text-gray-500 hover:text-sky-600 underline underline-offset-4 disabled:opacity-50">
               effacer ce jour
+            </button>
+          )}
+          {peutDemanderConge && (
+            <button type="button" onClick={() => { fermer(); onDemanderConge?.(); }}
+              className="text-[11px] text-sky-600 hover:underline underline-offset-4">
+              faire une demande de congé →
             </button>
           )}
           <div className="flex-1" />

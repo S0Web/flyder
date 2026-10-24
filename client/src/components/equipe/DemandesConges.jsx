@@ -23,10 +23,10 @@ const STATUT = {
 };
 
 // ── Côté salarié : demander un congé et suivre ses demandes ─────────────────────
-export function DemandeCongePanneau({ onClose, onChange }) {
+export function DemandeCongePanneau({ onClose, onChange, dateInitiale }) {
   const toast = useToast();
   const auj = aujourdhuiISO();
-  const [form, setForm] = useState({ date_debut: '', date_fin: '', motif: '' });
+  const [form, setForm] = useState({ date_debut: dateInitiale || '', date_fin: dateInitiale || '', motif: '' });
   const [mes, setMes] = useState(null);
   const [envoi, setEnvoi] = useState(false);
 
