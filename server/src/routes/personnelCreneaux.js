@@ -23,7 +23,11 @@ function todayISO() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// GET /api/personnel-creneaux?semaine=YYYY-MM-DD
+// GET /api/personnel-creneaux?semaine=YYYY-MM-DD — planning de toute l'équipe (partagé),
+// pas seulement le sien : la raison d'une absence (arrêt, congé…) est en revanche
+// personnelle. Un manager voit tout ; les autres ne voient, pour les créneaux de
+// quelqu'un d'autre, que le fait d'être absent — jamais pourquoi (type générique
+// « absent », note masquée). Chacun voit sa propre raison normalement.
 router.get('/', (req, res) => {
   const { lundi, dimanche } = getSemaineBounds(req.query.semaine || todayISO());
   const rows = db.all(
@@ -34,7 +38,11 @@ router.get('/', (req, res) => {
      ORDER BY pc.employe_id, pc.date, pc.ordre`,
     [lundi, dimanche]
   );
-  res.json(rows);
+  const manager = req.user.role === 'manager';
+  res.json(manager ? rows : rows.map(r => {
+    if (r.employe_id === req.user.id || r.type === 'travail') return r;
+    return { ...r, type: 'absent', notes: null };
+  }));
 });
 
 // GET /api/personnel-creneaux/cp-summary — CP pris ce mois / cette année + solde cumulé
