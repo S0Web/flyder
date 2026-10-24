@@ -394,7 +394,10 @@ export default function PlanningPersonnel() {
                 <tbody>
                   {rows.map(emp => {
                     const empCreneaux = creneaux.filter(c => c.employe_id === emp.id);
-                    const totalMinutes = empCreneaux.filter(c => c.type === 'travail').reduce((s, c) => s + minutesCreneau(c), 0);
+                    const travailCreneaux = empCreneaux.filter(c => c.type === 'travail');
+                    const totalMinutes = travailCreneaux.reduce((s, c) => s + minutesCreneau(c), 0);
+                    const compMinutes = travailCreneaux.filter(c => c.categorie === 'complementaire').reduce((s, c) => s + minutesCreneau(c), 0);
+                    const supMinutes = travailCreneaux.filter(c => c.categorie === 'supplementaire').reduce((s, c) => s + minutesCreneau(c), 0);
                     const contrat = isManager ? contrats.get(emp.id) : null;
                     const ecart = contrat && totalMinutes > 0 ? ecartContrat(totalMinutes, contrat) : null;
 
@@ -434,6 +437,12 @@ export default function PlanningPersonnel() {
                                 {!absence && cellCreneaux.map(c => (
                                   <div key={c.id} className="text-[12px] text-brand-ink tabular-nums text-center leading-snug">
                                     {fmtHeure(c.debut)}–{fmtHeure(c.fin)}
+                                    {c.categorie === 'complementaire' && (
+                                      <span title="Heures complémentaires" className="ml-0.5 text-[9px] font-bold align-top text-amber-600">C</span>
+                                    )}
+                                    {c.categorie === 'supplementaire' && (
+                                      <span title="Heures supplémentaires" className="ml-0.5 text-[9px] font-bold align-top text-violet-600">S</span>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -452,6 +461,13 @@ export default function PlanningPersonnel() {
                               )}
                             </div>
                           ) : null}
+                          {(compMinutes > 0 || supMinutes > 0) && (
+                            <div className="text-[10px] leading-tight">
+                              {compMinutes > 0 && <span className="text-amber-600" title="Heures complémentaires">C {fmtDuree(compMinutes)}</span>}
+                              {compMinutes > 0 && supMinutes > 0 && ' · '}
+                              {supMinutes > 0 && <span className="text-violet-600" title="Heures supplémentaires">S {fmtDuree(supMinutes)}</span>}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

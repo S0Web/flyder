@@ -14,8 +14,17 @@ const TYPES = [
   { id: 'repos',   label: 'Repos' },
 ];
 
+const CATEGORIES = [
+  { id: 'normale',        label: 'Normales' },
+  { id: 'complementaire', label: 'Complémentaires' },
+  { id: 'supplementaire', label: 'Supplémentaires' },
+];
+
 const choixCls = (actif) => `text-xs px-2 py-1.5 rounded-lg border transition-colors ${
   actif ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
+}`;
+const choixPetitCls = (actif) => `text-[11px] px-1.5 py-1 rounded border transition-colors ${
+  actif ? 'bg-sky-500 text-white border-sky-500' : 'border-gray-300 text-gray-500 hover:border-gray-400'
 }`;
 
 export default function PersonnelCreneauModal({ employe, date, creneaux, onSave, onClose, peutDemanderConge, onDemanderConge }) {
@@ -25,8 +34,8 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
   const [type, setType] = useState(isTravail ? 'travail' : existing[0].type);
   const [segments, setSegments] = useState(
     isTravail && existing.length > 0
-      ? existing.map(c => ({ debut: c.debut || '', fin: c.fin || '' }))
-      : [{ debut: '', fin: '' }]
+      ? existing.map(c => ({ debut: c.debut || '', fin: c.fin || '', categorie: c.categorie || 'normale' }))
+      : [{ debut: '', fin: '', categorie: 'normale' }]
   );
   const [notes, setNotes] = useState(existing[0]?.notes || '');
   const [saving, setSaving] = useState(false);
@@ -109,18 +118,26 @@ export default function PersonnelCreneauModal({ employe, date, creneaux, onSave,
           <div className="space-y-3">
             <span className={label}>horaires</span>
             {segments.map((seg, i) => (
-              <div key={i} className="flex items-end gap-3">
-                <input type="time" value={seg.debut} onChange={e => setSegment(i, 'debut', e.target.value)} aria-label="Début" className={`${champCls}`} />
-                <span className="text-sky-600 pb-1.5">→</span>
-                <input type="time" value={seg.fin} onChange={e => setSegment(i, 'fin', e.target.value)} aria-label="Fin" className={`${champCls}`} />
-                {segments.length > 1 && (
-                  <button type="button" onClick={() => setSegments(segs => segs.filter((_, idx) => idx !== i))} aria-label="Retirer ce créneau"
-                    className="text-[11px] text-gray-400 hover:text-red-600 pb-2 px-1">✕</button>
-                )}
+              <div key={i} className="space-y-1.5">
+                <div className="flex items-end gap-3">
+                  <input type="time" value={seg.debut} onChange={e => setSegment(i, 'debut', e.target.value)} aria-label="Début" className={`${champCls}`} />
+                  <span className="text-sky-600 pb-1.5">→</span>
+                  <input type="time" value={seg.fin} onChange={e => setSegment(i, 'fin', e.target.value)} aria-label="Fin" className={`${champCls}`} />
+                  {segments.length > 1 && (
+                    <button type="button" onClick={() => setSegments(segs => segs.filter((_, idx) => idx !== i))} aria-label="Retirer ce créneau"
+                      className="text-[11px] text-gray-400 hover:text-red-600 pb-2 px-1">✕</button>
+                  )}
+                </div>
+                <div className="flex gap-1.5">
+                  {CATEGORIES.map(c => (
+                    <button key={c.id} type="button" onClick={() => setSegment(i, 'categorie', c.id)}
+                      aria-pressed={seg.categorie === c.id} className={choixPetitCls(seg.categorie === c.id)}>{c.label}</button>
+                  ))}
+                </div>
               </div>
             ))}
             {segments.length < 2 && (
-              <button type="button" onClick={() => setSegments(segs => [...segs, { debut: '', fin: '' }])}
+              <button type="button" onClick={() => setSegments(segs => [...segs, { debut: '', fin: '', categorie: 'normale' }])}
                 className="inline-flex items-center gap-1 text-[11px] text-sky-600 hover:underline">
                 <Plus className="h-3 w-3" /> 2e créneau (coupure)
               </button>

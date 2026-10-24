@@ -502,6 +502,13 @@ if (process.env.SALLE_NOM === 'Corbeil-Essonnes') {
   }
 })();
 
+// Un créneau de travail peut être marqué heures complémentaires ou supplémentaires
+// en plus des heures normales (un jour peut avoir un créneau normal et un créneau
+// sup, ex. une soirée en plus) — purement déclaratif pour l'instant, pas de calcul
+// de majoration automatique. Placé après les migrations ci-dessus qui recréent
+// parfois la table, pour être sûr de toujours s'appliquer à la version finale.
+tryAlter("ALTER TABLE personnel_creneaux ADD COLUMN categorie TEXT NOT NULL DEFAULT 'normale' CHECK(categorie IN ('normale','complementaire','supplementaire'))");
+
 // ─── Code confidentiel par profil (facultatif) ───
 tryAlter('ALTER TABLE app_users ADD COLUMN code_hash TEXT');
 
