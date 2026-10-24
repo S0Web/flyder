@@ -44,6 +44,7 @@ const equipeRouter    = require('./routes/equipe');
 const personnelCreneauxRouter = require('./routes/personnelCreneaux');
 const checklistsRouter = require('./routes/checklists');
 const incidentsRouter  = require('./routes/incidents');
+const incidentTypesRouter = require('./routes/incidentTypes');
 const demandesCongesRouter = require('./routes/demandesConges');
 const annuaireRouter  = require('./routes/annuaire');
 const adminRouter     = require('./routes/admin');
@@ -123,6 +124,7 @@ app.use('/api/personnel-creneaux',  requireAuth, requireWriteAccess, personnelCr
 app.use('/api/demandes-conges', requireAuth, requireWriteAccess, demandesCongesRouter);
 app.use('/api/checklists', requireAuth, requireWriteAccess, checklistsRouter);
 app.use('/api/incidents', requireAuth, requireWriteAccess, incidentsRouter);
+app.use('/api/incident-types', requireAuth, requireWriteAccess, incidentTypesRouter);
 // Annuaire : contient des coordonnées personnelles, ni lecture ni écriture hors accès privilégié.
 app.use('/api/annuaire',   requireAuth, requireAnnuaireAccess, annuaireRouter);
 app.use('/api/admin', adminRouter);

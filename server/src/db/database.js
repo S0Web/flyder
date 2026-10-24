@@ -837,4 +837,44 @@ db.run(`
 db.run('CREATE INDEX IF NOT EXISTS idx_incidents_statut ON incidents(statut, type)');
 tryAlter('ALTER TABLE comptes_rendus ADD COLUMN probleme_incident_id INTEGER');
 
+// Incidents, suite : types configurables par salle (remplace l'énumération figée
+// bassin/matériel/autre — cf. server/src/routes/incidentTypes.js) et priorité, pour
+// se rapprocher d'un vrai système de tickets. `type` (ci-dessus) reste en base pour
+// l'historique mais n'est plus lu : `type_id` fait foi.
+db.run(`
+  CREATE TABLE IF NOT EXISTS incident_types (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom        TEXT NOT NULL UNIQUE,
+    actif      INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+tryAlter('ALTER TABLE incidents ADD COLUMN type_id INTEGER REFERENCES incident_types(id)');
+tryAlter("ALTER TABLE incidents ADD COLUMN priorite TEXT NOT NULL DEFAULT 'normale' CHECK(priorite IN ('basse','normale','haute','urgente'))");
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS incident_commentaires (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    incident_id INTEGER NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
+    auteur_id  INTEGER NOT NULL REFERENCES app_users(id),
+    contenu    TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Amorce : 3 types historiques, une fois, puis rattache les incidents déjà en
+// base à l'un d'eux d'après leur ancienne colonne `type`.
+;(function seedEtMigrerTypesIncident() {
+  if (db.get('SELECT 1 FROM incident_types LIMIT 1')) return;
+  const defauts = { bassin: 'Bassin', materiel: 'Matériel', autre: 'Autre' };
+  const idParAncienType = {};
+  for (const [ancien, nom] of Object.entries(defauts)) {
+    const r = db.run('INSERT INTO incident_types (nom) VALUES (?)', [nom]);
+    idParAncienType[ancien] = r.lastInsertRowid;
+  }
+  for (const [ancien, id] of Object.entries(idParAncienType)) {
+    db.run('UPDATE incidents SET type_id = ? WHERE type = ? AND type_id IS NULL', [id, ancien]);
+  }
+})();
+
 module.exports = db;

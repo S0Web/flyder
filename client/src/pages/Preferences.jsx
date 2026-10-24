@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LifeBuoy, Download, Upload, AlertTriangle } from 'lucide-react';
+import { LifeBuoy, Download, Upload, AlertTriangle, Plus, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useToast } from '../context/ToastContext';
 import { useConfig } from '../context/ConfigContext';
@@ -76,6 +76,75 @@ function ImportModal({ lastBackupAt, onBackupNow, onClose, onImported }) {
 
         <button onClick={onClose} className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700">Annuler</button>
       </div>
+    </div>
+  );
+}
+
+// Types d'incident (bassin, matériel…) : propres à chaque salle. Un type utilisé
+// ne peut pas être supprimé (désactivation à la place) — cf. incidentTypes.js.
+function TypesIncident() {
+  const toast = useToast();
+  const [types, setTypes] = useState(null);
+  const [nouveau, setNouveau] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const charger = () => api.getIncidentTypes().then(setTypes).catch(() => {});
+  useEffect(() => { charger(); }, []);
+
+  async function ajouter(e) {
+    e.preventDefault();
+    if (!nouveau.trim()) return;
+    setBusy(true);
+    try {
+      await api.createIncidentType(nouveau.trim());
+      setNouveau('');
+      charger();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggleActif(t) {
+    try { await api.patchIncidentType(t.id, { actif: t.actif ? 0 : 1 }); charger(); }
+    catch (err) { toast.error(err.message); }
+  }
+
+  async function supprimer(t) {
+    if (!confirm(`Supprimer le type « ${t.nom} » ?`)) return;
+    try { await api.deleteIncidentType(t.id); charger(); }
+    catch (err) { toast.error(err.message); }
+  }
+
+  if (types === null) return <p className="text-sm text-gray-400">Chargement…</p>;
+
+  return (
+    <div className="space-y-3">
+      {types.length === 0 && <p className="text-sm text-gray-400">Aucun type défini.</p>}
+      {types.map(t => (
+        <div key={t.id} className="flex items-center justify-between gap-3 py-1.5 border-b border-gray-100 last:border-0">
+          <span className={`text-sm ${t.actif ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{t.nom}</span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+              <input type="checkbox" checked={!!t.actif} onChange={() => toggleActif(t)} className="rounded accent-sky-500" />
+              actif
+            </label>
+            <button onClick={() => supprimer(t)} aria-label={`Supprimer ${t.nom}`} className="text-gray-300 hover:text-red-500">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ))}
+      <form onSubmit={ajouter} className="flex items-center gap-2 pt-2">
+        <input value={nouveau} onChange={e => setNouveau(e.target.value)} placeholder="Nouveau type (ex. Électricité)"
+          className={`${INPUT_CLASS} flex-1`} />
+        <button type="submit" disabled={busy || !nouveau.trim()}
+          className="inline-flex items-center gap-1 text-sm px-3 py-2 rounded text-white disabled:opacity-50 flex-shrink-0"
+          style={{ backgroundColor: '#3D5AFE' }}>
+          <Plus className="h-3.5 w-3.5" /> Ajouter
+        </button>
+      </form>
     </div>
   );
 }
@@ -224,6 +293,17 @@ export default function Preferences() {
               Activer les cours Aqua
             </label>
           </Field>
+        </div>
+      </div>
+
+      <div>
+        <SectionTitle>Types d'incident</SectionTitle>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-xs text-gray-500 mb-3">
+            Catégories proposées en signalant un incident (Équipe &gt; Incidents). Un type déjà utilisé ne peut pas
+            être supprimé — désactive-le pour qu'il n'apparaisse plus dans les nouveaux tickets, sans toucher à l'historique.
+          </p>
+          <TypesIncident />
         </div>
       </div>
 

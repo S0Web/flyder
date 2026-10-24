@@ -136,11 +136,8 @@ export function plageSeance(horaire, duree) {
   return `${hm(debut)} → ${hm(debut + (duree || 60))}`;
 }
 
-export const TYPES_INCIDENT = {
-  bassin:   { label: 'Bassin',   ton: 'bleu' },
-  materiel: { label: 'Matériel', ton: 'encre' },
-  autre:    { label: 'Autre',    ton: 'gris' },
-};
+// Le type d'incident (bassin, matériel…) est désormais configurable par salle
+// (Préférences > Types d'incident, api.getIncidentTypes) — plus d'énumération figée ici.
 
 export const STATUTS_INCIDENT = {
   ouvert:   { label: 'Ouvert',   ton: 'corail' },

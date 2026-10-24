@@ -110,6 +110,13 @@ export const api = {
   createIncident: (data) => req('/incidents', { method: 'POST', body: JSON.stringify(data) }),
   patchIncident:  (id, data) => req(`/incidents/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteIncident: (id) => req(`/incidents/${id}`, { method: 'DELETE' }),
+  getIncidentCommentaires: (id) => req(`/incidents/${id}/commentaires`),
+  addIncidentCommentaire:  (id, contenu) => req(`/incidents/${id}/commentaires`, { method: 'POST', body: JSON.stringify({ contenu }) }),
+
+  getIncidentTypes:   () => req('/incident-types'),
+  createIncidentType: (nom) => req('/incident-types', { method: 'POST', body: JSON.stringify({ nom }) }),
+  patchIncidentType:  (id, data) => req(`/incident-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteIncidentType: (id) => req(`/incident-types/${id}`, { method: 'DELETE' }),
   getChecklists:   () => req('/checklists'),
   createChecklist: (data) => req('/checklists', { method: 'POST', body: JSON.stringify(data) }),
   updateChecklist: (id, data) => req(`/checklists/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

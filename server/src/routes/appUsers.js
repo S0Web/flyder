@@ -66,6 +66,7 @@ const CATEGORIES = {
     'update_preferences', 'create_ip_autorisee', 'delete_ip_autorisee',
     'create_cours_type', 'update_cours_type',
     'create_checklist_modele', 'update_checklist_modele', 'delete_checklist_modele',
+    'create_incident_type', 'update_incident_type', 'delete_incident_type',
   ],
 };
 

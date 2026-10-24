@@ -8,22 +8,31 @@ import { DemandesEnAttente } from '../../components/equipe/DemandesConges';
 import IncidentPanneau from '../../components/equipe/IncidentPanneau';
 import TimelineJour from '../../components/equipe/TimelineJour';
 import { CompteRenduCarte } from '../../components/equipe/ComptesRendus';
+import Panneau from '../../components/equipe/Panneau';
 import { Rubrique, Feuille, Intertitre, Compteurs, Compte, Rien, Lien } from '../../components/equipe/kit';
 import { TYPES_ABSENCE, STATUTS_TACHE, jourCourt, dateDepuisISO, aujourdhuiISO } from '../../lib/equipe';
 
 // Grille « qui a rendu son bilan » : une ligne par membre, une case par jour.
 // Vert = validé · ambre = à valider · barré rouge = à revoir ·
 // pointillés rouges = oublié un jour travaillé · hachures = ne travaillait pas.
-function CaseBilan({ statut, travaille, passe }) {
-  if (statut === 'valide') return <span className="block h-5 w-5 bg-green-500 rounded" />;
-  if (statut === 'soumis') return <span className="block h-5 w-5 bg-amber-400 rounded" />;
-  if (statut === 'a_revoir') return <span className="flex h-5 w-5 items-center justify-center border-2 border-red-500 rounded text-[10px] font-bold text-red-600">✕</span>;
-  if (travaille && passe) return <span className="block h-5 w-5 border border-red-400 rounded" />;
-  if (travaille) return <span className="block h-5 w-5 border border-gray-300 rounded" />;
-  return <span className="block h-5 w-5 hachures rounded" />;
+function CaseBilan({ statut, travaille, passe, onClick }) {
+  // Cliquable seulement s'il existe vraiment un bilan à montrer (un jour « oublié »
+  // ou « ne travaillait pas » n'a rien derrière).
+  if (!statut) {
+    if (travaille && passe) return <span className="block h-5 w-5 border border-red-400 rounded" />;
+    if (travaille) return <span className="block h-5 w-5 border border-gray-300 rounded" />;
+    return <span className="block h-5 w-5 hachures rounded" />;
+  }
+  const Tag = onClick ? 'button' : 'span';
+  const props = onClick ? { type: 'button', onClick } : {};
+  if (statut === 'valide') return <Tag {...props} className="block h-5 w-5 bg-green-500 rounded hover:ring-2 hover:ring-green-700 hover:ring-offset-1 transition-shadow" />;
+  if (statut === 'soumis') return <Tag {...props} className="block h-5 w-5 bg-amber-400 rounded hover:ring-2 hover:ring-amber-600 hover:ring-offset-1 transition-shadow" />;
+  return (
+    <Tag {...props} className="flex h-5 w-5 items-center justify-center border-2 border-red-500 rounded text-[10px] font-bold text-red-600 hover:ring-2 hover:ring-red-600 hover:ring-offset-1 transition-shadow">✕</Tag>
+  );
 }
 
-function SuiviComptesRendus({ suivi }) {
+function SuiviComptesRendus({ suivi, onOuvrir }) {
   const auj = aujourdhuiISO();
   return (
     <div className="overflow-x-auto">
@@ -50,9 +59,11 @@ function SuiviComptesRendus({ suivi }) {
               </td>
               {suivi.jours.map(d => {
                 const { statut, travaille } = m.jours[d];
+                const statutReel = statut !== 'brouillon' ? statut : null;
                 return (
-                  <td key={d} title={`${jourCourt(d)}${statut && statut !== 'brouillon' ? '' : travaille ? (d < auj ? ' · oublié' : '') : ' · ne travaillait pas'}`}>
-                    <CaseBilan statut={statut !== 'brouillon' ? statut : null} travaille={travaille} passe={d < auj} />
+                  <td key={d} title={`${jourCourt(d)}${statutReel ? '' : travaille ? (d < auj ? ' · oublié' : '') : ' · ne travaillait pas'}`}>
+                    <CaseBilan statut={statutReel} travaille={travaille} passe={d < auj}
+                      onClick={statutReel ? () => onOuvrir(m.id, d) : undefined} />
                   </td>
                 );
               })}
@@ -173,6 +184,18 @@ export default function VueEnsemble() {
   const [erreur, setErreur] = useState(null);
   const [problemeATraiter, setProblemeATraiter] = useState(null); // problème dont on crée la tâche
   const [problemeIncident, setProblemeIncident] = useState(null); // problème repris comme incident
+  const [crOuvert, setCrOuvert] = useState(null); // { userId, date } cliqué dans la grille des bilans
+  const [crCharge, setCrCharge] = useState(null); // le compte rendu chargé pour ce clic (ou 'absent')
+  const [typesIncident, setTypesIncident] = useState([]);
+  useEffect(() => { api.getIncidentTypes().then(setTypesIncident).catch(() => {}); }, []);
+
+  function ouvrirCr(userId, date) {
+    setCrOuvert({ userId, date });
+    setCrCharge(null);
+    api.getComptesRendus({ user_id: userId, debut: date, fin: date })
+      .then(rows => setCrCharge(rows[0] || 'absent'))
+      .catch(() => setCrCharge('absent'));
+  }
 
   const charger = useCallback(() => {
     api.getVueEnsemble().then(setData).catch(e => setErreur(e.message));
@@ -223,7 +246,7 @@ export default function VueEnsemble() {
 
       <Rubrique Icon={ClipboardCheck} ton="vert" titre="Bilans de fin de journée" sous="Sur les 14 derniers jours, croisés avec le planning : une case en pointillés est un jour travaillé sans bilan." />
       <Feuille className="p-4 sm:p-5">
-        <SuiviComptesRendus suivi={data.suivi_cr} />
+        <SuiviComptesRendus suivi={data.suivi_cr} onOuvrir={ouvrirCr} />
       </Feuille>
 
       <Rubrique Icon={BarChart3} ton="violet" titre="Chiffres du terrain" sous="Les chiffres saisis chaque soir dans les bilans envoyés, additionnés par membre." />
@@ -284,8 +307,20 @@ export default function VueEnsemble() {
         </Feuille>
       </div>
 
+      {crOuvert && (
+        <Panneau titre="Bilan de fin de journée" sousTitre={jjmm(crOuvert.date)} onClose={() => setCrOuvert(null)}>
+          {crCharge === null ? (
+            <p className="py-16 text-center text-xs text-gray-400">chargement…</p>
+          ) : crCharge === 'absent' ? (
+            <Rien>ce bilan n'existe plus</Rien>
+          ) : (
+            <CompteRenduCarte cr={crCharge} montrerAuteur onDecision={(maj) => { setCrCharge(maj); charger(); rafraichirCompteurs?.(); }} />
+          )}
+        </Panneau>
+      )}
+
       {problemeIncident && (
-        <IncidentPanneau incident={null} membres={membres}
+        <IncidentPanneau incident={null} membres={membres} types={typesIncident.filter(t => t.actif)}
           initial={{
             titre: problemeIncident.probleme.split('\n')[0].slice(0, 120),
             description: problemeIncident.probleme,
