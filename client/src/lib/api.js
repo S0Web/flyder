@@ -137,6 +137,7 @@ export const api = {
   getFichePoste:    (userId) => req(`/equipe/fiches-poste/${userId}`),
   saveFichePoste:   (userId, data) => req(`/equipe/fiches-poste/${userId}`, { method: 'PUT', body: JSON.stringify(data) }),
   getComptesRendus: (params = {}) => req(`/equipe/comptes-rendus${qs(params)}`),
+  getMesBilans:     () => req('/equipe/mes-bilans'),
   getMonCompteRendu: (date) => req(`/equipe/comptes-rendus/moi/${date}`),
   saveMonCompteRendu: (date, data) => req(`/equipe/comptes-rendus/moi/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
   marquerProbleme: (id, data) => req(`/equipe/comptes-rendus/${id}/probleme`, { method: 'POST', body: JSON.stringify(data) }),

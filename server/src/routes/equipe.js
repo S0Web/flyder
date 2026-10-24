@@ -636,6 +636,24 @@ router.get('/ma-journee', (req, res) => {
   });
 });
 
+// Jours travaillés sans bilan soumis (ni validé), sur une fenêtre glissante de 14
+// jours avant aujourd'hui (aujourd'hui exclu : la journée n'est pas finie). Un
+// brouillon ne compte pas comme fait — cf. le reste de l'app, un brouillon n'engage
+// à rien tant qu'il n'est pas envoyé.
+function bilansManquants(userId) {
+  const aujourdhui = dateLocaleISO();
+  return db.get(
+    `SELECT COUNT(*) AS n FROM (
+       SELECT DISTINCT pc.date FROM personnel_creneaux pc
+       WHERE pc.employe_id = ? AND pc.type = 'travail' AND pc.date >= ? AND pc.date < ?
+         AND NOT EXISTS (
+           SELECT 1 FROM comptes_rendus cr WHERE cr.user_id = pc.employe_id AND cr.date = pc.date AND cr.statut != 'brouillon'
+         )
+     )`,
+    [userId, ajouterJours(aujourdhui, -14), aujourdhui]
+  ).n;
+}
+
 // GET /api/equipe/pastille — nombre affiché sur l'entrée « Équipe » du menu :
 // comptes rendus à valider (manager), sinon ce qui attend le salarié.
 router.get('/pastille', (req, res) => {
@@ -643,15 +661,37 @@ router.get('/pastille', (req, res) => {
     return res.json({
       count: db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE statut = 'soumis'").n
         + db.get("SELECT COUNT(*) AS n FROM demandes_conges WHERE statut = 'en_attente'").n
-        + db.get("SELECT COUNT(*) AS n FROM incidents WHERE statut = 'ouvert' AND responsable_id IS NULL").n,
+        + db.get("SELECT COUNT(*) AS n FROM incidents WHERE statut = 'ouvert' AND responsable_id IS NULL").n
+        + bilansManquants(req.user.id),
     });
   }
   const aujourdhui = dateLocaleISO();
   const n = db.get("SELECT COUNT(*) AS n FROM taches WHERE assigne_a = ? AND statut != 'fait' AND echeance < ?", [req.user.id, aujourdhui]).n
     + db.get("SELECT COUNT(*) AS n FROM comptes_rendus WHERE user_id = ? AND statut = 'a_revoir'", [req.user.id]).n
     + db.get("SELECT COUNT(*) AS n FROM incidents WHERE responsable_id = ? AND statut = 'ouvert'", [req.user.id]).n
-    + db.get('SELECT COUNT(*) AS n FROM employe_documents WHERE user_id = ? AND vu_le IS NULL', [req.user.id]).n;
+    + db.get('SELECT COUNT(*) AS n FROM employe_documents WHERE user_id = ? AND vu_le IS NULL', [req.user.id]).n
+    + bilansManquants(req.user.id);
   res.json({ count: n });
+});
+
+// GET /api/equipe/mes-bilans — mes 14 derniers jours, bilan par bilan, pour
+// repérer d'un coup d'œil ceux qui manquent (onglet Comptes rendus > Moi).
+router.get('/mes-bilans', (req, res) => {
+  const aujourdhui = dateLocaleISO();
+  const jours = Array.from({ length: 14 }, (_, i) => ajouterJours(aujourdhui, i - 13));
+  const crPeriode = db.all(
+    "SELECT * FROM comptes_rendus WHERE user_id = ? AND date >= ?",
+    [req.user.id, jours[0]]
+  ).map(formaterCr);
+  const travailPeriode = db.all(
+    "SELECT DISTINCT date FROM personnel_creneaux WHERE employe_id = ? AND type = 'travail' AND date >= ? AND date <= ?",
+    [req.user.id, jours[0], aujourdhui]
+  );
+  res.json(jours.map(d => ({
+    date: d,
+    travaille: travailPeriode.some(t => t.date === d),
+    compte_rendu: crPeriode.find(c => c.date === d) || null,
+  })).reverse());
 });
 
 module.exports = router;
