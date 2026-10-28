@@ -2,7 +2,6 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
 const { requireManager } = require('../middleware/auth');
-const { requireWriteAccess } = require('../middleware/ipAccess');
 const { cpRestantPour: cpRestant } = require('../lib/cp');
 const { genererChecklists } = require('../lib/checklists');
 const { dateLocaleISO, ajouterJours, lundiDe, horaireEnMinutes } = require('../lib/dates');
@@ -119,8 +118,11 @@ router.get('/comptes-rendus/moi/:date', (req, res) => {
 
 // PUT /api/equipe/comptes-rendus/moi/:date — enregistrer (brouillon) ou soumettre.
 // Modifiable tant qu'il n'est pas validé ; jamais pour une date future, ni plus
-// de 7 jours en arrière (le bilan se fait le jour même).
-router.put('/comptes-rendus/moi/:date', requireWriteAccess, (req, res) => {
+// de 7 jours en arrière (le bilan se fait le jour même). Volontairement sans
+// requireWriteAccess : contrairement aux autres écritures, celle-ci ne touche
+// jamais qu'au bilan de l'auteur lui-même (req.user.id) — l'envoyer à distance
+// (pas depuis l'IP de la salle) ne présente pas le même risque.
+router.put('/comptes-rendus/moi/:date', (req, res) => {
   const date = req.params.date;
   const aujourdhui = dateLocaleISO();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > aujourdhui || date < ajouterJours(aujourdhui, -7)) {
