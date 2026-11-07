@@ -9,7 +9,7 @@ const FEATURES = [
   {
     icon: ClipboardList,
     title: 'Gestion des coachs',
-    text: "Heures effectuées, présences, disponibilités : un récapitulatif toujours à jour pour chaque coach de l'équipe.",
+    text: "Heures effectuées, présences : un récapitulatif toujours à jour pour chaque coach de l'équipe.",
   },
   {
     icon: BarChart3,
@@ -24,12 +24,12 @@ const FEATURES = [
   {
     icon: CreditCard,
     title: 'Facturation & paiement',
-    text: "Abonnement géré automatiquement via Stripe — plus de relances manuelles, plus d'oublis de renouvellement.",
+    text: "Export PDF du récapitulatif d'heures de chaque coach, à comparer avec sa propre facture — plus de recomptage manuel.",
   },
   {
     icon: ShieldCheck,
     title: 'Sécurité & conformité',
-    text: "Accès par rôle, sauvegardes chiffrées automatiques, conformité RGPD — vos données et celles de vos adhérents sont protégées.",
+    text: "Accès par rôle, sauvegarde quotidienne, données hébergées dans l'Union européenne. Flyder agit comme sous-traitant au sens du RGPD.",
   },
 ];
 
@@ -39,11 +39,8 @@ export default function Features() {
       <div className="max-w-6xl mx-auto px-5 sm:px-8">
         <div className="max-w-2xl mx-auto text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Tout ce qu'il faut pour faire tourner votre salle
+            Et pour le reste
           </h2>
-          <p className="mt-4 text-brand-cream/50">
-            Chaque fonctionnalité a été construite pour un usage réel en salle, pas pour remplir une liste marketing.
-          </p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

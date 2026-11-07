@@ -94,31 +94,24 @@ export default function Hero() {
         style={{ background: 'radial-gradient(circle, #FF5A36 0%, transparent 70%)' }} />
 
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 text-center">
-        <div className="inline-flex items-center gap-2 bg-white border border-black/5 rounded-full pl-1.5 pr-4 py-1.5 mb-8 shadow-sm motion-safe:animate-fadeInUp">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-white px-2.5 py-0.5 rounded-full" style={{ backgroundColor: '#FF5A36' }}>
-            Nouveau
-          </span>
-          <span className="text-xs font-medium text-brand-ink/70">Facturation automatisée maintenant disponible</span>
-        </div>
-
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-brand-ink tracking-tight leading-[1.08] motion-safe:animate-fadeInUp" style={{ animationDelay: '60ms' }}>
-          Le logiciel de gestion<br className="hidden sm:block" /> pensé pour les salles de sport
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-brand-ink tracking-tight leading-[1.08] motion-safe:animate-fadeInUp">
+          Un planning qui se vérifie, se facture et s'analyse tout seul.
         </h1>
 
-        <p className="mt-6 text-lg sm:text-xl text-brand-ink/60 max-w-2xl mx-auto motion-safe:animate-fadeInUp" style={{ animationDelay: '120ms' }}>
-          Planning, coachs, RH, facturation et statistiques réunis dans un seul outil.
-          Moins de tableurs, moins d'aller-retours — plus de temps pour votre salle.
+        <p className="mt-6 text-lg sm:text-xl text-brand-ink/60 max-w-2xl mx-auto motion-safe:animate-fadeInUp" style={{ animationDelay: '60ms' }}>
+          Flyder remplace le tableur de planning de votre salle de sport : en un écran, vous savez
+          qui a animé chaque cours, qui était présent et qui a remplacé qui.
         </p>
 
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 motion-safe:animate-fadeInUp" style={{ animationDelay: '180ms' }}>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 motion-safe:animate-fadeInUp" style={{ animationDelay: '120ms' }}>
           <a href="#contact"
             className="inline-flex items-center gap-2 text-white text-sm font-semibold px-7 py-3.5 rounded-full hover:opacity-90 transition-opacity shadow-lg shadow-blue-900/10"
             style={{ backgroundColor: '#3D5AFE' }}>
-            Demander une démonstration <ArrowRight className="h-4 w-4" />
+            Voir ça sur mon planning <ArrowRight className="h-4 w-4" />
           </a>
-          <a href="#fonctionnalites"
+          <a href="#solutions"
             className="inline-flex items-center gap-2 text-brand-ink text-sm font-semibold px-7 py-3.5 rounded-full border border-black/10 hover:bg-white transition-colors">
-            Découvrir les fonctionnalités
+            Découvrir ce que ça change
           </a>
         </div>
 

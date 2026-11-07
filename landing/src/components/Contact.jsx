@@ -2,21 +2,12 @@ import { useState } from 'react';
 import { Send, CheckCircle2 } from 'lucide-react';
 
 const LEADS_URL = 'https://admin.flyder.fr/api/leads';
-
-const OBJET_DEFAUT = 'Demande de démonstration Flyder';
-const MESSAGE_DEFAUT = `Bonjour,
-
-Je gère une salle de sport et j'aimerais voir Flyder en conditions réelles.
-
-Pouvez-vous me proposer un créneau pour une démonstration ?
-
-Merci,`;
+const OBJET_DEFAUT = 'Demande de calcul — planning Flyder';
 
 export default function Contact() {
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
-  const [objet, setObjet] = useState(OBJET_DEFAUT);
-  const [message, setMessage] = useState(MESSAGE_DEFAUT);
+  const [salle, setSalle] = useState('');
   // Honeypot : champ jamais rempli par un humain (masqué visuellement), sert
   // à filtrer une partie des bots sans reCAPTCHA ni dépendance externe.
   const [site, setSite] = useState('');
@@ -25,6 +16,9 @@ export default function Contact() {
   async function envoyer(e) {
     e.preventDefault();
     setStatut('envoi');
+    const message = salle.trim()
+      ? `Bonjour,\n\nJe gère ${salle.trim()} et j'aimerais que vous me calculiez le temps que Flyder me ferait gagner sur mon planning.\n\nMerci,`
+      : `Bonjour,\n\nJ'aimerais que vous me calculiez le temps que Flyder me ferait gagner sur mon planning.\n\nMerci,`;
     // Sans délai limite, une requête qui ne reçoit jamais de réponse (backend
     // qui bloque, proxy muet) laisse le bouton bloqué sur "Envoi en cours"
     // indéfiniment — on abandonne et on affiche une erreur après 15s.
@@ -34,7 +28,7 @@ export default function Contact() {
       const res = await fetch(LEADS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nom, email, objet, message, site }),
+        body: JSON.stringify({ nom, email, objet: OBJET_DEFAUT, message, site }),
         signal: controller.signal,
       });
       if (!res.ok) throw new Error('Échec envoi');
@@ -56,9 +50,9 @@ export default function Contact() {
         <div className="max-w-4xl mx-auto px-5 sm:px-8">
           <div className="relative rounded-3xl overflow-hidden px-8 py-20 text-center" style={{ backgroundColor: '#12162B' }}>
             <CheckCircle2 className="h-12 w-12 mx-auto mb-5" style={{ color: '#3D5AFE' }} />
-            <h2 className="text-3xl font-bold text-white tracking-tight">Demande envoyée</h2>
+            <h2 className="text-3xl font-bold text-white tracking-tight">Merci.</h2>
             <p className="mt-4 text-brand-cream/60 max-w-md mx-auto">
-              Merci ! On revient vers vous très vite pour organiser votre démonstration.
+              Nous vous répondons rapidement avec la marche à suivre pour nous envoyer votre planning.
             </p>
           </div>
         </div>
@@ -67,18 +61,18 @@ export default function Contact() {
   }
 
   return (
-    <section id="contact" className="py-24 sm:py-32 bg-brand-cream">
+    <section id="contact" className="py-24 sm:py-32" style={{ backgroundColor: '#12162B' }}>
       <div className="max-w-4xl mx-auto px-5 sm:px-8">
-        <div className="relative rounded-3xl overflow-hidden px-8 py-16 sm:px-16 sm:py-20" style={{ backgroundColor: '#12162B' }}>
+        <div className="relative rounded-3xl overflow-hidden px-8 py-16 sm:px-16 sm:py-20 border border-white/10">
           <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full opacity-20 blur-3xl"
             style={{ background: 'radial-gradient(circle, #FF5A36 0%, transparent 70%)' }} />
 
           <div className="relative text-center">
             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-              Prêt à simplifier la gestion de votre salle ?
+              Chez vous, combien de cours reposent sur trois coachs ?
             </h2>
             <p className="mt-4 text-brand-cream/60 max-w-lg mx-auto">
-              Parlons de votre salle et de votre fonctionnement — on vous montre Flyder en conditions réelles, sans engagement.
+              Envoyez-nous votre planning : nous vous le calculons, sans engagement.
             </p>
           </div>
 
@@ -93,10 +87,8 @@ export default function Contact() {
               <input type="email" required placeholder="Votre email" value={email} onChange={e => setEmail(e.target.value)}
                 className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/30 transition-colors" />
             </div>
-            <input type="text" required value={objet} onChange={e => setObjet(e.target.value)}
+            <input type="text" placeholder="Nom de la salle (facultatif)" value={salle} onChange={e => setSalle(e.target.value)}
               className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/30 transition-colors" />
-            <textarea required rows={5} value={message} onChange={e => setMessage(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-3 text-sm resize-none focus:outline-none focus:border-white/30 transition-colors" />
 
             {statut === 'erreur' && (
               <p className="text-sm text-red-300">Une erreur est survenue, réessayez ou écrivez à selimouadi31@gmail.com.</p>
@@ -108,9 +100,17 @@ export default function Contact() {
               {statut === 'envoi' ? (
                 <>Envoi en cours…</>
               ) : (
-                <>Demander une démonstration <Send className="h-4 w-4" /></>
+                <>Recevoir mon calcul <Send className="h-4 w-4" /></>
               )}
             </button>
+
+            <p className="text-xs text-brand-cream/40 text-center">
+              En envoyant ce formulaire, vous acceptez que SoWeb traite vos données pour répondre à
+              votre demande. Voir la{' '}
+              <a href="/politique-confidentialite.html" className="underline hover:text-brand-cream/60">
+                politique de confidentialité
+              </a>.
+            </p>
           </form>
         </div>
       </div>

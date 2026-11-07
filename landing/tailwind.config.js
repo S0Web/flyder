@@ -9,6 +9,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui'],
         display: ['Space Grotesk', 'Inter', 'ui-sans-serif', 'system-ui'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         // Même charte que le reste de Flyder (client/tailwind.config.js) —
