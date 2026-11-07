@@ -10,7 +10,7 @@ function Carte({ index, visible, reduced, children, legende }) {
       }}>
       <div aria-hidden="true"
         className="rounded-2xl border border-white/10 p-6 sm:p-7 flex items-center justify-center"
-        style={{ backgroundColor: 'rgba(255,255,255,0.04)', minHeight: 220 }}>
+        style={{ backgroundColor: 'rgba(255,255,255,0.04)', minHeight: 260 }}>
         {children}
       </div>
       <p className="mt-4 text-sm sm:text-base font-medium text-brand-cream/70 text-center">
@@ -19,6 +19,19 @@ function Carte({ index, visible, reduced, children, legende }) {
     </div>
   );
 }
+
+const MESSAGES = [
+  { heure: '05.11 · 13:08', texte: 'Je serai absent dans 10 jours', envoye: false },
+  { heure: '05.11 · 13:10', texte: 'Rappelle-le-moi la semaine prochaine.', envoye: true },
+  { heure: '15.11 · 18:03', texte: "Tu ne me l'as pas rappelé, c'est la cata !!!", envoye: false },
+];
+
+const CONTACTS = [
+  { nom: 'Jessica', msg: 'Non je peux pas désolé', heure: '22:12' },
+  { nom: 'Romain', msg: 'Je suis déjà pris', heure: '22:04' },
+  { nom: 'Alan', msg: 'Je suis pas encore rétabli…', heure: '21:02' },
+  { nom: 'Séverine', msg: 'Je peux pas demain bon courage !', heure: '20:27' },
+];
 
 export default function Probleme() {
   const [ref, inView] = useRevealOnce(0.25);
@@ -35,16 +48,22 @@ export default function Probleme() {
           Vous connaissez la scène
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* 1. Bulle de message */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {/* 1. Conversation */}
           <Carte index={0} visible={visible} reduced={reduced}
             legende="« Rappelle-le-moi la semaine prochaine. »">
-            <div className="w-full max-w-[280px]">
-              <div className="text-[11px] font-mono text-brand-cream/30 mb-2">05.11 · 13:08</div>
-              <div className="inline-block rounded-2xl rounded-bl-sm px-4 py-3 text-sm font-medium text-brand-ink shadow-sm"
-                style={{ backgroundColor: '#E4E2DC' }}>
-                Rappelle-le-moi la semaine prochaine.
-              </div>
+            <div className="w-full max-w-[220px] flex flex-col gap-2">
+              {MESSAGES.map((m) => (
+                <div key={m.heure} className={`flex flex-col ${m.envoye ? 'items-end' : 'items-start'}`}>
+                  <span className="text-[10px] font-mono text-brand-cream/30 mb-1">{m.heure}</span>
+                  <span className="max-w-[90%] rounded-2xl px-3.5 py-2.5 text-xs leading-snug"
+                    style={m.envoye
+                      ? { backgroundColor: '#3D5AFE', color: '#fff', borderBottomRightRadius: 4 }
+                      : { backgroundColor: '#E4E2DC', color: '#12162B', borderBottomLeftRadius: 4 }}>
+                    {m.texte}
+                  </span>
+                </div>
+              ))}
             </div>
           </Carte>
 
@@ -61,46 +80,26 @@ export default function Probleme() {
             </div>
           </Carte>
 
-          {/* 3. Journal d'appels */}
+          {/* 3. Messages des coachs */}
           <Carte index={2} visible={visible} reduced={reduced}
-            legende="Trois coachs appelés avant 8 h, et personne ne sait qui a dit oui.">
-            <div className="w-full max-w-[300px] rounded-xl bg-white shadow-sm overflow-hidden text-xs text-brand-ink/80">
-              <div className="px-4 py-2.5 font-display font-bold text-sm text-brand-ink border-b border-black/5">
-                Appels
+            legende="Trois coachs contactés avant 8 h, et personne ne sait qui a dit oui.">
+            <div className="w-full max-w-[260px] rounded-xl bg-white shadow-sm overflow-hidden text-left">
+              <div className="px-4 py-3 font-display font-bold text-sm text-brand-ink border-b border-black/5">
+                Messages
               </div>
               <div className="divide-y divide-black/5">
-                <div className="px-4 py-2.5 flex items-baseline gap-3">
-                  <span className="font-mono text-brand-ink/40 flex-shrink-0">7 h 12</span>
-                  <span>Coach 1, sans réponse</span>
-                </div>
-                <div className="px-4 py-2.5 flex items-baseline gap-3">
-                  <span className="font-mono text-brand-ink/40 flex-shrink-0">7 h 15</span>
-                  <span>Coach 2, répondeur</span>
-                </div>
-                <div className="px-4 py-2.5 flex items-baseline gap-3">
-                  <span className="font-mono text-brand-ink/40 flex-shrink-0">7 h 21</span>
-                  <span>Coach 3, « je regarde »</span>
-                </div>
-              </div>
-            </div>
-          </Carte>
-
-          {/* 4. Fragment de tableur */}
-          <Carte index={3} visible={visible} reduced={reduced}
-            legende="Les cours recomptés un par un avant la facture.">
-            <div className="rounded-xl bg-white shadow-sm p-4 font-mono text-xs text-brand-ink/70">
-              <div className="grid grid-cols-5 gap-1.5 mb-3">
-                {Array.from({ length: 15 }).map((_, i) => (
-                  <div key={i}
-                    className="h-5 w-5 border border-black/10 flex items-center justify-center"
-                    style={i % 3 === 0 ? { backgroundColor: 'rgba(61,90,254,0.1)', color: '#3D5AFE' } : undefined}>
-                    {i % 3 === 0 ? '✓' : ''}
+                {CONTACTS.map((c) => (
+                  <div key={c.nom} className="px-4 py-2.5 flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(18,22,43,0.08)' }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-xs font-semibold text-brand-ink truncate">{c.nom}</span>
+                        <span className="text-[10px] text-brand-ink/40 flex-shrink-0">{c.heure}</span>
+                      </div>
+                      <div className="text-[11px] text-brand-ink/50 truncate">{c.msg}</div>
+                    </div>
                   </div>
                 ))}
-              </div>
-              <div className="flex items-center justify-between gap-6 pt-2 border-t border-black/10">
-                <span className="line-through text-brand-ink/40">Total : 42</span>
-                <span className="font-bold" style={{ color: '#FF5A36' }}>?</span>
               </div>
             </div>
           </Carte>
