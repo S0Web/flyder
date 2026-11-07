@@ -6,10 +6,10 @@ export default function Preuve() {
           « J'ai arrêté de recompter mes cours. »
         </blockquote>
         <p className="mt-6 text-sm font-semibold text-brand-ink/70">
-          Selim, ancien codirecteur de la salle, fondateur de Flyder
+          Djamel, gérant de la salle Fitnessmov
         </p>
         <p className="mt-8 text-sm text-brand-ink/50 max-w-xl mx-auto">
-          Flyder a été conçu dans une salle de fitness et d'aqua. Son équipe l'utilise depuis juin 2026.
+          Flyder a été conçu dans la salle Fitnessmov, salle de fitness et d'aqua. Son équipe l'utilise depuis juin 2026.
         </p>
       </div>
     </section>
