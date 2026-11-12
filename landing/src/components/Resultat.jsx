@@ -4,8 +4,7 @@ import { useRevealOnce, usePrefersReducedMotion } from '../lib/useReveal';
 
 function Carte({ titre, chiffre, texte, accent }) {
   return (
-    <div className={`flex-1 rounded-2xl p-6 sm:p-7 ${accent ? '' : 'border border-black/10 bg-white'}`}
-      style={accent ? { backgroundColor: '#12162B' } : undefined}>
+    <div className={`flex-1 rounded-xl p-6 sm:p-7 ${accent ? 'card-dark' : 'card-light'}`}>
       <div className="text-xs font-bold uppercase tracking-wide mb-4"
         style={{ color: accent ? '#8395FE' : '#8B93A7' }}>
         {titre}
@@ -38,7 +37,7 @@ export default function Resultat() {
   const flyderVisible = reduced || step >= 2;
 
   return (
-    <section id="resultat" ref={ref} className="bg-brand-cream py-24 sm:py-32">
+    <section id="resultat" ref={ref} className="bg-cream-textured py-24 sm:py-32">
       <div className="max-w-5xl mx-auto px-5 sm:px-8">
         <h2 className="text-3xl sm:text-4xl font-bold text-brand-ink tracking-tight max-w-2xl mb-14 sm:mb-16">
           Moins de temps à compter. Plus de temps à décider.
@@ -77,10 +76,10 @@ export default function Resultat() {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3 justify-center sm:justify-start">
-          <span className="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border border-black/10 text-brand-ink/70">
+          <span className="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border-[1.5px] border-brand-ink/15 text-brand-ink/70">
             Moins de temps passé
           </span>
-          <span className="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border border-black/10 text-brand-ink/70">
+          <span className="text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border-[1.5px] border-brand-ink/15 text-brand-ink/70">
             Des décisions mieux informées
           </span>
         </div>

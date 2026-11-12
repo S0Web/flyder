@@ -29,7 +29,7 @@ export default function CookieConsent() {
   return (
     <div role="dialog" aria-label="Préférences cookies"
       className="fixed bottom-0 inset-x-0 z-[60] p-4 sm:p-5">
-      <div className="max-w-2xl mx-auto rounded-2xl shadow-xl border border-black/10 bg-white px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <div className="max-w-2xl mx-auto card-light rounded-xl px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p className="text-sm text-brand-ink/70 flex-1">
           Ce site utilise Google Analytics pour mesurer sa fréquentation. Vous pouvez accepter
           ou refuser ce suivi — voir notre{' '}
@@ -37,7 +37,7 @@ export default function CookieConsent() {
         </p>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button onClick={refuser}
-            className="text-sm font-semibold px-4 py-2.5 rounded-full border border-black/10 text-brand-ink hover:bg-black/5 transition-colors">
+            className="text-sm font-semibold px-4 py-2.5 rounded-full border-[1.5px] border-brand-ink/15 text-brand-ink hover:bg-black/5 transition-colors">
             Refuser
           </button>
           <button onClick={accepter}

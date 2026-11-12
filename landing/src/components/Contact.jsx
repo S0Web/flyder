@@ -46,9 +46,9 @@ export default function Contact() {
 
   if (statut === 'ok') {
     return (
-      <section id="contact" className="py-24 sm:py-32 bg-brand-cream">
+      <section id="contact" className="py-24 sm:py-32 bg-cream-textured">
         <div className="max-w-4xl mx-auto px-5 sm:px-8">
-          <div className="relative rounded-3xl overflow-hidden px-8 py-20 text-center" style={{ backgroundColor: '#12162B' }}>
+          <div className="relative card-dark rounded-xl overflow-hidden px-8 py-20 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto mb-5" style={{ color: '#3D5AFE' }} />
             <h2 className="text-3xl font-bold text-white tracking-tight">Merci.</h2>
             <p className="mt-4 text-brand-cream/60 max-w-md mx-auto">
@@ -61,9 +61,9 @@ export default function Contact() {
   }
 
   return (
-    <section id="contact" className="py-24 sm:py-32" style={{ backgroundColor: '#12162B' }}>
+    <section id="contact" className="py-24 sm:py-32 bg-ink-textured">
       <div className="max-w-4xl mx-auto px-5 sm:px-8">
-        <div className="relative rounded-3xl overflow-hidden px-8 py-16 sm:px-16 sm:py-20 border border-white/10">
+        <div className="relative card-dark rounded-xl overflow-hidden px-8 py-16 sm:px-16 sm:py-20">
           <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full opacity-20 blur-3xl"
             style={{ background: 'radial-gradient(circle, #FF5A36 0%, transparent 70%)' }} />
 
@@ -83,12 +83,12 @@ export default function Contact() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input type="text" required placeholder="Votre nom" value={nom} onChange={e => setNom(e.target.value)}
-                className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/30 transition-colors" />
+                className="w-full rounded-md bg-white/[0.06] border-[1.5px] border-white/15 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors" />
               <input type="email" required placeholder="Votre email" value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/30 transition-colors" />
+                className="w-full rounded-md bg-white/[0.06] border-[1.5px] border-white/15 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors" />
             </div>
             <input type="text" placeholder="Nom de la salle (facultatif)" value={salle} onChange={e => setSalle(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/30 transition-colors" />
+              className="w-full rounded-md bg-white/[0.06] border-[1.5px] border-white/15 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors" />
 
             {statut === 'erreur' && (
               <p className="text-sm text-red-300">Une erreur est survenue, réessayez ou écrivez à selimouadi31@gmail.com.</p>

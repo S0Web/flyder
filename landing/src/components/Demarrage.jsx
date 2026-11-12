@@ -6,7 +6,7 @@ const ETAPES = [
 
 export default function Demarrage() {
   return (
-    <section id="demarrage" className="bg-brand-cream py-24 sm:py-32">
+    <section id="demarrage" className="bg-cream-textured py-24 sm:py-32">
       <div className="max-w-5xl mx-auto px-5 sm:px-8">
         <h2 className="text-3xl sm:text-4xl font-bold text-brand-ink tracking-tight text-center mb-16">
           On le prépare avec votre vrai planning
@@ -24,7 +24,7 @@ export default function Demarrage() {
           ))}
         </div>
 
-        <div className="mt-14 rounded-2xl border border-black/10 bg-white p-6 sm:p-7 max-w-2xl mx-auto text-center sm:text-left">
+        <div className="mt-14 card-light rounded-xl p-6 sm:p-7 max-w-2xl mx-auto text-center sm:text-left">
           <p className="font-semibold text-brand-ink mb-2">
             Un coach manque et personne n'est disponible ?
           </p>

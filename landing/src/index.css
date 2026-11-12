@@ -4,9 +4,39 @@
 
 @layer base {
   body {
-    @apply bg-brand-cream text-gray-900 font-sans antialiased;
+    @apply text-gray-900 font-sans antialiased;
   }
   h1, h2, h3 {
     @apply font-display;
+  }
+}
+
+/* Fond grainé discret (SVG, pas de dégradé ni de motif à points) — casse
+   l'aplat plat des grandes sections tout en gardant les couleurs de la
+   charte. "overlay"/"multiply" font ressortir le grain comme un papier
+   légèrement texturé plutôt qu'une image collée par-dessus. */
+@layer utilities {
+  .bg-cream-textured {
+    background-color: #F6F5F1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
+  }
+  .bg-ink-textured {
+    background-color: #12162B;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
+  }
+
+  /* Langage de carte "classique" — bordure pleine teintée, coins moins
+     arrondis, ombre portée dure plutôt qu'un flou translucide générique. */
+  .card-light {
+    background-color: #ffffff;
+    border: 1.5px solid rgba(18, 22, 43, 0.16);
+    box-shadow: 3px 3px 0 rgba(18, 22, 43, 0.07);
+  }
+  .card-dark {
+    background-color: #181D36;
+    border: 1.5px solid rgba(246, 245, 241, 0.14);
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.28);
   }
 }

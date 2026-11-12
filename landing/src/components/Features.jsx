@@ -35,7 +35,7 @@ const FEATURES = [
 
 export default function Features() {
   return (
-    <section id="fonctionnalites" className="py-24 sm:py-32" style={{ backgroundColor: '#12162B' }}>
+    <section id="fonctionnalites" className="bg-ink-textured py-24 sm:py-32">
       <div className="max-w-6xl mx-auto px-5 sm:px-8">
         <div className="max-w-2xl mx-auto text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
@@ -45,7 +45,7 @@ export default function Features() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {FEATURES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="rounded-2xl p-6 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">
+            <div key={title} className="card-dark rounded-xl p-6 hover:border-white/25 transition-colors">
               <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-5 bg-white/10">
                 <Icon className="h-5 w-5" style={{ color: '#8395FE' }} />
               </div>

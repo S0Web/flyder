@@ -13,7 +13,7 @@ import MobileCTA from './components/MobileCTA';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-brand-cream">
+    <div className="min-h-screen bg-cream-textured">
       <Nav />
       <Hero />
       <Probleme />

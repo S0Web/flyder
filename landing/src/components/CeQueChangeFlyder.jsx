@@ -25,8 +25,7 @@ const LIGNES = [
 
 function Colonne({ titre, cle, accent }) {
   return (
-    <div className={`rounded-2xl p-6 sm:p-7 ${accent ? '' : 'border border-black/10 bg-white'}`}
-      style={accent ? { backgroundColor: '#12162B' } : undefined}>
+    <div className={`rounded-xl p-6 sm:p-7 ${accent ? 'card-dark' : 'card-light'}`}>
       <div className="text-xs font-bold uppercase tracking-wide mb-5"
         style={{ color: accent ? '#8395FE' : '#8B93A7' }}>
         {titre}
@@ -51,7 +50,7 @@ export default function CeQueChangeFlyder() {
   const [tab, setTab] = useState('flyder'); // 'tableur' | 'flyder' — mobile uniquement
 
   return (
-    <section id="solutions" className="bg-brand-cream py-24 sm:py-32">
+    <section id="solutions" className="bg-cream-textured py-24 sm:py-32">
       <div className="max-w-5xl mx-auto px-5 sm:px-8">
         <h2 className="text-3xl sm:text-4xl font-bold text-brand-ink tracking-tight text-center">
           Ce que change Flyder

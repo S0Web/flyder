@@ -9,8 +9,8 @@ function Carte({ index, visible, reduced, children, legende }) {
         transitionDelay: `${index * 120}ms`,
       }}>
       <div aria-hidden="true"
-        className="rounded-2xl border border-white/10 p-6 sm:p-7 flex items-center justify-center"
-        style={{ backgroundColor: 'rgba(255,255,255,0.04)', minHeight: 260 }}>
+        className="card-dark rounded-xl p-6 sm:p-7 flex items-center justify-center"
+        style={{ minHeight: 260 }}>
         {children}
       </div>
       <p className="mt-4 text-sm sm:text-base font-medium text-brand-cream/70 text-center">
@@ -42,7 +42,7 @@ export default function Probleme() {
   const finalVisible = reduced || finalInView;
 
   return (
-    <section id="probleme" ref={ref} className="py-24 sm:py-32" style={{ backgroundColor: '#12162B' }}>
+    <section id="probleme" ref={ref} className="bg-ink-textured py-24 sm:py-32">
       <div className="max-w-5xl mx-auto px-5 sm:px-8">
         <div className="text-xs font-bold uppercase tracking-wide mb-10 text-center" style={{ color: '#8395FE' }}>
           Vous connaissez la scène

@@ -61,7 +61,8 @@ function ProductTour() {
   const videoRef = useRef(null);
   return (
     <div className="relative max-w-5xl mx-auto">
-      <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-brand-ink/20 border border-black/10 bg-white">
+      <div className="relative card-light rounded-xl overflow-hidden"
+        style={{ boxShadow: '6px 6px 0 rgba(18,22,43,0.1)' }}>
         <div className="flex items-center gap-1.5 bg-gray-100 border-b border-black/5 px-4 py-2.5">
           <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
