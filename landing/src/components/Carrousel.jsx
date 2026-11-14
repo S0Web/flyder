@@ -54,7 +54,7 @@ export default function Carrousel({ cartes, grille = 'md:grid-cols-3', classeCar
         {cartes.map(({ titre }, i) => (
           <button key={titre} type="button" onClick={() => allerA(i)}
             aria-label={`Afficher : ${titre}`} aria-current={active === i || undefined}
-            className="flex h-6 items-center px-1">
+            className="flex h-9 items-center px-1.5">
             <span className={`block h-1.5 rounded-full transition-all duration-300 ${active === i ? 'w-6 bg-brand-ink' : 'w-1.5 bg-brand-ink/20'}`} />
           </button>
         ))}

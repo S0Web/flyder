@@ -1,7 +1,8 @@
 import Nav from './components/Nav';
 import Hero from './components/Hero';
 import Bandeau from './components/Bandeau';
-import Statement from './components/Statement';
+import Preuve from './components/Preuve';
+import AvantApres from './components/AvantApres';
 import Solutions from './components/Solutions';
 import Features from './components/Features';
 import Equipe from './components/Equipe';
@@ -16,7 +17,8 @@ export default function App() {
       <main>
         <Hero />
         <Bandeau />
-        <Statement />
+        <Preuve />
+        <AvantApres />
         <Solutions />
         <Features />
         <Equipe />

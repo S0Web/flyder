@@ -59,6 +59,14 @@ function FloatingNavBar({ videoRef }) {
 
 function ProductTour() {
   const videoRef = useRef(null);
+
+  // Lecture lancée ici plutôt que par l'attribut autoplay : un visiteur en
+  // mode "économie de données" garde l'image fixe et ne télécharge pas la vidéo.
+  useEffect(() => {
+    if (navigator.connection?.saveData) return;
+    videoRef.current?.play().catch(() => {});
+  }, []);
+
   return (
     <div className="relative overflow-hidden rounded-[1.25rem] border border-black/[0.08] bg-white shadow-2xl shadow-brand-ink/15 sm:rounded-[2rem]">
       <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
@@ -67,7 +75,7 @@ function ProductTour() {
           className="absolute inset-0 h-full w-full object-cover object-top"
           poster={posterScreenshot}
           aria-label="Aperçu de Flyder : planning, analyse et gestion des coachs"
-          autoPlay loop muted playsInline preload="auto">
+          loop muted playsInline preload="none">
           <source src={tourWebm} type="video/webm" />
           <source src={tourMp4} type="video/mp4" />
         </video>
@@ -82,11 +90,11 @@ export default function Hero() {
     <section id="top" className="pt-32 sm:pt-40">
       <div className="mx-auto max-w-6xl px-5 text-center sm:px-8">
         <h1 className="display-xl mx-auto max-w-5xl text-[2.6rem] motion-safe:animate-fadeInUp sm:text-7xl lg:text-[5.25rem]" style={{ animationDelay: '60ms' }}>
-          Le logiciel de gestion pensé pour les salles de sport
+          Moins de temps à compter, plus de temps à décider
         </h1>
 
-        <p className="mx-auto mt-7 max-w-xl text-lg text-brand-ink/60 motion-safe:animate-fadeInUp sm:text-xl" style={{ animationDelay: '120ms' }}>
-          Planning, coachs, RH, facturation et statistiques réunis dans un seul outil.
+        <p className="mx-auto mt-7 max-w-2xl text-lg text-brand-ink/60 motion-safe:animate-fadeInUp sm:text-xl" style={{ animationDelay: '120ms' }}>
+          Flyder, le logiciel de gestion pensé pour les salles de sport : planning, coachs, RH, facturation et statistiques réunis dans un seul outil.
         </p>
 
         <div className="mt-9 flex flex-col items-stretch justify-center gap-3 motion-safe:animate-fadeInUp sm:flex-row sm:items-center" style={{ animationDelay: '180ms' }}>

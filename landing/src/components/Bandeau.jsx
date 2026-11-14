@@ -1,11 +1,14 @@
+import { useState } from 'react';
+
 // Bandeau défilant en continu sous le hero. Les chiffres viennent de la salle
 // Fitnessmov (temps hebdomadaire passé sur le planning, estimé par sa
 // direction) — ne pas en ajouter qui ne soient pas mesurés quelque part.
 const ITEMS = [
   { fort: '4 fois moins de temps', texte: 'passé sur le planning' },
   { fort: 'Depuis juin 2026', texte: 'utilisé chaque jour en salle' },
-  { fort: '« J’ai arrêté de recompter mes cours. »', texte: 'Djamel, gérant de Fitnessmov' },
   { fort: 'Une alerte', texte: 'dès qu’un cours n’a plus de coach' },
+  { fort: 'Le décompte des coachs', texte: 'calculé tout seul' },
+  { fort: 'Le tableau d’analyse', texte: 'mis à jour tout seul' },
   { fort: 'Zéro ressaisie', texte: 'on reprend votre planning Excel ou Google Sheets' },
 ];
 
@@ -24,9 +27,14 @@ function Piste({ cache = false }) {
 }
 
 export default function Bandeau() {
+  // Au survol le bandeau se met en pause tout seul (CSS) ; au doigt, un appui
+  // le fige et un second le relance.
+  const [pause, setPause] = useState(false);
+
   return (
     <section aria-label="Flyder en quelques chiffres" className="pt-12 sm:pt-20">
-      <div className="bandeau flex overflow-hidden border-y border-brand-ink/[0.08] py-5 sm:py-6">
+      <div onClick={() => setPause(p => !p)}
+        className={`bandeau flex overflow-hidden border-y border-brand-ink/[0.08] py-5 sm:py-6 ${pause ? 'en-pause' : ''}`}>
         <Piste />
         {/* Copie identique, masquée aux lecteurs d'écran, pour boucler sans raccord. */}
         <Piste cache />

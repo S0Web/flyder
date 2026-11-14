@@ -81,7 +81,8 @@
 .bandeau-piste {
   animation: bandeau 38s linear infinite;
 }
-.bandeau:hover .bandeau-piste {
+.bandeau:hover .bandeau-piste,
+.bandeau.en-pause .bandeau-piste {
   animation-play-state: paused;
 }
 @keyframes bandeau {
