@@ -1,24 +1,22 @@
-import logo from '../assets/logo-flyder-white.png';
+import logo from '../assets/logo-flyder.png';
 
 export default function Footer() {
   return (
-    <footer style={{ backgroundColor: '#12162B' }}>
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-12">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-          <img src={logo} alt="Flyder" className="h-6 w-auto" />
-          <div className="flex items-center gap-6 text-sm text-brand-cream/50">
-            <a href="#fonctionnalites" className="hover:text-white transition-colors">Fonctionnalités</a>
-            <a href="#solutions" className="hover:text-white transition-colors">Solutions</a>
-            <a href="#contact" className="hover:text-white transition-colors">Contact</a>
-          </div>
+    <footer className="mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+      <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+        <img src={logo} alt="Flyder" className="h-6 w-auto" />
+        <div className="flex items-center gap-7 text-sm font-medium text-brand-ink/60">
+          <a href="#solutions" className="transition-colors hover:text-brand-ink">Solutions</a>
+          <a href="#fonctionnalites" className="transition-colors hover:text-brand-ink">Fonctionnalités</a>
+          <a href="#contact" className="transition-colors hover:text-brand-ink">Contact</a>
         </div>
-        <div className="mt-8 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-brand-cream/30 text-center sm:text-left">
-          <span>© {new Date().getFullYear()} Flyder. Tous droits réservés.</span>
-          <div className="flex items-center gap-4">
-            <a href="/mentions-legales.html" className="hover:text-brand-cream/60 transition-colors">Mentions légales</a>
-            <a href="/politique-confidentialite.html" className="hover:text-brand-cream/60 transition-colors">Confidentialité</a>
-            <a href="/cgv.html" className="hover:text-brand-cream/60 transition-colors">CGV</a>
-          </div>
+      </div>
+      <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-black/[0.08] pt-8 text-center text-xs text-brand-ink/45 sm:flex-row sm:text-left">
+        <span>© {new Date().getFullYear()} Flyder. Tous droits réservés.</span>
+        <div className="flex items-center gap-5">
+          <a href="/mentions-legales.html" className="transition-colors hover:text-brand-ink">Mentions légales</a>
+          <a href="/politique-confidentialite.html" className="transition-colors hover:text-brand-ink">Confidentialité</a>
+          <a href="/cgv.html" className="transition-colors hover:text-brand-ink">CGV</a>
         </div>
       </div>
     </footer>

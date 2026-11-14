@@ -1,4 +1,5 @@
 import { CalendarDays, ClipboardList, BarChart3, FileText, CreditCard, ShieldCheck } from 'lucide-react';
+import Reveal from './Reveal';
 
 const FEATURES = [
   {
@@ -9,7 +10,7 @@ const FEATURES = [
   {
     icon: ClipboardList,
     title: 'Gestion des coachs',
-    text: "Heures effectuées, présences : un récapitulatif toujours à jour pour chaque coach de l'équipe.",
+    text: "Heures effectuées, présences, disponibilités : un récapitulatif toujours à jour pour chaque coach de l'équipe.",
   },
   {
     icon: BarChart3,
@@ -24,35 +25,40 @@ const FEATURES = [
   {
     icon: CreditCard,
     title: 'Facturation & paiement',
-    text: "Export PDF du récapitulatif d'heures de chaque coach, à comparer avec sa propre facture — plus de recomptage manuel.",
+    text: "Abonnement géré automatiquement via Stripe — plus de relances manuelles, plus d'oublis de renouvellement.",
   },
   {
     icon: ShieldCheck,
     title: 'Sécurité & conformité',
-    text: "Accès par rôle, sauvegarde quotidienne, données hébergées dans l'Union européenne. Flyder agit comme sous-traitant au sens du RGPD.",
+    text: "Accès par rôle, sauvegardes chiffrées automatiques, conformité RGPD — vos données et celles de vos adhérents sont protégées.",
   },
 ];
 
 export default function Features() {
   return (
-    <section id="fonctionnalites" className="bg-ink-textured py-24 sm:py-32">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
-        <div className="max-w-2xl mx-auto text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Et pour le reste
-          </h2>
-        </div>
+    <section id="fonctionnalites" className="scroll-mt-20 px-3 sm:px-5">
+      <div className="mx-auto max-w-[84rem] rounded-[2rem] bg-brand-sand py-20 sm:rounded-[2.5rem] sm:py-32">
+        <div className="mx-auto max-w-6xl px-5 sm:px-8">
+          <Reveal className="mb-14 max-w-3xl sm:mb-20">
+            <h2 className="display-lg text-4xl text-brand-ink sm:text-6xl">
+              Tout ce qu'il faut pour faire tourner votre salle
+            </h2>
+            <p className="mt-6 max-w-xl text-lg text-brand-ink/60">
+              Chaque fonctionnalité a été construite pour un usage réel en salle, pas pour remplir une liste marketing.
+            </p>
+          </Reveal>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="card-dark rounded-xl p-6 hover:border-white/25 transition-colors">
-              <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-5 bg-white/10">
-                <Icon className="h-5 w-5" style={{ color: '#8395FE' }} />
-              </div>
-              <h3 className="text-base font-bold text-white mb-2">{title}</h3>
-              <p className="text-sm text-brand-cream/50 leading-relaxed">{text}</p>
-            </div>
-          ))}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map(({ icon: Icon, title, text }, i) => (
+              <Reveal key={title} delay={(i % 3) * 100} className="rounded-3xl bg-brand-cream p-7 sm:p-8">
+                <div className="mb-10 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-ink">
+                  <Icon className="h-5 w-5 text-white" strokeWidth={1.75} />
+                </div>
+                <h3 className="text-xl font-semibold tracking-tight text-brand-ink">{title}</h3>
+                <p className="mt-2.5 text-[15px] leading-relaxed text-brand-ink/60">{text}</p>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </div>
     </section>

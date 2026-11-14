@@ -1,13 +1,25 @@
 import { useState } from 'react';
 import { Send, CheckCircle2 } from 'lucide-react';
+import Reveal from './Reveal';
 
 const LEADS_URL = 'https://admin.flyder.fr/api/leads';
-const OBJET_DEFAUT = 'Demande de calcul — planning Flyder';
+
+const OBJET_DEFAUT = 'Demande de démonstration Flyder';
+const MESSAGE_DEFAUT = `Bonjour,
+
+Je gère une salle de sport et j'aimerais voir Flyder en conditions réelles.
+
+Pouvez-vous me proposer un créneau pour une démonstration ?
+
+Merci,`;
+
+const CHAMP = 'w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3.5 text-sm text-white placeholder-white/35 transition-colors focus:border-white/40 focus:outline-none';
 
 export default function Contact() {
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
-  const [salle, setSalle] = useState('');
+  const [objet, setObjet] = useState(OBJET_DEFAUT);
+  const [message, setMessage] = useState(MESSAGE_DEFAUT);
   // Honeypot : champ jamais rempli par un humain (masqué visuellement), sert
   // à filtrer une partie des bots sans reCAPTCHA ni dépendance externe.
   const [site, setSite] = useState('');
@@ -16,9 +28,6 @@ export default function Contact() {
   async function envoyer(e) {
     e.preventDefault();
     setStatut('envoi');
-    const message = salle.trim()
-      ? `Bonjour,\n\nJe gère ${salle.trim()} et j'aimerais que vous me calculiez le temps que Flyder me ferait gagner sur mon planning.\n\nMerci,`
-      : `Bonjour,\n\nJ'aimerais que vous me calculiez le temps que Flyder me ferait gagner sur mon planning.\n\nMerci,`;
     // Sans délai limite, une requête qui ne reçoit jamais de réponse (backend
     // qui bloque, proxy muet) laisse le bouton bloqué sur "Envoi en cours"
     // indéfiniment — on abandonne et on affiche une erreur après 15s.
@@ -28,7 +37,7 @@ export default function Contact() {
       const res = await fetch(LEADS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nom, email, objet: OBJET_DEFAUT, message, site }),
+        body: JSON.stringify({ nom, email, objet, message, site }),
         signal: controller.signal,
       });
       if (!res.ok) throw new Error('Échec envoi');
@@ -44,76 +53,66 @@ export default function Contact() {
     }
   }
 
-  if (statut === 'ok') {
-    return (
-      <section id="contact" className="py-24 sm:py-32 bg-cream-textured">
-        <div className="max-w-4xl mx-auto px-5 sm:px-8">
-          <div className="relative card-dark rounded-xl overflow-hidden px-8 py-20 text-center">
-            <CheckCircle2 className="h-12 w-12 mx-auto mb-5" style={{ color: '#3D5AFE' }} />
-            <h2 className="text-3xl font-bold text-white tracking-tight">Merci.</h2>
-            <p className="mt-4 text-brand-cream/60 max-w-md mx-auto">
-              Nous vous répondons rapidement avec la marche à suivre pour nous envoyer votre planning.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section id="contact" className="py-24 sm:py-32 bg-ink-textured">
-      <div className="max-w-4xl mx-auto px-5 sm:px-8">
-        <div className="relative card-dark rounded-xl overflow-hidden px-8 py-16 sm:px-16 sm:py-20">
-          <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full opacity-20 blur-3xl"
-            style={{ background: 'radial-gradient(circle, #FF5A36 0%, transparent 70%)' }} />
-
-          <div className="relative text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-              Chez vous, combien de cours reposent sur trois coachs ?
-            </h2>
-            <p className="mt-4 text-brand-cream/60 max-w-lg mx-auto">
-              Envoyez-nous votre planning : nous vous le calculons, sans engagement.
+    <section id="contact" className="scroll-mt-20 px-3 py-24 sm:px-5 sm:py-36">
+      <Reveal className="mx-auto max-w-[84rem] rounded-[2rem] bg-brand-ink px-6 py-16 sm:rounded-[2.5rem] sm:px-14 sm:py-24">
+        {statut === 'ok' ? (
+          <div className="mx-auto max-w-xl py-10 text-center" role="status">
+            <CheckCircle2 className="mx-auto mb-6 h-12 w-12 text-brand-blue" />
+            <h2 className="display-lg text-4xl text-white sm:text-5xl">Demande envoyée</h2>
+            <p className="mx-auto mt-5 max-w-md text-lg text-brand-cream/60">
+              Merci ! On revient vers vous très vite pour organiser votre démonstration.
             </p>
           </div>
-
-          <form onSubmit={envoyer} className="relative mt-10 max-w-lg mx-auto space-y-4">
-            <input type="text" value={site} onChange={e => setSite(e.target.value)}
-              tabIndex={-1} autoComplete="off"
-              className="absolute -left-[9999px] w-px h-px opacity-0" aria-hidden="true" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input type="text" required placeholder="Votre nom" value={nom} onChange={e => setNom(e.target.value)}
-                className="w-full rounded-md bg-white/[0.06] border-[1.5px] border-white/15 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors" />
-              <input type="email" required placeholder="Votre email" value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full rounded-md bg-white/[0.06] border-[1.5px] border-white/15 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors" />
+        ) : (
+          <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            <div>
+              <h2 className="display-lg text-4xl text-white sm:text-6xl">
+                Prêt à simplifier la gestion de votre salle ?
+              </h2>
+              <p className="mt-6 max-w-md text-lg text-brand-cream/60">
+                Parlons de votre salle et de votre fonctionnement — on vous montre Flyder en conditions réelles, sans engagement.
+              </p>
             </div>
-            <input type="text" placeholder="Nom de la salle (facultatif)" value={salle} onChange={e => setSalle(e.target.value)}
-              className="w-full rounded-md bg-white/[0.06] border-[1.5px] border-white/15 text-white placeholder-white/30 px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors" />
 
-            {statut === 'erreur' && (
-              <p className="text-sm text-red-300">Une erreur est survenue, réessayez ou écrivez à selimouadi31@gmail.com.</p>
-            )}
+            <form onSubmit={envoyer} className="relative space-y-3">
+              <input type="text" value={site} onChange={e => setSite(e.target.value)}
+                tabIndex={-1} autoComplete="off"
+                className="absolute -left-[9999px] h-px w-px opacity-0" aria-hidden="true" />
 
-            <button type="submit" disabled={statut === 'envoi'}
-              className="w-full inline-flex items-center justify-center gap-2 text-white text-sm font-semibold px-7 py-3.5 rounded-full hover:opacity-90 transition-opacity disabled:opacity-60"
-              style={{ backgroundColor: '#3D5AFE' }}>
-              {statut === 'envoi' ? (
-                <>Envoi en cours…</>
-              ) : (
-                <>Recevoir mon calcul <Send className="h-4 w-4" /></>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input type="text" required placeholder="Votre nom" aria-label="Votre nom" autoComplete="name"
+                  value={nom} onChange={e => setNom(e.target.value)} className={CHAMP} />
+                <input type="email" required placeholder="Votre email" aria-label="Votre email" autoComplete="email"
+                  value={email} onChange={e => setEmail(e.target.value)} className={CHAMP} />
+              </div>
+              <input type="text" required aria-label="Objet" value={objet} onChange={e => setObjet(e.target.value)} className={CHAMP} />
+              <textarea required rows={8} aria-label="Message" value={message} onChange={e => setMessage(e.target.value)}
+                className={`${CHAMP} resize-none`} />
+
+              {statut === 'erreur' && (
+                <p className="text-sm text-red-300" role="alert">Une erreur est survenue, réessayez ou écrivez à selimouadi31@gmail.com.</p>
               )}
-            </button>
 
-            <p className="text-xs text-brand-cream/40 text-center">
-              En envoyant ce formulaire, vous acceptez que SoWeb traite vos données pour répondre à
-              votre demande. Voir la{' '}
-              <a href="/politique-confidentialite.html" className="underline hover:text-brand-cream/60">
-                politique de confidentialité
-              </a>.
-            </p>
-          </form>
-        </div>
-      </div>
+              <button type="submit" disabled={statut === 'envoi'} className="btn-primary w-full disabled:opacity-60">
+                {statut === 'envoi' ? (
+                  <>Envoi en cours…</>
+                ) : (
+                  <>Demander une démonstration <Send className="h-4 w-4" /></>
+                )}
+              </button>
+
+              <p className="text-center text-xs text-brand-cream/45">
+                En envoyant ce formulaire, vous acceptez que SoWeb traite vos données pour répondre à
+                votre demande. Voir la{' '}
+                <a href="/politique-confidentialite.html" className="underline hover:text-brand-cream/70">
+                  politique de confidentialité
+                </a>.
+              </p>
+            </form>
+          </div>
+        )}
+      </Reveal>
     </section>
   );
 }

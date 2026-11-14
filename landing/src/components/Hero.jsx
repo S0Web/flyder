@@ -13,9 +13,9 @@ const SEGMENTS = [
   { icon: Users, label: 'Coachs', start: 14, end: 20 },
 ];
 
-// Barre flottante purement décorative (rien n'est cliquable) — reprend
-// l'esprit "chrome d'appli" façon Railway, avec une jauge par section qui se
-// remplit en suivant la lecture réelle de la vidéo (comme des stories).
+// Barre flottante purement décorative (rien n'est cliquable) : une jauge par
+// section qui se remplit en suivant la lecture réelle de la vidéo (comme des
+// stories).
 function FloatingNavBar({ videoRef }) {
   const fillRefs = useRef([]);
   const textRefs = useRef([]);
@@ -39,12 +39,12 @@ function FloatingNavBar({ videoRef }) {
   }, [videoRef]);
 
   return (
-    <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
-      <div className="flex items-center gap-1 rounded-full bg-brand-ink/85 backdrop-blur-sm px-1.5 py-1.5 shadow-xl shadow-black/20 border border-white/10">
+    <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 sm:bottom-6" aria-hidden="true">
+      <div className="flex items-center gap-1 rounded-full border border-white/10 bg-brand-ink/85 px-1.5 py-1.5 shadow-xl shadow-black/20 backdrop-blur-sm">
         {SEGMENTS.map(({ icon: Icon, label }, i) => (
           <div key={label} className="relative overflow-hidden rounded-full">
             <div ref={(el) => { fillRefs.current[i] = el; }}
-              className="absolute inset-y-0 left-0 rounded-full" style={{ width: '0%', backgroundColor: '#3D5AFE' }} />
+              className="absolute inset-y-0 left-0 rounded-full bg-brand-blue" style={{ width: '0%' }} />
             <div ref={(el) => { textRefs.current[i] = el; }}
               className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <Icon className="h-3.5 w-3.5" />
@@ -60,26 +60,18 @@ function FloatingNavBar({ videoRef }) {
 function ProductTour() {
   const videoRef = useRef(null);
   return (
-    <div className="relative max-w-5xl mx-auto">
-      <div className="relative card-light rounded-xl overflow-hidden"
-        style={{ boxShadow: '6px 6px 0 rgba(18,22,43,0.1)' }}>
-        <div className="flex items-center gap-1.5 bg-gray-100 border-b border-black/5 px-4 py-2.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-          <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-          <span className="ml-3 text-xs text-gray-400 font-medium">Flyder en conditions réelles</span>
-        </div>
-        <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
-          <video
-            ref={videoRef}
-            className="absolute inset-0 w-full h-full object-cover object-top"
-            poster={posterScreenshot}
-            autoPlay loop muted playsInline preload="auto">
-            <source src={tourWebm} type="video/webm" />
-            <source src={tourMp4} type="video/mp4" />
-          </video>
-          <FloatingNavBar videoRef={videoRef} />
-        </div>
+    <div className="relative overflow-hidden rounded-[1.25rem] border border-black/[0.08] bg-white shadow-2xl shadow-brand-ink/15 sm:rounded-[2rem]">
+      <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover object-top"
+          poster={posterScreenshot}
+          aria-label="Aperçu de Flyder : planning, analyse et gestion des coachs"
+          autoPlay loop muted playsInline preload="auto">
+          <source src={tourWebm} type="video/webm" />
+          <source src={tourMp4} type="video/mp4" />
+        </video>
+        <FloatingNavBar videoRef={videoRef} />
       </div>
     </div>
   );
@@ -87,38 +79,35 @@ function ProductTour() {
 
 export default function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden pt-16 pb-28 sm:pt-24 sm:pb-36">
-      {/* Halo décoratif, dans l'esprit du bleu/corail de la charte, jamais dominant */}
-      <div className="pointer-events-none absolute -top-40 -right-40 h-[32rem] w-[32rem] rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #3D5AFE 0%, transparent 70%)' }} />
-      <div className="pointer-events-none absolute top-40 -left-32 h-72 w-72 rounded-full opacity-10 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #FF5A36 0%, transparent 70%)' }} />
+    <section id="top" className="pt-32 sm:pt-40">
+      <div className="mx-auto max-w-6xl px-5 text-center sm:px-8">
+        <div className="mb-7 inline-flex items-center gap-2.5 rounded-full bg-brand-ink/[0.06] py-1.5 pl-1.5 pr-4 motion-safe:animate-fadeInUp">
+          <span className="rounded-full bg-brand-ink px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            Nouveau
+          </span>
+          <span className="text-left text-xs font-medium text-brand-ink/70">Facturation automatisée maintenant disponible</span>
+        </div>
 
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 text-center">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-brand-ink tracking-tight leading-[1.08] motion-safe:animate-fadeInUp">
-          Un planning qui se vérifie, se facture et s'analyse tout seul.
+        <h1 className="display-xl mx-auto max-w-5xl text-[2.6rem] motion-safe:animate-fadeInUp sm:text-7xl lg:text-[5.25rem]" style={{ animationDelay: '60ms' }}>
+          Le logiciel de gestion pensé pour les salles de sport
         </h1>
 
-        <p className="mt-6 text-lg sm:text-xl text-brand-ink/60 max-w-2xl mx-auto motion-safe:animate-fadeInUp" style={{ animationDelay: '60ms' }}>
-          Flyder remplace le tableur de planning de votre salle de sport : en un écran, vous savez
-          qui a animé chaque cours, qui était présent et qui a remplacé qui.
+        <p className="mx-auto mt-7 max-w-xl text-lg text-brand-ink/60 motion-safe:animate-fadeInUp sm:text-xl" style={{ animationDelay: '120ms' }}>
+          Planning, coachs, RH, facturation et statistiques réunis dans un seul outil.
         </p>
 
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 motion-safe:animate-fadeInUp" style={{ animationDelay: '120ms' }}>
-          <a href="#contact"
-            className="inline-flex items-center gap-2 text-white text-sm font-semibold px-7 py-3.5 rounded-full hover:opacity-90 transition-opacity shadow-lg shadow-blue-900/10"
-            style={{ backgroundColor: '#3D5AFE' }}>
-            Voir ça sur mon planning <ArrowRight className="h-4 w-4" />
+        <div className="mt-9 flex flex-col items-stretch justify-center gap-3 motion-safe:animate-fadeInUp sm:flex-row sm:items-center" style={{ animationDelay: '180ms' }}>
+          <a href="#contact" className="btn-primary">
+            Demander une démonstration <ArrowRight className="h-4 w-4" />
           </a>
-          <a href="#solutions"
-            className="inline-flex items-center gap-2 text-brand-ink text-sm font-semibold px-7 py-3.5 rounded-full border border-black/10 hover:bg-white transition-colors">
-            Découvrir ce que ça change
+          <a href="#fonctionnalites" className="btn-secondary">
+            Découvrir les fonctionnalités
           </a>
         </div>
+      </div>
 
-        <div className="mt-16 sm:mt-20 motion-safe:animate-fadeInUp" style={{ animationDelay: '260ms' }}>
-          <ProductTour />
-        </div>
+      <div className="mx-auto mt-14 max-w-[84rem] px-3 motion-safe:animate-fadeInUp sm:mt-20 sm:px-5" style={{ animationDelay: '260ms' }}>
+        <ProductTour />
       </div>
     </section>
   );

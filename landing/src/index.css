@@ -3,12 +3,56 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
-    @apply text-gray-900 font-sans antialiased;
+    @apply bg-brand-cream text-brand-ink font-sans antialiased;
   }
   h1, h2, h3 {
     @apply font-display;
   }
+}
+
+@layer components {
+  /* Titres "massifs" : gros corps, interlettrage serré, interligne court. */
+  .display-xl {
+    @apply font-display font-semibold text-brand-ink;
+    letter-spacing: -0.045em;
+    line-height: 0.98;
+    text-wrap: balance;
+  }
+  .display-lg {
+    @apply font-display font-semibold;
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+
+  /* Un seul accent (bleu) pour l'action principale, un neutre pour la secondaire. */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-blue px-6 py-3.5 text-sm font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-ink/[0.07] px-6 py-3.5 text-sm font-semibold text-brand-ink transition-colors duration-200 hover:bg-brand-ink/[0.12];
+  }
+}
+
+/* Apparition au scroll (voir components/Reveal.jsx). Le contenu reste dans le
+   DOM, et s'affiche sans animation si l'utilisateur préfère réduire les mouvements. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
 }
 
 /* Fond grainé discret (SVG, pas de dégradé ni de motif à points) — casse

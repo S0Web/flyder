@@ -20,6 +20,7 @@ export default {
           blue:  '#3D5AFE',
           coral: '#FF5A36',
           slate: '#8B93A7',
+          sand:  '#ECE9E1',
         },
       },
       keyframes: {
