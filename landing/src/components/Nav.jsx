@@ -5,6 +5,7 @@ import logo from '../assets/logo-flyder.png';
 const LINKS = [
   { href: '#solutions', label: 'Solutions' },
   { href: '#fonctionnalites', label: 'Fonctionnalités' },
+  { href: '#equipe', label: 'Équipe' },
   { href: '#contact', label: 'Contact' },
 ];
 

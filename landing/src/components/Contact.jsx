@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Send, CheckCircle2 } from 'lucide-react';
 import Reveal from './Reveal';
+import TitreRevele from './TitreRevele';
 
 const LEADS_URL = 'https://admin.flyder.fr/api/leads';
 
@@ -54,8 +55,8 @@ export default function Contact() {
   }
 
   return (
-    <section id="contact" className="scroll-mt-20 px-3 py-24 sm:px-5 sm:py-36">
-      <Reveal className="mx-auto max-w-[84rem] rounded-[2rem] bg-brand-ink px-6 py-16 sm:rounded-[2.5rem] sm:px-14 sm:py-24">
+    <section id="contact" className="scroll-mt-20 px-3 py-16 sm:px-5 sm:py-36">
+      <Reveal className="mx-auto max-w-[84rem] rounded-[2rem] bg-brand-ink px-6 py-12 sm:rounded-[2.5rem] sm:px-14 sm:py-24">
         {statut === 'ok' ? (
           <div className="mx-auto max-w-xl py-10 text-center" role="status">
             <CheckCircle2 className="mx-auto mb-6 h-12 w-12 text-brand-blue" />
@@ -67,9 +68,8 @@ export default function Contact() {
         ) : (
           <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
             <div>
-              <h2 className="display-lg text-4xl text-white sm:text-6xl">
-                Prêt à simplifier la gestion de votre salle ?
-              </h2>
+              <TitreRevele texte="Prêt à simplifier la gestion de votre salle ?"
+                className="display-lg text-4xl text-white sm:text-6xl" />
               <p className="mt-6 max-w-md text-lg text-brand-cream/60">
                 Parlons de votre salle et de votre fonctionnement — on vous montre Flyder en conditions réelles, sans engagement.
               </p>

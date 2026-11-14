@@ -50,9 +50,51 @@
   opacity: 1;
   transform: none;
 }
+/* Variante pour une rangée : le conteneur déclenche, ses enfants apparaissent
+   en décalé. Sert aux rangées qui deviennent un carrousel horizontal sur
+   mobile, où un déclenchement carte par carte ne se ferait qu'au swipe. */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-stagger > *:nth-child(3n + 2) { transition-delay: 0.1s; }
+.reveal-stagger > *:nth-child(3n) { transition-delay: 0.2s; }
+.reveal-stagger.is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+
+/* Carrousel horizontal : barre de défilement masquée, le swipe suffit. */
+.sans-barre {
+  scrollbar-width: none;
+}
+.sans-barre::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bandeau défilant (components/Bandeau.jsx) : deux pistes identiques qui
+   glissent d'une largeur de piste, d'où une boucle sans raccord. */
+.bandeau {
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.bandeau-piste {
+  animation: bandeau 38s linear infinite;
+}
+.bandeau:hover .bandeau-piste {
+  animation-play-state: paused;
+}
+@keyframes bandeau {
+  to { transform: translateX(-100%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .reveal { opacity: 1; transform: none; transition: none; }
+  .reveal, .reveal-stagger > * { opacity: 1; transform: none; transition: none; }
+  /* Sans animation, le bandeau devient une simple rangée à faire défiler. */
+  .bandeau { overflow-x: auto; mask-image: none; }
+  .bandeau-piste { animation: none; }
+  .bandeau-piste[aria-hidden] { display: none; }
 }
 
 /* Fond grainé discret (SVG, pas de dégradé ni de motif à points) — casse

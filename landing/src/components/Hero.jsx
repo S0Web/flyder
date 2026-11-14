@@ -81,13 +81,6 @@ export default function Hero() {
   return (
     <section id="top" className="pt-32 sm:pt-40">
       <div className="mx-auto max-w-6xl px-5 text-center sm:px-8">
-        <div className="mb-7 inline-flex items-center gap-2.5 rounded-full bg-brand-ink/[0.06] py-1.5 pl-1.5 pr-4 motion-safe:animate-fadeInUp">
-          <span className="rounded-full bg-brand-ink px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            Nouveau
-          </span>
-          <span className="text-left text-xs font-medium text-brand-ink/70">Facturation automatisée maintenant disponible</span>
-        </div>
-
         <h1 className="display-xl mx-auto max-w-5xl text-[2.6rem] motion-safe:animate-fadeInUp sm:text-7xl lg:text-[5.25rem]" style={{ animationDelay: '60ms' }}>
           Le logiciel de gestion pensé pour les salles de sport
         </h1>

@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 // Fait apparaître son contenu en fondu + léger glissement quand il entre dans
-// la fenêtre. `delay` (ms) permet d'échelonner plusieurs cartes d'une rangée.
-export default function Reveal({ as: Tag = 'div', delay = 0, className = '', children, ...rest }) {
+// la fenêtre. `delay` (ms) décale un bloc ; `stagger` fait apparaître les
+// enfants en décalé (voir .reveal-stagger dans index.css).
+export default function Reveal({ as: Tag = 'div', delay = 0, stagger = false, className = '', children, ...rest }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -23,7 +24,8 @@ export default function Reveal({ as: Tag = 'div', delay = 0, className = '', chi
   }, []);
 
   return (
-    <Tag ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` }} {...rest}>
+    <Tag ref={ref} className={`${stagger ? 'reveal-stagger' : 'reveal'} ${className}`}
+      style={stagger ? undefined : { transitionDelay: `${delay}ms` }} {...rest}>
       {children}
     </Tag>
   );

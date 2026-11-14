@@ -1,35 +1,32 @@
+import { CalendarDays, Users, FileText, Check } from 'lucide-react';
 import Reveal from './Reveal';
+import TitreRevele from './TitreRevele';
+import Carrousel from './Carrousel';
 
-// Mini-aperçus d'interface dessinés en CSS : ils évoquent l'appli (grille de
-// planning, univers d'activité, fiches coachs) sans dépendre de captures.
+// Mini-aperçus d'interface dessinés en CSS : ils évoquent l'appli (modules
+// réunis, univers d'activité, fiches coachs) sans dépendre de captures.
 const BLEU = '#3D5AFE';
 const CORAIL = '#FF5A36';
-const ENCRE = '#12162B';
 
-function ApercuPlanning() {
-  // 5 jours × 3 créneaux ; null = créneau libre.
-  const grille = [
-    [BLEU, null, CORAIL, BLEU, null],
-    [CORAIL, BLEU, null, CORAIL, BLEU],
-    [null, CORAIL, BLEU, null, CORAIL],
+// "Planning, coachs et RH réunis au même endroit" : les trois modules dans
+// un seul et même panneau.
+function ApercuToutEnUn() {
+  const modules = [
+    { icon: CalendarDays, nom: 'Planning' },
+    { icon: Users, nom: 'Coachs' },
+    { icon: FileText, nom: 'RH & documents' },
   ];
   return (
-    <div className="w-full">
-      <div className="mb-2 grid grid-cols-5 gap-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-brand-ink/40">
-        {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'].map(j => <span key={j}>{j}</span>)}
-      </div>
-      <div className="space-y-1.5">
-        {grille.map((ligne, i) => (
-          <div key={i} className="grid grid-cols-5 gap-1.5">
-            {ligne.map((c, j) => (
-              <div key={j} className="h-11 rounded-lg border-l-[3px]"
-                style={c
-                  ? { backgroundColor: `${c}1F`, borderColor: c }
-                  : { backgroundColor: 'rgba(18,22,43,0.04)', borderColor: 'transparent' }} />
-            ))}
+    <div className="w-full overflow-hidden rounded-xl border border-brand-ink/10">
+      {modules.map(({ icon: Icon, nom }, i) => (
+        <div key={nom} className={`flex items-center gap-3 px-3.5 py-3 ${i ? 'border-t border-brand-ink/10' : ''}`}>
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-ink">
+            <Icon className="h-4 w-4 text-white" strokeWidth={1.75} />
           </div>
-        ))}
-      </div>
+          <span className="flex-1 text-sm font-semibold text-brand-ink">{nom}</span>
+          <Check className="h-4 w-4 text-brand-blue" strokeWidth={2.5} />
+        </div>
+      ))}
     </div>
   );
 }
@@ -38,13 +35,12 @@ function ApercuUnivers() {
   const univers = [
     { nom: 'Aqua', couleur: BLEU, cours: ['Aquabike', 'Aquagym'] },
     { nom: 'Fitness', couleur: CORAIL, cours: ['Crossfit', 'Pilates'] },
-    { nom: 'Cours co', couleur: ENCRE, cours: ['Bodypump', 'Boxe'] },
   ];
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-2.5">
       {univers.map(u => (
         <div key={u.nom} className="flex items-stretch gap-2">
-          <div className="flex w-[4.5rem] flex-shrink-0 items-center justify-center rounded-lg px-2 py-3 text-[10px] font-bold uppercase tracking-wide text-white"
+          <div className="flex w-[4.5rem] flex-shrink-0 items-center justify-center rounded-lg px-2 py-5 text-[10px] font-bold uppercase tracking-wide text-white"
             style={{ backgroundColor: u.couleur }}>
             {u.nom}
           </div>
@@ -84,7 +80,7 @@ function ApercuCoachs() {
 
 const CARDS = [
   {
-    Apercu: ApercuPlanning,
+    Apercu: ApercuToutEnUn,
     title: 'Salles indépendantes',
     text: "Un outil taillé pour votre quotidien, sans fonctionnalités superflues à payer en trop. Planning, coachs et RH réunis au même endroit.",
   },
@@ -102,31 +98,32 @@ const CARDS = [
 
 export default function Solutions() {
   return (
-    <section id="solutions" className="scroll-mt-24 pb-28 sm:pb-40">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <Reveal className="mx-auto mb-14 max-w-3xl text-center sm:mb-20">
-          <h2 className="display-lg text-4xl text-brand-ink sm:text-6xl">
-            Un outil qui s'adapte à votre salle, pas l'inverse
-          </h2>
-          <p className="mx-auto mt-6 max-w-xl text-lg text-brand-ink/60">
-            Que vous gériez un studio spécialisé ou une salle multi-activités, Flyder s'organise autour de votre fonctionnement réel.
-          </p>
+    <section id="solutions" className="scroll-mt-24 pb-20 sm:pb-40">
+      <div className="mx-auto mb-10 max-w-3xl px-5 text-center sm:mb-20 sm:px-8">
+        <TitreRevele texte="Un outil qui s'adapte à votre salle, pas l'inverse"
+          className="display-lg text-4xl text-brand-ink sm:text-6xl" />
+        <Reveal as="p" className="mx-auto mt-6 max-w-xl text-lg text-brand-ink/60">
+          Que vous gériez un studio spécialisé ou une salle multi-activités, Flyder s'organise autour de votre fonctionnement réel.
         </Reveal>
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {CARDS.map(({ Apercu, title, text }, i) => (
-            <Reveal key={title} delay={i * 120} className="flex flex-col rounded-[1.75rem] bg-brand-sand p-2">
-              <div aria-hidden="true" className="flex h-60 items-center rounded-[1.375rem] bg-white px-5">
+      <Carrousel
+        classeCarte="rounded-[1.75rem] bg-brand-sand p-2"
+        cartes={CARDS.map(({ Apercu, title, text }) => ({
+          titre: title,
+          contenu: (
+            <>
+              <div aria-hidden="true" className="flex h-52 items-center rounded-[1.375rem] bg-white px-5 md:h-60">
                 <Apercu />
               </div>
-              <div className="px-5 pb-6 pt-6">
+              <div className="px-5 pb-6 pt-5 md:pt-6">
                 <h3 className="text-2xl font-semibold tracking-tight text-brand-ink">{title}</h3>
                 <p className="mt-2.5 text-[15px] leading-relaxed text-brand-ink/60">{text}</p>
               </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
+            </>
+          ),
+        }))}
+      />
     </section>
   );
 }

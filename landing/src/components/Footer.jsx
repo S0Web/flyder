@@ -5,9 +5,10 @@ export default function Footer() {
     <footer className="mx-auto max-w-6xl px-5 pb-10 sm:px-8">
       <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
         <img src={logo} alt="Flyder" className="h-6 w-auto" />
-        <div className="flex items-center gap-7 text-sm font-medium text-brand-ink/60">
+        <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-sm font-medium text-brand-ink/60">
           <a href="#solutions" className="transition-colors hover:text-brand-ink">Solutions</a>
           <a href="#fonctionnalites" className="transition-colors hover:text-brand-ink">Fonctionnalités</a>
+          <a href="#equipe" className="transition-colors hover:text-brand-ink">Équipe</a>
           <a href="#contact" className="transition-colors hover:text-brand-ink">Contact</a>
         </div>
       </div>
