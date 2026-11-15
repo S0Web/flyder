@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { api } from '../../lib/api';
+import { renderMarkdown } from '../../lib/markdown';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { parseServerDate } from '../../lib/utils';
@@ -99,7 +100,7 @@ export function CompteRenduPanneau({ date = aujourdhuiISO(), onClose, onSaved })
             <div className="flex items-start gap-5">
               <Tampon statut={cr.statut} className="mt-1" />
               {cr.retour_manager && (
-                <p className="text-sm text-brand-ink leading-relaxed">
+                <p className="text-sm text-brand-ink leading-relaxed whitespace-pre-wrap">
                   <span className="text-[11px] text-gray-500">{cr.valide_par_prenom} : </span>{cr.retour_manager}
                 </p>
               )}
@@ -260,10 +261,13 @@ export function CompteRenduCarte({ cr, onDecision, onModifier, montrerAuteur = t
         )}
 
         <div className="mt-3">
-          {cr.resume && <p className="text-[15px] text-brand-ink leading-relaxed mb-2">{cr.resume}</p>}
+          {cr.resume && (
+            <div className="formation-content text-[15px] mb-2"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(cr.resume) }} />
+          )}
           {cr.priorite_demain && <LigneFiche signe="→" label="demain">{cr.priorite_demain}</LigneFiche>}
-          {cr.probleme && <LigneFiche signe="⚑" label="signalé" ton="text-red-700 font-medium">{cr.probleme}</LigneFiche>}
-          {cr.retour_manager && <LigneFiche signe="✎" label={cr.valide_par_prenom || 'manager'}>{cr.retour_manager}</LigneFiche>}
+          {cr.probleme && <LigneFiche signe="⚑" label="signalé" ton="text-red-700 font-medium whitespace-pre-wrap">{cr.probleme}</LigneFiche>}
+          {cr.retour_manager && <LigneFiche signe="✎" label={cr.valide_par_prenom || 'manager'} ton="text-brand-ink whitespace-pre-wrap">{cr.retour_manager}</LigneFiche>}
         </div>
 
         <div className="mt-2 flex items-center gap-4">
