@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { CalendarDays, ClipboardCheck, BarChart3, Users, Flag } from 'lucide-react';
 import { api } from '../../lib/api';
+import { renderMarkdown } from '../../lib/markdown';
 import { useToast } from '../../context/ToastContext';
 import { TachePanneau } from '../../components/equipe/Taches';
 import { DemandesEnAttente } from '../../components/equipe/DemandesConges';
@@ -272,7 +273,7 @@ export default function VueEnsemble() {
                 <li key={p.id} className="grid grid-cols-[20px_1fr] gap-2 py-2.5 border-b border-gray-100">
                   <span className="text-red-600 text-sm">⚑</span>
                   <div>
-                    <p className="text-sm text-brand-ink leading-snug">{p.probleme}</p>
+                    <div className="formation-content text-sm" dangerouslySetInnerHTML={{ __html: renderMarkdown(p.probleme) }} />
                     <p className="text-[11px] text-gray-500 mt-1">{p.prenom} · {jjmm(p.date)}</p>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
                       {p.tache_id ? (

@@ -160,7 +160,6 @@ export function ListeTaches({ taches, onOpen, onToggle, montrerAssigne, vide, fa
 export function AjoutRapide({ membres, assigneParDefaut, onCree, placeholder = 'Nouvelle tâche…' }) {
   const { user } = useAuth();
   const toast = useToast();
-  const isManager = user?.role === 'manager';
   const [titre, setTitre] = useState('');
   const [assigne, setAssigne] = useState(assigneParDefaut || user?.id);
   const [echeance, setEcheance] = useState('');
@@ -190,7 +189,7 @@ export function AjoutRapide({ membres, assigneParDefaut, onCree, placeholder = '
       <input value={titre} onChange={e => setTitre(e.target.value)} placeholder={placeholder}
         className="flex-1 min-w-[180px] text-sm text-brand-ink bg-transparent border-0 px-1 py-1 focus:outline-none focus:ring-0 placeholder:text-gray-400" />
       <input type="date" value={echeance} onChange={e => setEcheance(e.target.value)} aria-label="Échéance" className={mini} />
-      {isManager && membres?.length > 0 && !assigneParDefaut && (
+      {membres?.length > 0 && !assigneParDefaut && (
         <select value={assigne} onChange={e => setAssigne(Number(e.target.value))} aria-label="Assigner à" className={`${mini} pr-6`}>
           {membres.map(m => <option key={m.id} value={m.id}>{m.id === user.id ? 'pour moi' : `pour ${m.prenom}`}</option>)}
         </select>
@@ -356,9 +355,9 @@ export function TachePanneau({ tache, membres, assigneParDefaut, initial, onClos
             </div>
           </Ligne>
           <Ligne label="pour">
-            {isManager ? (
+            {(nouvelle || peutEditer) && membres?.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {(membres || []).map(m => {
+                {membres.map(m => {
                   const actif = form.assigne_a === m.id || form.co_assignes.includes(m.id);
                   return (
                     <button key={m.id} type="button" onClick={() => toggleAssigne(m.id)} className={choixCls(actif)}>

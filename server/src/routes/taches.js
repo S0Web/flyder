@@ -65,10 +65,12 @@ function nettoyerCoAssignes(liste, principal) {
   return ids;
 }
 
-// Tâches de l'équipe. Le manager voit et gère tout ; un salarié ne voit que les
-// tâches qui lui sont assignées, peut s'en créer lui-même (la tâche garde son
-// auteur, affiché « créée par… »), faire avancer leur statut, et ne modifie ou
-// supprime que celles qu'il a créées.
+// Tâches de l'équipe. Le manager voit et gère tout. Un salarié peut assigner une
+// tâche à n'importe qui dans l'équipe (la tâche garde son auteur, affiché
+// « créée par… ») ; il voit celles qui lui sont assignées, celles qu'il a créées
+// pour quelqu'un d'autre, et celles où il est co-assigné ; il fait avancer le
+// statut de toutes ses tâches, mais ne modifie ou supprime que celles qu'il a
+// créées (ou celles d'un manager).
 
 const PRIORITES  = ['basse', 'normale', 'haute', 'urgente'];
 const STATUTS    = ['a_faire', 'en_cours', 'fait'];
@@ -87,7 +89,7 @@ const SELECT_TACHE = `
 const estManager = (req) => req.user.role === 'manager';
 
 function peutVoir(req, tache) {
-  if (estManager(req) || tache.assigne_a === req.user.id) return true;
+  if (estManager(req) || tache.assigne_a === req.user.id || tache.cree_par === req.user.id) return true;
   return !!db.get('SELECT 1 FROM tache_coassignes WHERE tache_id = ? AND user_id = ?', [tache.id, req.user.id]);
 }
 
@@ -124,9 +126,9 @@ router.get('/', (req, res) => {
   genererChecklists(); // checklists du jour pour la personne planifiée (idempotent)
   const where = [];
   const params = [];
-  // Co-assigné : une tâche compte pour cette personne même si elle n'est pas
-  // l'assignée principale (t.assigne_a).
-  const appartientA = (id) => { where.push('(t.assigne_a = ? OR t.id IN (SELECT tache_id FROM tache_coassignes WHERE user_id = ?))'); params.push(id, id); };
+  // Une tâche compte pour cette personne si elle lui est assignée, si elle en
+  // est l'autrice (même assignée à quelqu'un d'autre), ou si elle est co-assignée.
+  const appartientA = (id) => { where.push('(t.assigne_a = ? OR t.cree_par = ? OR t.id IN (SELECT tache_id FROM tache_coassignes WHERE user_id = ?))'); params.push(id, id, id); };
   if (!estManager(req)) {
     appartientA(req.user.id);
   } else if (req.query.assigne_a) {
@@ -152,13 +154,13 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const { titre, description, assigne_a, echeance, priorite, recurrence, co_assignes } = req.body;
   if (!titre || !titre.trim()) return res.status(400).json({ error: 'Le titre est requis' });
-  const cible = estManager(req) && assigne_a ? Number(assigne_a) : req.user.id;
+  const cible = assigne_a ? Number(assigne_a) : req.user.id;
   if (!db.get('SELECT 1 FROM app_users WHERE id = ? AND supprime = 0', [cible])) {
     return res.status(400).json({ error: 'Membre introuvable' });
   }
   let co;
   try {
-    co = estManager(req) ? nettoyerCoAssignes(co_assignes, cible) : [];
+    co = nettoyerCoAssignes(co_assignes, cible);
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -199,10 +201,10 @@ router.patch('/:id', (req, res) => {
   if (b.echeance !== undefined) next.echeance = b.echeance || null;
   if (b.priorite !== undefined && PRIORITES.includes(b.priorite)) next.priorite = b.priorite;
   if (b.recurrence !== undefined && RECURRENCES.includes(b.recurrence)) next.recurrence = b.recurrence;
-  if (b.assigne_a !== undefined && estManager(req)) next.assigne_a = Number(b.assigne_a);
+  if (b.assigne_a !== undefined && peutEditer) next.assigne_a = Number(b.assigne_a);
 
   let co = null; // null = inchangé
-  if (estManager(req) && (b.co_assignes !== undefined || b.assigne_a !== undefined)) {
+  if (peutEditer && (b.co_assignes !== undefined || b.assigne_a !== undefined)) {
     try {
       // assigne_a peut changer dans le même appel : on nettoie co_assignes (envoyé,
       // ou les co-assignés actuels si seul assigne_a a bougé) contre le nouveau principal.

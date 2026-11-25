@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { renderMarkdown } from '../../lib/markdown';
 import { useAuth } from '../../context/AuthContext';
 import { ListeTaches, AjoutRapide, TachePanneau, useBasculeTache } from '../../components/equipe/Taches';
 import { CompteRenduPanneau } from '../../components/equipe/ComptesRendus';
@@ -155,10 +156,16 @@ export default function MaJournee() {
                   <li key={t.id} className="px-4 py-3">
                     <div className="text-[11px] text-gray-500">{t.prenom} · {jourCourt(t.date)}</div>
                     {t.priorite_demain && (
-                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="text-sky-600">→</span> {t.priorite_demain}</p>
+                      <div className="mt-1 flex gap-1.5 text-sm text-brand-ink leading-snug">
+                        <span className="text-sky-600 flex-shrink-0">→</span>
+                        <div className="formation-content min-w-0" dangerouslySetInnerHTML={{ __html: renderMarkdown(t.priorite_demain) }} />
+                      </div>
                     )}
                     {t.probleme && (
-                      <p className="mt-1 text-sm text-brand-ink leading-snug"><span className="text-red-600">⚑</span> {t.probleme}</p>
+                      <div className="mt-1 flex gap-1.5 text-sm text-brand-ink leading-snug">
+                        <span className="text-red-600 flex-shrink-0">⚑</span>
+                        <div className="formation-content min-w-0" dangerouslySetInnerHTML={{ __html: renderMarkdown(t.probleme) }} />
+                      </div>
                     )}
                   </li>
                 ))}
